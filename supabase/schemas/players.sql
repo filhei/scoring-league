@@ -2,7 +2,7 @@ CREATE TABLE players (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
-  elo INTEGER DEFAULT 1200,
+  elo INTEGER DEFAULT 1500,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
