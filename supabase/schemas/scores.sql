@@ -4,5 +4,5 @@ CREATE TABLE scores (
   scoring_player_id UUID REFERENCES players(id) ON DELETE SET NULL,
   assisting_player_id UUID REFERENCES players(id) ON DELETE SET NULL,
   team TEXT CHECK (team IN ('A', 'B')) NOT NULL,
-  scored_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+  score_time INTERVAL NOT NULL
 );
