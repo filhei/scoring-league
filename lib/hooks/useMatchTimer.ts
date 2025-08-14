@@ -4,7 +4,7 @@ import type { Database } from '../../supabase/database.types'
 
 type Match = Database['public']['Tables']['matches']['Row']
 
-interface UseMatchTimerReturn {
+export interface UseMatchTimerReturn {
   currentDuration: number
   formattedTime: string
   minutes: number

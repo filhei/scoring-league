@@ -1,0 +1,274 @@
+import type { GoalDialogState, ActiveGameData, Player } from '../lib/types'
+
+interface GoalDialogProps {
+  goalDialog: GoalDialogState
+  activeGame: ActiveGameData | null
+  isDarkMode: boolean
+  onPlayerClick: (player: Player) => void
+  onSubmit: () => void
+  onCancel: () => void
+  onRemoveSelectedPlayer: (type: 'scoring' | 'assisting') => void
+}
+
+export function GoalDialog({
+  goalDialog,
+  activeGame,
+  isDarkMode,
+  onPlayerClick,
+  onSubmit,
+  onCancel,
+  onRemoveSelectedPlayer
+}: GoalDialogProps) {
+  if (!goalDialog.isOpen || !activeGame) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className={`rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-hidden transition-colors duration-300 ${
+        isDarkMode
+          ? 'bg-gray-900 border border-gray-700'
+          : 'bg-white border border-gray-200'
+      }`}>
+        {/* Header and Selected Players */}
+        <div className="mb-6">
+          <div className="flex gap-6">
+            {/* Title Column */}
+            <div className="flex-shrink-0 w-24 h-20 flex flex-col justify-center">
+              <h3 className={`text-xl font-bold mb-1 transition-colors duration-300 ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                Nytt mål
+              </h3>
+              <p className={`text-xs transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Fyll i poängläggare
+              </p>
+            </div>
+            
+            {/* Score Tiles Column */}
+            <div className="flex-1 h-20 flex flex-col justify-center space-y-2">
+              {/* Goal Tile */}
+              <div className="flex items-center gap-2">
+                <div className="w-10">
+                  {goalDialog.scoringPlayer && (
+                    <span className={`text-xs font-medium transition-colors duration-300 ${
+                      isDarkMode ? 'text-green-400' : 'text-green-600'
+                    }`}>
+                      Mål:
+                    </span>
+                  )}
+                </div>
+                {goalDialog.scoringPlayer ? (
+                  <div className={`flex-1 flex items-center justify-between px-2 py-1.5 rounded-md border transition-colors duration-300 ${
+                    isDarkMode
+                      ? 'bg-green-900/30 border-green-700'
+                      : 'bg-green-50 border-green-200'
+                  }`}>
+                    <span className={`text-sm font-medium truncate transition-colors duration-300 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      {goalDialog.scoringPlayer.name}
+                    </span>
+                    <button
+                      onClick={() => onRemoveSelectedPlayer('scoring')}
+                      className={`ml-1 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 flex-shrink-0 hover:scale-110 ${
+                        isDarkMode
+                          ? 'text-gray-400 hover:bg-gray-700'
+                          : 'text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      <span className="text-sm font-bold">×</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex-1 h-8"></div>
+                )}
+              </div>
+              
+              {/* Assist Tile */}
+              <div className="flex items-center gap-2">
+                <div className="w-10">
+                  {goalDialog.assistingPlayer && (
+                    <span className={`text-xs font-medium transition-colors duration-300 ${
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                    }`}>
+                      Assist:
+                    </span>
+                  )}
+                </div>
+                {goalDialog.assistingPlayer ? (
+                  <div className={`flex-1 flex items-center justify-between px-2 py-1.5 rounded-md border transition-colors duration-300 ${
+                    isDarkMode
+                      ? 'bg-blue-900/30 border-blue-700'
+                      : 'bg-blue-50 border-blue-200'
+                  }`}>
+                    <span className={`text-sm font-medium truncate transition-colors duration-300 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      {goalDialog.assistingPlayer.name}
+                    </span>
+                    <button
+                      onClick={() => onRemoveSelectedPlayer('assisting')}
+                      className={`ml-1 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 flex-shrink-0 hover:scale-110 ${
+                        isDarkMode
+                          ? 'text-gray-400 hover:bg-gray-700'
+                          : 'text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      <span className="text-sm font-bold">×</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex-1 h-8"></div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Separator */}
+        <div className={`border-t transition-colors duration-300 ${
+          isDarkMode ? 'border-gray-700' : 'border-gray-300'
+        }`}></div>
+
+        {/* Player List */}
+        <div className="flex-1 overflow-hidden min-h-0 mt-4">
+          <div className="max-h-80 overflow-y-auto space-y-0 pr-1">
+            {/* Scoring Team Players */}
+            {goalDialog.team && (
+              <>
+                {(goalDialog.team === 'A' ? activeGame.teamA : activeGame.teamB).map((player) => {
+                  const isScoring = goalDialog.scoringPlayer?.id === player.id
+                  const isAssisting = goalDialog.assistingPlayer?.id === player.id
+                  
+                  return (
+                    <button
+                      key={player.id}
+                      onClick={() => onPlayerClick(player)}
+                      className={`w-full px-2 py-1.5 text-left rounded-sm transition-[background-color] duration-150 box-border ${
+                        isScoring
+                          ? isDarkMode
+                            ? 'bg-gray-600'
+                            : 'bg-gray-300'
+                          : isAssisting
+                            ? isDarkMode
+                              ? 'bg-gray-700'
+                              : 'bg-gray-200'
+                            : isDarkMode
+                              ? 'bg-gray-900 hover:bg-gray-800'
+                              : 'bg-gray-50 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center min-w-0">
+                        <span className={`font-medium transition-colors duration-300 truncate flex-1 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          {player.name}
+                        </span>
+                        <div className="flex space-x-2 flex-shrink-0 ml-2">
+                          {isScoring && (
+                            <span className={`text-sm px-2 py-1 rounded font-semibold transition-colors duration-300 ${
+                              isDarkMode ? 'text-green-300' : 'text-green-700'
+                            }`}>
+                              Mål
+                            </span>
+                          )}
+                          {isAssisting && (
+                            <span className={`text-sm px-2 py-1 rounded transition-colors duration-300 ${
+                              isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                            }`}>
+                              Assist
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+
+                {/* Separator */}
+                <div className={`my-4 border-t transition-colors duration-300 ${
+                  isDarkMode ? 'border-gray-700' : 'border-gray-300'
+                }`}></div>
+                
+                {/* Opponent Team Players */}
+                {(goalDialog.team === 'A' ? activeGame.teamB : activeGame.teamA).map((player) => {
+                  const isScoring = goalDialog.scoringPlayer?.id === player.id
+                  const isAssisting = goalDialog.assistingPlayer?.id === player.id
+                  
+                  return (
+                    <button
+                      key={player.id}
+                      onClick={() => onPlayerClick(player)}
+                      className={`w-full px-2 py-1.5 text-left rounded-sm transition-[background-color] duration-150 box-border ${
+                        isScoring
+                          ? isDarkMode
+                            ? 'bg-gray-600'
+                            : 'bg-gray-300'
+                          : isAssisting
+                            ? isDarkMode
+                              ? 'bg-gray-700'
+                              : 'bg-gray-200'
+                            : isDarkMode
+                              ? 'bg-gray-900 hover:bg-gray-800'
+                              : 'bg-gray-50 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center min-w-0">
+                        <span className={`font-medium transition-colors duration-300 truncate flex-1 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>
+                          {player.name}
+                        </span>
+                        <div className="flex space-x-2 flex-shrink-0 ml-2">
+                          {isScoring && (
+                            <span className={`text-sm px-2 py-1 rounded font-semibold transition-colors duration-300 ${
+                              isDarkMode ? 'text-green-300' : 'text-green-700'
+                            }`}>
+                              Mål
+                            </span>
+                          )}
+                          {isAssisting && (
+                            <span className={`text-sm px-2 py-1 rounded transition-colors duration-300 ${
+                              isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                            }`}>
+                              Assist
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-3 mt-6">
+          <button
+            onClick={onCancel}
+            className={`px-6 py-2 rounded-full font-medium transition-all duration-300 hover:scale-105 ${
+              isDarkMode
+                ? 'bg-gray-800 hover:bg-gray-700 text-white'
+                : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+            }`}
+          >
+            Avbryt
+          </button>
+          <button
+            onClick={onSubmit}
+            className={`px-6 py-2 rounded-full font-medium transition-all duration-300 hover:scale-105 ${
+              isDarkMode
+                ? 'bg-green-600 hover:bg-green-500 text-white'
+                : 'bg-green-500 hover:bg-green-600 text-white'
+            }`}
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+} 
