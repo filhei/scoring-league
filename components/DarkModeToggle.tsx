@@ -9,7 +9,7 @@ export function DarkModeToggle({ isDarkMode, onToggle }: DarkModeToggleProps) {
       onClick={onToggle}
       className={`p-3 rounded-full transition-all duration-300 hover:scale-105 ${
         isDarkMode
-          ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400'
+          ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400'
           : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
       }`}
       title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}

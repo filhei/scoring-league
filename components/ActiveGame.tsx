@@ -46,7 +46,7 @@ export function ActiveGame({
       {/* Active Game Pane */}
       <div className={`rounded-2xl p-8 mb-8 transition-colors duration-300 ${
         isDarkMode
-          ? 'bg-gray-900 border border-gray-800'
+          ? 'bg-gray-800 border border-gray-700'
           : 'bg-gray-50 border border-gray-200'
       }`}>
         {/* Title */}
@@ -104,11 +104,16 @@ export function ActiveGame({
         <div className="flex justify-center items-center space-x-16 mb-8">
           <button
             onClick={() => onScoreIncrement(leftTeam)}
-            className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-300 hover:scale-110 ${
-              isDarkMode
-                ? 'bg-green-600 hover:bg-green-500 text-white'
-                : 'bg-green-600 hover:bg-green-700 text-white'
-            }`}
+            className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-300 hover:scale-110 text-white"
+            style={{
+              backgroundColor: 'var(--accent-blue)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent-blue-hover)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent-blue)'
+            }}
           >
             +
           </button>
@@ -119,11 +124,16 @@ export function ActiveGame({
           </div>
           <button
             onClick={() => onScoreIncrement(rightTeam)}
-            className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-300 hover:scale-110 ${
-              isDarkMode
-                ? 'bg-green-600 hover:bg-green-500 text-white'
-                : 'bg-green-600 hover:bg-green-700 text-white'
-            }`}
+            className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-300 hover:scale-110 text-white"
+            style={{
+              backgroundColor: 'var(--accent-blue)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent-blue-hover)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent-blue)'
+            }}
           >
             +
           </button>
@@ -133,11 +143,16 @@ export function ActiveGame({
         <div className="flex justify-center mb-8">
           <button
             onClick={onEndMatch}
-            className={`px-5 py-1.5 rounded-lg font-semibold transition-all duration-300 hover:scale-105 ${
-              isDarkMode
-                ? 'bg-red-600 hover:bg-red-500 text-white'
-                : 'bg-red-500 hover:bg-red-600 text-white'
-            }`}
+            className="px-5 py-1.5 rounded-lg font-semibold transition-all duration-300 hover:scale-105 text-white"
+            style={{
+              backgroundColor: 'var(--accent-red)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent-red-hover)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent-red)'
+            }}
           >
             End Match
           </button>
@@ -145,9 +160,12 @@ export function ActiveGame({
 
         {/* Teams Header */}
         <div className="flex justify-between items-center mb-6">
-          <h3 className={`text-xl font-bold transition-colors duration-300 ${
-            isDarkMode ? 'text-green-400' : 'text-green-600'
-          }`}>
+          <h3 
+            className="text-xl font-bold transition-colors duration-300"
+            style={{
+              color: 'var(--accent-blue)'
+            }}
+          >
             Team {leftTeam}
           </h3>
           <button
@@ -161,9 +179,12 @@ export function ActiveGame({
           >
             ⇄
           </button>
-          <h3 className={`text-xl font-bold transition-colors duration-300 ${
-            isDarkMode ? 'text-green-400' : 'text-green-600'
-          }`}>
+          <h3 
+            className="text-xl font-bold transition-colors duration-300"
+            style={{
+              color: 'var(--accent-blue)'
+            }}
+          >
             Team {rightTeam}
           </h3>
         </div>
@@ -178,19 +199,22 @@ export function ActiveGame({
                 !leftGoalkeeper 
                   ? `cursor-pointer ${
                       isDarkMode
-                        ? 'bg-gray-800 border-gray-700 hover:bg-gray-700'
+                        ? 'bg-gray-700 border-gray-600 hover:bg-gray-600'
                         : 'bg-gray-100 border-gray-200 hover:bg-gray-200'
                     }`
                   : isDarkMode
-                    ? 'bg-gray-800 border-gray-700'
+                    ? 'bg-gray-700 border-gray-600'
                     : 'bg-gray-100 border-gray-200'
               }`}
               onClick={() => !leftGoalkeeper && onAddPlayer(leftTeam, true)}
             >
               <div className="relative">
-                <div className={`text-xs font-bold mb-1 transition-colors duration-300 ${
-                  isDarkMode ? 'text-green-400' : 'text-green-600'
-                }`}>
+                <div 
+                  className="text-xs font-bold mb-1 transition-colors duration-300"
+                  style={{
+                    color: 'var(--accent-blue)'
+                  }}
+                >
                   GOALKEEPER
                 </div>
                 {leftGoalkeeper ? (
@@ -251,7 +275,7 @@ export function ActiveGame({
             {leftPlayers.filter(p => p.id !== leftGoalkeeper?.id).map((player) => (
               <div key={player.id} className={`group px-4 py-2 rounded-lg border transition-all duration-300 ${
                 isDarkMode
-                  ? 'bg-gray-800 border-gray-700 hover:bg-gray-700'
+                  ? 'bg-gray-700 border-gray-600 hover:bg-gray-600'
                   : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
               }`}>
                 <div className="flex justify-between items-center">
@@ -283,11 +307,19 @@ export function ActiveGame({
             {/* Add Player Button */}
             <button 
               onClick={() => onAddPlayer(leftTeam, false)}
-              className={`w-full px-4 py-2 border-2 border-dashed rounded-lg text-sm font-medium transition-all duration-300 hover:scale-[1.02] ${
-                isDarkMode
-                  ? 'border-gray-600 text-gray-400 hover:border-green-400 hover:text-green-400'
-                  : 'border-gray-300 text-gray-500 hover:border-green-500 hover:text-green-600'
-              }`}
+              className="w-full px-4 py-2 border-2 border-dashed rounded-lg text-sm font-medium transition-all duration-300 hover:scale-[1.02]"
+              style={{
+                borderColor: isDarkMode ? '#4b5563' : '#d1d5db',
+                color: isDarkMode ? '#9ca3af' : '#6b7280'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent-blue)'
+                e.currentTarget.style.color = 'var(--accent-blue)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = isDarkMode ? '#4b5563' : '#d1d5db'
+                e.currentTarget.style.color = isDarkMode ? '#9ca3af' : '#6b7280'
+              }}
             >
               + Add Player
             </button>
@@ -301,19 +333,22 @@ export function ActiveGame({
                 !rightGoalkeeper 
                   ? `cursor-pointer ${
                       isDarkMode
-                        ? 'bg-gray-800 border-gray-700 hover:bg-gray-700'
+                        ? 'bg-gray-700 border-gray-600 hover:bg-gray-600'
                         : 'bg-gray-100 border-gray-200 hover:bg-gray-200'
                     }`
                   : isDarkMode
-                    ? 'bg-gray-800 border-gray-700'
+                    ? 'bg-gray-700 border-gray-600'
                     : 'bg-gray-100 border-gray-200'
               }`}
               onClick={() => !rightGoalkeeper && onAddPlayer(rightTeam, true)}
             >
               <div className="relative">
-                <div className={`text-xs font-bold mb-1 transition-colors duration-300 ${
-                  isDarkMode ? 'text-green-400' : 'text-green-600'
-                }`}>
+                <div 
+                  className="text-xs font-bold mb-1 transition-colors duration-300"
+                  style={{
+                    color: 'var(--accent-blue)'
+                  }}
+                >
                   GOALKEEPER
                 </div>
                 {rightGoalkeeper ? (
@@ -374,7 +409,7 @@ export function ActiveGame({
             {rightPlayers.filter(p => p.id !== rightGoalkeeper?.id).map((player) => (
               <div key={player.id} className={`group px-4 py-2 rounded-lg border transition-all duration-300 ${
                 isDarkMode
-                  ? 'bg-gray-800 border-gray-700 hover:bg-gray-700'
+                  ? 'bg-gray-700 border-gray-600 hover:bg-gray-600'
                   : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
               }`}>
                 <div className="flex justify-between items-center">
@@ -406,11 +441,19 @@ export function ActiveGame({
             {/* Add Player Button */}
             <button 
               onClick={() => onAddPlayer(rightTeam, false)}
-              className={`w-full px-4 py-2 border-2 border-dashed rounded-lg text-sm font-medium transition-all duration-300 hover:scale-[1.02] ${
-                isDarkMode
-                  ? 'border-gray-600 text-gray-400 hover:border-green-400 hover:text-green-400'
-                  : 'border-gray-300 text-gray-500 hover:border-green-500 hover:text-green-600'
-              }`}
+              className="w-full px-4 py-2 border-2 border-dashed rounded-lg text-sm font-medium transition-all duration-300 hover:scale-[1.02]"
+              style={{
+                borderColor: isDarkMode ? '#4b5563' : '#d1d5db',
+                color: isDarkMode ? '#9ca3af' : '#6b7280'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent-blue)'
+                e.currentTarget.style.color = 'var(--accent-blue)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = isDarkMode ? '#4b5563' : '#d1d5db'
+                e.currentTarget.style.color = isDarkMode ? '#9ca3af' : '#6b7280'
+              }}
             >
               + Add Player
             </button>

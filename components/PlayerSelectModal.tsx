@@ -21,7 +21,7 @@ export function PlayerSelectModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className={`rounded-2xl p-6 max-w-md w-full mx-4 transition-colors duration-300 ${
         isDarkMode
-          ? 'bg-gray-900 border border-gray-700'
+          ? 'bg-gray-800 border border-gray-700'
           : 'bg-white border border-gray-200'
       }`}>
         <h3 className={`text-xl font-bold mb-6 transition-colors duration-300 ${
@@ -40,7 +40,7 @@ export function PlayerSelectModal({
               }}
               className={`w-full p-4 text-left rounded-lg transition-all duration-300 hover:scale-[1.02] ${
                 isDarkMode
-                  ? 'bg-gray-800 hover:bg-gray-700 border border-gray-700'
+                  ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600'
                   : 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
               }`}
             >
@@ -56,11 +56,17 @@ export function PlayerSelectModal({
         <div className="flex justify-end mt-6">
           <button
             onClick={onClose}
-            className={`px-6 py-2 rounded-full font-medium transition-all duration-300 hover:scale-105 ${
-              isDarkMode
-                ? 'bg-gray-800 hover:bg-gray-700 text-white'
-                : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
-            }`}
+            className="px-6 py-2 rounded-full font-medium transition-all duration-300 hover:scale-105 text-white"
+            style={{
+              backgroundColor: isDarkMode ? '#374151' : '#e5e7eb',
+              color: isDarkMode ? '#ffffff' : '#1f2937'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = isDarkMode ? '#4b5563' : '#d1d5db'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = isDarkMode ? '#374151' : '#e5e7eb'
+            }}
           >
             Cancel
           </button>

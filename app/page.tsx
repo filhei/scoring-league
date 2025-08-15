@@ -209,20 +209,26 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
-        isDarkMode ? 'bg-black text-white' : 'bg-white text-black'
-      }`}>
+      <div 
+        className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${isDarkMode ? 'dark' : ''}`}
+        style={{
+          backgroundColor: 'var(--background)',
+          color: 'var(--foreground)'
+        }}
+      >
         <div className="text-xl">Loading...</div>
       </div>
     )
   }
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      isDarkMode 
-        ? 'bg-black text-white' 
-        : 'bg-white text-black'
-    }`}>
+    <div 
+      className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark' : ''}`}
+      style={{
+        backgroundColor: 'var(--background)',
+        color: 'var(--foreground)'
+      }}
+    >
       <Navigation isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} />
 
       {!activeGame ? (

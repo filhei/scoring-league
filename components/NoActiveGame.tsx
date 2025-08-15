@@ -7,7 +7,7 @@ export function NoActiveGame({ isDarkMode }: NoActiveGameProps) {
     <div className="max-w-6xl mx-auto p-6">
       <div className={`rounded-2xl p-8 transition-colors duration-300 ${
         isDarkMode
-          ? 'bg-gray-900 border border-gray-800'
+          ? 'bg-gray-800 border border-gray-700'
           : 'bg-gray-50 border border-gray-200'
       }`}>
         <div className="text-center">

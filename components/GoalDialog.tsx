@@ -25,7 +25,7 @@ export function GoalDialog({
     <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className={`rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-hidden transition-colors duration-300 ${
         isDarkMode
-          ? 'bg-gray-900 border border-gray-700'
+          ? 'bg-gray-800 border border-gray-700'
           : 'bg-white border border-gray-200'
       }`}>
         {/* Header and Selected Players */}
@@ -51,9 +51,12 @@ export function GoalDialog({
               <div className="flex items-center gap-2">
                 <div className="w-10">
                   {goalDialog.scoringPlayer && (
-                    <span className={`text-xs font-medium transition-colors duration-300 ${
-                      isDarkMode ? 'text-green-400' : 'text-green-600'
-                    }`}>
+                    <span 
+                      className="text-xs font-medium transition-colors duration-300"
+                      style={{
+                        color: 'var(--accent-blue)'
+                      }}
+                    >
                       Mål:
                     </span>
                   )}
@@ -61,8 +64,8 @@ export function GoalDialog({
                 {goalDialog.scoringPlayer ? (
                   <div className={`flex-1 flex items-center justify-between px-2 py-1.5 rounded-md border transition-colors duration-300 ${
                     isDarkMode
-                      ? 'bg-green-900/30 border-green-700'
-                      : 'bg-green-50 border-green-200'
+                      ? 'bg-blue-900/30 border-blue-700'
+                      : 'bg-blue-50 border-blue-200'
                   }`}>
                     <span className={`text-sm font-medium truncate transition-colors duration-300 ${
                       isDarkMode ? 'text-white' : 'text-gray-900'
@@ -251,7 +254,7 @@ export function GoalDialog({
             onClick={onCancel}
             className={`px-6 py-2 rounded-full font-medium transition-all duration-300 hover:scale-105 ${
               isDarkMode
-                ? 'bg-gray-800 hover:bg-gray-700 text-white'
+                ? 'bg-gray-700 hover:bg-gray-600 text-white'
                 : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
             }`}
           >
@@ -259,11 +262,16 @@ export function GoalDialog({
           </button>
           <button
             onClick={onSubmit}
-            className={`px-6 py-2 rounded-full font-medium transition-all duration-300 hover:scale-105 ${
-              isDarkMode
-                ? 'bg-green-600 hover:bg-green-500 text-white'
-                : 'bg-green-500 hover:bg-green-600 text-white'
-            }`}
+            className="px-6 py-2 rounded-full font-medium transition-all duration-300 hover:scale-105 text-white"
+            style={{
+              backgroundColor: 'var(--accent-blue)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent-blue-hover)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent-blue)'
+            }}
           >
             OK
           </button>

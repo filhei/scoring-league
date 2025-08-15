@@ -11,7 +11,7 @@ export function Snackbar({ snackbar, isDarkMode }: SnackbarProps) {
   return (
     <div className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 px-4 py-3 rounded-lg shadow-lg transition-all duration-300 z-[100] ${
       isDarkMode
-        ? 'bg-gray-800 border border-gray-600 text-white'
+        ? 'bg-gray-700 border border-gray-600 text-white'
         : 'bg-white border border-gray-300 text-gray-900'
     }`}>
       <div className="flex items-center space-x-2">
