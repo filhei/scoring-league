@@ -9,6 +9,10 @@
   /* --accent-red: #8f111d; */
   --accent-red: #AF0000;
   --accent-red-hover: #8f0000;
+  --goal-color: #16a34a;
+  --goal-color-hover: #15803d;
+  --assist-color: #2563eb;
+  --assist-color-hover: #1d4ed8;
 }
 
 .dark {
@@ -18,6 +22,10 @@
   --accent-blue-hover: #60a5fa;
   --accent-red: #AF0000;
   --accent-red-hover: #8f0000;
+  --goal-color: #22c55e;
+  --goal-color-hover: #16a34a;
+  --assist-color: #3b82f6;
+  --assist-color-hover: #2563eb;
 }
 
 @theme inline {
@@ -27,6 +35,10 @@
   --color-accent-blue-hover: var(--accent-blue-hover);
   --color-accent-red: var(--accent-red);
   --color-accent-red-hover: var(--accent-red-hover);
+  --color-goal: var(--goal-color);
+  --color-goal-hover: var(--goal-color-hover);
+  --color-assist: var(--assist-color);
+  --color-assist-hover: var(--assist-color-hover);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

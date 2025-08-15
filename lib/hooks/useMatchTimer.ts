@@ -32,8 +32,8 @@ export function useMatchTimer(match: Match | null, onMatchUpdate?: (match: Match
       return
     }
 
-    setIsPaused(match.status === 'paused')
-    setIsActive(match.status === 'active')
+    setIsPaused(match.match_status === 'paused')
+    setIsActive(match.match_status === 'active')
     
     // Calculate initial duration
     const duration = MatchService.calculateCurrentDuration(match)

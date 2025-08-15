@@ -5,6 +5,7 @@ CREATE TABLE matches (
   pause_duration INTERVAL,
   end_time TIMESTAMP WITH TIME ZONE,
   winner_team TEXT CHECK (winner_team IN ('A', 'B')),
-  status TEXT CHECK (status IN ('planned', 'active', 'paused', 'finished')) NOT NULL DEFAULT 'planned',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  match_status TEXT CHECK (match_status IN ('planned', 'active', 'paused', 'finished')) NOT NULL DEFAULT 'planned',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  team_with_vests TEXT CHECK (team_with_vests IN ('A', 'B')) NULL
 );

@@ -31,7 +31,7 @@ export function useGameData() {
       const { data: match } = await supabase
         .from('matches')
         .select('*')
-        .in('status', ['active', 'paused'])
+        .in('match_status', ['active', 'paused'])
         .single()
 
       if (!match) {

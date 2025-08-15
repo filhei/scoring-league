@@ -13,7 +13,7 @@ export class MatchService {
       const { data, error } = await supabase
         .from('matches')
         .update({
-          status: 'active',
+          match_status: 'active',
           start_time: new Date().toISOString(),
           duration: null,
           pause_duration: null
@@ -54,7 +54,7 @@ export class MatchService {
       const { data, error } = await supabase
         .from('matches')
         .update({
-          status: 'paused',
+          match_status: 'paused',
           duration: `${currentDuration} seconds`
         })
         .eq('id', matchId)
@@ -93,7 +93,7 @@ export class MatchService {
       const { data, error } = await supabase
         .from('matches')
         .update({
-          status: 'active',
+          match_status: 'active',
           pause_duration: `${newPauseDuration} seconds`
         })
         .eq('id', matchId)
@@ -124,13 +124,13 @@ export class MatchService {
 
       const now = new Date()
       const updates: MatchUpdate = {
-        status: 'finished',
+        match_status: 'finished',
         end_time: now.toISOString(),
         winner_team: winnerTeam
       }
 
       // Calculate final duration if match was active
-      if (match.status === 'active') {
+      if (match.match_status === 'active') {
         const startTime = new Date(match.start_time)
         const pauseDuration = match.pause_duration ? this.parseInterval(match.pause_duration) : 0
         const finalDuration = Math.floor((now.getTime() - startTime.getTime()) / 1000) - pauseDuration
@@ -161,14 +161,14 @@ export class MatchService {
     const now = new Date()
     const startTime = new Date(match.start_time)
     
-    if (match.status === 'paused' && match.duration) {
+    if (match.match_status === 'paused' && match.duration) {
       // For paused games, return the stored duration
       return this.parseInterval(match.duration)
-    } else if (match.status === 'active') {
+    } else if (match.match_status === 'active') {
       // For active games: NOW - start_time - pause_duration
       const pauseDuration = match.pause_duration ? this.parseInterval(match.pause_duration) : 0
       return Math.floor((now.getTime() - startTime.getTime()) / 1000) - pauseDuration
-    } else if (match.status === 'finished' && match.duration) {
+    } else if (match.match_status === 'finished' && match.duration) {
       // For finished games, return the final duration
       return this.parseInterval(match.duration)
     }

@@ -54,7 +54,7 @@ export function GoalDialog({
                     <span 
                       className="text-xs font-medium transition-colors duration-300"
                       style={{
-                        color: 'var(--accent-blue)'
+                        color: 'var(--goal-color)'
                       }}
                     >
                       Mål:
@@ -62,11 +62,11 @@ export function GoalDialog({
                   )}
                 </div>
                 {goalDialog.scoringPlayer ? (
-                  <div className={`flex-1 flex items-center justify-between px-2 py-1.5 rounded-md border transition-colors duration-300 ${
-                    isDarkMode
-                      ? 'bg-blue-900/30 border-blue-700'
-                      : 'bg-blue-50 border-blue-200'
-                  }`}>
+                  <div className="flex-1 flex items-center justify-between px-2 py-1.5 rounded-md border transition-colors duration-300"
+                       style={{
+                         backgroundColor: isDarkMode ? 'rgba(34, 197, 94, 0.2)' : 'rgba(22, 163, 74, 0.1)',
+                         borderColor: 'var(--goal-color)'
+                       }}>
                     <span className={`text-sm font-medium truncate transition-colors duration-300 ${
                       isDarkMode ? 'text-white' : 'text-gray-900'
                     }`}>
@@ -92,19 +92,18 @@ export function GoalDialog({
               <div className="flex items-center gap-2">
                 <div className="w-10">
                   {goalDialog.assistingPlayer && (
-                    <span className={`text-xs font-medium transition-colors duration-300 ${
-                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                    }`}>
+                    <span className="text-xs font-medium transition-colors duration-300"
+                          style={{ color: 'var(--assist-color)' }}>
                       Assist:
                     </span>
                   )}
                 </div>
                 {goalDialog.assistingPlayer ? (
-                  <div className={`flex-1 flex items-center justify-between px-2 py-1.5 rounded-md border transition-colors duration-300 ${
-                    isDarkMode
-                      ? 'bg-blue-900/30 border-blue-700'
-                      : 'bg-blue-50 border-blue-200'
-                  }`}>
+                  <div className="flex-1 flex items-center justify-between px-2 py-1.5 rounded-md border transition-colors duration-300"
+                       style={{
+                         backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(37, 99, 235, 0.1)',
+                         borderColor: 'var(--assist-color)'
+                       }}>
                     <span className={`text-sm font-medium truncate transition-colors duration-300 ${
                       isDarkMode ? 'text-white' : 'text-gray-900'
                     }`}>
@@ -170,16 +169,14 @@ export function GoalDialog({
                         </span>
                         <div className="flex space-x-2 flex-shrink-0 ml-2">
                           {isScoring && (
-                            <span className={`text-sm px-2 py-1 rounded font-semibold transition-colors duration-300 ${
-                              isDarkMode ? 'text-green-300' : 'text-green-700'
-                            }`}>
+                            <span className="text-sm px-2 py-1 rounded font-semibold transition-colors duration-300"
+                                  style={{ color: 'var(--goal-color)' }}>
                               Mål
                             </span>
                           )}
                           {isAssisting && (
-                            <span className={`text-sm px-2 py-1 rounded transition-colors duration-300 ${
-                              isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                            }`}>
+                            <span className="text-sm px-2 py-1 rounded transition-colors duration-300"
+                                  style={{ color: 'var(--assist-color)' }}>
                               Assist
                             </span>
                           )}
@@ -225,16 +222,14 @@ export function GoalDialog({
                         </span>
                         <div className="flex space-x-2 flex-shrink-0 ml-2">
                           {isScoring && (
-                            <span className={`text-sm px-2 py-1 rounded font-semibold transition-colors duration-300 ${
-                              isDarkMode ? 'text-green-300' : 'text-green-700'
-                            }`}>
+                            <span className="text-sm px-2 py-1 rounded font-semibold transition-colors duration-300"
+                                  style={{ color: 'var(--goal-color)' }}>
                               Mål
                             </span>
                           )}
                           {isAssisting && (
-                            <span className={`text-sm px-2 py-1 rounded transition-colors duration-300 ${
-                              isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                            }`}>
+                            <span className="text-sm px-2 py-1 rounded transition-colors duration-300"
+                                  style={{ color: 'var(--assist-color)' }}>
                               Assist
                             </span>
                           )}

@@ -198,6 +198,34 @@ export default function Home() {
     }
   }
 
+  const handleSwitchPlayerTeam = async (player: Player, newTeam: 'A' | 'B', newIndex?: number) => {
+    if (!activeGame) return
+
+    try {
+      // First, remove the player from their current team
+      await supabase
+        .from('match_players')
+        .delete()
+        .eq('match_id', activeGame.match.id)
+        .eq('player_id', player.id)
+
+      // Then add them to the new team
+      await supabase
+        .from('match_players')
+        .insert({
+          match_id: activeGame.match.id,
+          player_id: player.id,
+          team: newTeam,
+          is_goalkeeper: false // Field players can be dragged, goalkeepers cannot
+        })
+
+      // Refresh game data
+      refreshGameData()
+    } catch (error) {
+      console.error('Error switching player team:', error)
+    }
+  }
+
   const handleClosePlayerSelect = () => {
     setShowPlayerSelect({ team: null, isGoalkeeper: false })
   }
@@ -247,6 +275,7 @@ export default function Home() {
           onSwapSides={handleSwapSides}
           onAddPlayer={handleAddPlayer}
           onRemovePlayer={handleRemovePlayer}
+          onSwitchPlayerTeam={handleSwitchPlayerTeam}
         />
       )}
 
