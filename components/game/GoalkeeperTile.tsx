@@ -1,0 +1,132 @@
+import React from 'react'
+import type { Player } from '../../lib/types'
+import { getPlayerStats, formatPlayerStats } from '../../lib/game-utils'
+
+interface GoalkeeperTileProps {
+  goalkeeper: Player | null
+  team: 'A' | 'B'
+  isDarkMode: boolean
+  scores: any[] // Add scores parameter
+  onAddPlayer: (team: 'A' | 'B', isGoalkeeper?: boolean) => void
+  onRemovePlayer: (player: Player) => void
+  onDragOver?: (e: React.DragEvent) => void
+  onDragLeave?: (e: React.DragEvent) => void
+  onDrop?: (e: React.DragEvent) => void
+  onDragStart?: (e: React.DragEvent, player: Player) => void
+  onDragEnd?: (e: React.DragEvent) => void
+  isDragTarget?: boolean // New prop to indicate if this is currently a drag target
+  draggedPlayerName?: string // New prop for the dragged player name
+  isDragging?: boolean // Prop to indicate if any drag is in progress
+  dragState?: { player: Player } | null // New prop for the drag state
+}
+
+export function GoalkeeperTile({
+  goalkeeper,
+  team,
+  isDarkMode,
+  scores,
+  onAddPlayer,
+  onRemovePlayer,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onDragStart,
+  onDragEnd,
+  isDragTarget = false,
+  draggedPlayerName,
+  isDragging = false,
+  dragState
+}: GoalkeeperTileProps) {
+  // Show empty goalkeeper tile when the goalkeeper is being dragged
+  const isGoalkeeperBeingDragged = isDragging && dragState && goalkeeper && dragState.player.id === goalkeeper.id
+  const displayGoalkeeper = isGoalkeeperBeingDragged ? null : goalkeeper
+
+  return (
+    <div 
+      data-goalkeeper-tile
+      data-team={team}
+      draggable={!!goalkeeper && !isGoalkeeperBeingDragged} // Only draggable if there's a goalkeeper and it's not being dragged
+      onDragStart={(e) => goalkeeper && !isGoalkeeperBeingDragged && onDragStart?.(e, goalkeeper)}
+      onDragEnd={onDragEnd}
+      className={`group px-4 py-2 rounded-lg border transition-all duration-300 ${
+        isDragTarget
+          ? `border-2 ${isDarkMode ? 'border-blue-400 bg-blue-900/20' : 'border-blue-500 bg-blue-50'}`
+          : !displayGoalkeeper 
+            ? `cursor-pointer ${
+                isDarkMode
+                  ? 'bg-gray-700 border-gray-600 hover:bg-gray-600'
+                  : 'bg-gray-100 border-gray-200 hover:bg-gray-200'
+              }`
+            : isDarkMode
+              ? 'bg-gray-700 border-gray-600'
+              : 'bg-gray-100 border-gray-200'
+      } ${goalkeeper && !isGoalkeeperBeingDragged ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      onClick={() => !displayGoalkeeper && onAddPlayer(team, true)}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      <div className="relative">
+        <div 
+          className="text-xs font-bold mb-1 transition-colors duration-300"
+          style={{
+            color: isDragTarget ? (isDarkMode ? '#60a5fa' : '#3b82f6') : 'var(--accent-blue)'
+          }}
+        >
+          {isDragTarget ? `MAKE ${draggedPlayerName?.toUpperCase()} GOALKEEPER` : 'GOALKEEPER'}
+        </div>
+        {displayGoalkeeper ? (
+          <>
+            <div className="flex items-center justify-between pr-6">
+              <span className={`font-medium transition-colors duration-300 ${
+                isDarkMode ? 'text-white' : 'text-gray-800'
+              }`}>
+                {displayGoalkeeper.name}
+              </span>
+              <span className={`text-sm transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+                {displayGoalkeeper.elo || 'N/A'}
+              </span>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onRemovePlayer(displayGoalkeeper)
+              }}
+              className={`absolute top-1/2 right-0 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 ${
+                isDarkMode ? 'text-gray-300 hover:text-gray-100' : 'text-gray-600 hover:text-gray-800'
+              }`}
+              title="remove from team"
+            >
+              −
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center justify-between pr-6">
+              <span className={`text-sm transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-500' : 'text-gray-400'
+              }`}>
+                Ingen målvakt
+              </span>
+              <span
+                className={`text-sm transition-colors duration-300 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}
+                style={{ minHeight: '1.7em', display: 'inline-block' }}
+              >
+                &nbsp;
+              </span>
+            </div>
+            <div className={`absolute top-1/2 right-0 -translate-y-1/2 text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 ${
+              isDarkMode ? 'text-gray-300 hover:text-gray-100' : 'text-gray-600 hover:text-gray-800'
+            }`}>
+              + Add
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+} 
