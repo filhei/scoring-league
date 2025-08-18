@@ -17,7 +17,6 @@ interface TeamDisplayProps {
   onDrop: (e: React.DragEvent, team: 'A' | 'B') => void
   onDragStart: (e: React.DragEvent, player: Player) => void
   onDragEnd: (e: React.DragEvent) => void
-  onGoalkeeperDragOver?: (e: React.DragEvent) => void
   onAddPlayer: (team: 'A' | 'B', isGoalkeeper?: boolean) => void
   onRemovePlayer: (player: Player) => void
 }
@@ -34,7 +33,6 @@ export function TeamDisplay({
   onDrop,
   onDragStart,
   onDragEnd,
-  onGoalkeeperDragOver,
   onAddPlayer,
   onRemovePlayer
 }: TeamDisplayProps) {
@@ -82,7 +80,7 @@ export function TeamDisplay({
         scores={scores}
         onAddPlayer={onAddPlayer}
         onRemovePlayer={onRemovePlayer}
-        onDragOver={onGoalkeeperDragOver || ((e) => onDragOver(e, team, players))}
+        onDragOver={(e) => onDragOver(e, team, players)}
         onDragLeave={onDragLeave}
         onDrop={(e) => onDrop(e, team)}
         onDragStart={onDragStart}
@@ -96,13 +94,13 @@ export function TeamDisplay({
 
     // Add field players with potential drop placeholders
     for (let i = 0; i <= players.length; i++) {
-      // Show drop placeholder at the beginning if needed
-      if (i === 0 && dragState?.currentTeam === team && dragState.currentIndex === 0) {
-        const placeholder = renderDropPlaceholder(0)
+      // Show drop placeholder before this position if needed
+      if (dragState?.currentTeam === team && dragState.currentIndex === i) {
+        const placeholder = renderDropPlaceholder(i)
         if (placeholder) elements.push(placeholder)
       }
 
-      // Show player tile
+      // Show player tile (if this position has a player)
       if (i < players.length) {
         elements.push(
           <PlayerTile
@@ -120,12 +118,6 @@ export function TeamDisplay({
             onRemovePlayer={onRemovePlayer}
           />
         )
-      }
-
-      // Show drop placeholder after this player if needed
-      if (dragState?.currentTeam === team && dragState.currentIndex === i + 1) {
-        const placeholder = renderDropPlaceholder(i + 1)
-        if (placeholder) elements.push(placeholder)
       }
     }
 

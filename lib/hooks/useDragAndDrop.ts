@@ -183,53 +183,125 @@ export function useDragAndDrop({ onSwitchPlayerTeam }: UseDragAndDropProps) {
     const rect = teamContainer.getBoundingClientRect()
     const mouseY = e.clientY - rect.top
     
-    // Account for goalkeeper tile height (goalkeeper is rendered first)
-    const tileHeight = 48 // Approximate height of each tile including margin
-    const goalkeeperHeight = tileHeight + 8 // Goalkeeper tile + space-y-2 gap
+    // Get actual goalkeeper tile if it exists
+    const goalkeeperTile = teamContainer.querySelector('[data-goalkeeper-tile]') as HTMLElement
+    let fieldPlayersStartY = 0
     
-    // Adjust mouseY to be relative to field players section (after goalkeeper)
-    const fieldPlayersMouseY = mouseY - goalkeeperHeight
+    if (goalkeeperTile) {
+      const goalkeeperRect = goalkeeperTile.getBoundingClientRect()
+      const containerRect = teamContainer.getBoundingClientRect()
+      // Calculate where field players section starts (after goalkeeper + space-y-2 gap)
+      fieldPlayersStartY = (goalkeeperRect.bottom - containerRect.top) + 8 // 8px for space-y-2
+    }
+    
+    // Adjust mouseY to be relative to field players section
+    const fieldPlayersMouseY = mouseY - fieldPlayersStartY
+    
+    // For same-team moves, exclude the dragged player from currentPlayers to match the displayed tiles
+    const effectivePlayers = isCrossTeamMove || !dragState 
+      ? currentPlayers 
+      : currentPlayers.filter(p => p.id !== dragState.player.id)
     
     // If no players, drop at position 0
-    if (currentPlayers.length === 0) return 0
+    if (effectivePlayers.length === 0) return 0
     
-    // If mouse is in the goalkeeper area (above field players), this shouldn't happen
-    // as we should have detected the goalkeeper tile already
+    // If mouse is above the field players section, drop at position 0
     if (fieldPlayersMouseY < 0) {
       return 0
     }
     
-    // Find the appropriate index based on mouse position relative to field players
-    let dropIndex = 0
-    for (let i = 0; i < currentPlayers.length; i++) {
-      const tileTop = i * tileHeight
-      const tileBottom = (i + 1) * tileHeight
-      
-      if (fieldPlayersMouseY >= tileTop && fieldPlayersMouseY <= tileBottom) {
-        // If mouse is in the lower half of the tile, drop after it
-        if (fieldPlayersMouseY > tileTop + tileHeight / 2) {
-          dropIndex = i + 1
-        } else {
-          dropIndex = i
+    // Get actual player tiles to measure their real heights
+    const allPlayerTiles = Array.from(teamContainer.querySelectorAll('[data-player-tile]')).filter(tile => {
+      const tileElement = tile as HTMLElement
+      return tileElement.style.display !== 'none'
+    })
+    
+    // For same-team moves, we need to map filtered tiles back to original indices
+    const playerTiles = isCrossTeamMove 
+      ? allPlayerTiles
+      : allPlayerTiles.filter(tile => {
+          const tileElement = tile as HTMLElement
+          return !tileElement.hasAttribute('data-being-dragged')
+        })
+    
+    // Create a mapping from filtered tile index to original array index
+    const tileIndexToOriginalIndex = new Map<number, number>()
+    if (!isCrossTeamMove && dragState) {
+      let originalIndex = 0
+      for (let filteredIndex = 0; filteredIndex < playerTiles.length; filteredIndex++) {
+        // Skip the dragged player's original position
+        if (originalIndex === dragState.originalIndex) {
+          originalIndex++
         }
-        break
+        tileIndexToOriginalIndex.set(filteredIndex, originalIndex)
+        originalIndex++
       }
-      
-      if (fieldPlayersMouseY < tileTop) {
-        dropIndex = i
-        break
-      }
-      
-      dropIndex = i + 1
     }
     
-    // For same-team moves: currentPlayers excludes the dragged player, so we can drop at any position 0 to currentPlayers.length
-    // For cross-team moves: currentPlayers includes all target team players, so we can drop at any position 0 to currentPlayers.length  
-    // In both cases, the max valid index is currentPlayers.length (which means "after the last player")
-    
-    const finalIndex = Math.min(dropIndex, currentPlayers.length)
-    
-    return finalIndex
+              // If we have actual tiles, use their real positions
+     if (playerTiles.length > 0) {
+       const containerRect = teamContainer.getBoundingClientRect()
+       
+       for (let i = 0; i < playerTiles.length; i++) {
+         const tile = playerTiles[i] as HTMLElement
+         const tileRect = tile.getBoundingClientRect()
+         const tileTop = tileRect.top - containerRect.top - fieldPlayersStartY
+         const tileBottom = tileRect.bottom - containerRect.top - fieldPlayersStartY
+         const tileMiddle = tileTop + (tileBottom - tileTop) / 2
+         
+         if (fieldPlayersMouseY <= tileMiddle) {
+           // Mouse is in upper half of this tile, drop before it
+           if (isCrossTeamMove) {
+             return i
+           } else {
+             // For same-team moves, map back to original index
+             return tileIndexToOriginalIndex.get(i) || i
+           }
+         }
+         
+         // If this is the last tile and mouse is below its middle, drop after it
+         if (i === playerTiles.length - 1 && fieldPlayersMouseY > tileMiddle) {
+           if (isCrossTeamMove) {
+             return i + 1
+           } else {
+             // For same-team moves, map back to original index and add 1
+             const originalIndex = tileIndexToOriginalIndex.get(i) || i
+             return originalIndex + 1
+           }
+         }
+       }
+       
+       // Mouse is below all tiles, drop at the end
+       if (isCrossTeamMove) {
+         return playerTiles.length
+       } else {
+         // For same-team moves, return the total length of the original array
+         return currentPlayers.length
+       }
+     }
+     
+     // Fallback: use estimated tile height if we can't get real measurements
+     const estimatedTileHeight = 56 // py-2 (16px) + content (~32px) + space-y-2 (8px)
+     let dropIndex = Math.floor(fieldPlayersMouseY / estimatedTileHeight)
+     
+     // Adjust for half-tile boundaries
+     const remainder = fieldPlayersMouseY % estimatedTileHeight
+     if (remainder > estimatedTileHeight / 2) {
+       dropIndex += 1
+     }
+     
+     if (isCrossTeamMove) {
+       // Cross-team move: use the calculated index directly
+       const maxIndex = effectivePlayers.length
+       return Math.max(0, Math.min(dropIndex, maxIndex))
+     } else {
+       // Same-team move: adjust for the removed player
+       if (dragState && dragState.originalIndex !== -1 && dropIndex > dragState.originalIndex) {
+         dropIndex += 1
+       }
+       const maxIndex = currentPlayers.length
+       return Math.max(0, Math.min(dropIndex, maxIndex))
+     }
   }
 
 
@@ -263,12 +335,29 @@ export function useDragAndDrop({ onSwitchPlayerTeam }: UseDragAndDropProps) {
     }
 
     const dragStartPosition = { x: e.clientX, y: e.clientY }
+    
+    // Check if drag started from bottom half of tile for same-team repositioning
+    let initialCurrentIndex: number | null = null
+    if (position.index !== -1) { // Only for field players, not goalkeepers
+      const target = e.currentTarget as HTMLElement
+      const rect = target.getBoundingClientRect()
+      const mouseY = e.clientY - rect.top
+      const tileHeight = rect.height
+      const isBottomHalf = mouseY > tileHeight / 2
+      
+      if (isBottomHalf) {
+        // Adjust initial index by 1 since placeholder hasn't appeared yet
+        // This prevents the tile from jumping one position down
+        initialCurrentIndex = position.index + 1
+      }
+    }
+    
     const dragState: DragState = {
       player,
       originalTeam: position.team,
       originalIndex: position.index,
-      currentTeam: null,
-      currentIndex: null,
+      currentTeam: initialCurrentIndex !== null ? position.team : null,
+      currentIndex: initialCurrentIndex,
       mousePosition: dragStartPosition,
       dragStartPosition
     }
@@ -285,6 +374,12 @@ export function useDragAndDrop({ onSwitchPlayerTeam }: UseDragAndDropProps) {
         player: player.name,
         position: dragStartPosition,
         team: position.team
+      })
+    } else if (initialCurrentIndex !== null) {
+      console.log('🎯 Field player drag started from bottom half - adjusted initial index:', {
+        player: player.name,
+        originalIndex: position.index,
+        adjustedIndex: initialCurrentIndex
       })
     }
     
@@ -332,8 +427,23 @@ export function useDragAndDrop({ onSwitchPlayerTeam }: UseDragAndDropProps) {
     }
     
     if (dragState) {
-      const isCrossTeamMove = dragState.originalTeam !== team
-      const dropIndex = calculateDropPosition(e, team, currentPlayers, isCrossTeamMove)
+      // Check if we're over a goalkeeper tile
+      const target = e.target as HTMLElement
+      const goalkeeperTile = target.closest('[data-goalkeeper-tile]')
+      
+      let dropIndex: number
+      
+      if (goalkeeperTile) {
+        // We're over a goalkeeper tile - set special goalkeeper position
+        dropIndex = -1
+        console.log('🥅 Drag over goalkeeper tile - setting currentIndex to -1')
+      } else {
+        // We're over field players area - calculate normal drop position
+        const isCrossTeamMove = dragState.originalTeam !== team
+        dropIndex = calculateDropPosition(e, team, currentPlayers, isCrossTeamMove)
+        console.log('🏃 Drag over field players - calculated dropIndex:', dropIndex)
+      }
+      
       setDragState(prev => prev ? {
         ...prev,
         currentTeam: team,
@@ -363,22 +473,6 @@ export function useDragAndDrop({ onSwitchPlayerTeam }: UseDragAndDropProps) {
     // The actual move is handled in handleDragEnd
   }
 
-  // Special drag over handler for goalkeeper tiles that also updates drag image position
-  const handleGoalkeeperDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    
-    // Update drag image position from drag event coordinates
-    if (isDragging && dragState) {
-      setDragImagePosition({ x: e.clientX, y: e.clientY })
-      
-      // Debug: Log position updates for goalkeeper drag events
-      if (dragState.originalIndex === -1) {
-        console.log('🥅 Goalkeeper drag image position updated via goalkeeper dragover:', { x: e.clientX, y: e.clientY })
-      }
-    }
-  }
-
   return {
     dragState,
     isDragging,
@@ -387,7 +481,6 @@ export function useDragAndDrop({ onSwitchPlayerTeam }: UseDragAndDropProps) {
     handleDragEnd,
     handleDragOver,
     handleDragLeave,
-    handleDrop,
-    handleGoalkeeperDragOver
+    handleDrop
   }
 }

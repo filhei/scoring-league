@@ -46,8 +46,7 @@ export function ActiveGame({
     handleDragEnd,
     handleDragOver,
     handleDragLeave,
-    handleDrop,
-    handleGoalkeeperDragOver
+    handleDrop
   } = useDragAndDrop({ onSwitchPlayerTeam })
 
   // Determine display order based on swap state
@@ -143,7 +142,6 @@ export function ActiveGame({
             onDrop={handleDrop}
             onDragStart={handlePlayerDragStart}
             onDragEnd={handleDragEnd}
-            onGoalkeeperDragOver={handleGoalkeeperDragOver}
             onAddPlayer={onAddPlayer}
             onRemovePlayer={onRemovePlayer}
           />
@@ -161,7 +159,6 @@ export function ActiveGame({
             onDrop={handleDrop}
             onDragStart={handlePlayerDragStart}
             onDragEnd={handleDragEnd}
-            onGoalkeeperDragOver={handleGoalkeeperDragOver}
             onAddPlayer={onAddPlayer}
             onRemovePlayer={onRemovePlayer}
           />
