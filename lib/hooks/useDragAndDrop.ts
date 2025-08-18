@@ -321,6 +321,16 @@ export function useDragAndDrop({ onSwitchPlayerTeam }: UseDragAndDropProps) {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
     
+    // Update drag image position from drag event coordinates
+    if (isDragging && dragState) {
+      setDragImagePosition({ x: e.clientX, y: e.clientY })
+      
+      // Debug: Log position updates for drag events
+      if (dragState.originalIndex === -1) {
+        console.log('🥅 Goalkeeper drag image position updated via dragover:', { x: e.clientX, y: e.clientY })
+      }
+    }
+    
     if (dragState) {
       const isCrossTeamMove = dragState.originalTeam !== team
       const dropIndex = calculateDropPosition(e, team, currentPlayers, isCrossTeamMove)
@@ -353,6 +363,22 @@ export function useDragAndDrop({ onSwitchPlayerTeam }: UseDragAndDropProps) {
     // The actual move is handled in handleDragEnd
   }
 
+  // Special drag over handler for goalkeeper tiles that also updates drag image position
+  const handleGoalkeeperDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    
+    // Update drag image position from drag event coordinates
+    if (isDragging && dragState) {
+      setDragImagePosition({ x: e.clientX, y: e.clientY })
+      
+      // Debug: Log position updates for goalkeeper drag events
+      if (dragState.originalIndex === -1) {
+        console.log('🥅 Goalkeeper drag image position updated via goalkeeper dragover:', { x: e.clientX, y: e.clientY })
+      }
+    }
+  }
+
   return {
     dragState,
     isDragging,
@@ -361,6 +387,7 @@ export function useDragAndDrop({ onSwitchPlayerTeam }: UseDragAndDropProps) {
     handleDragEnd,
     handleDragOver,
     handleDragLeave,
-    handleDrop
+    handleDrop,
+    handleGoalkeeperDragOver
   }
 }

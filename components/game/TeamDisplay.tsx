@@ -17,6 +17,7 @@ interface TeamDisplayProps {
   onDrop: (e: React.DragEvent, team: 'A' | 'B') => void
   onDragStart: (e: React.DragEvent, player: Player) => void
   onDragEnd: (e: React.DragEvent) => void
+  onGoalkeeperDragOver?: (e: React.DragEvent) => void
   onAddPlayer: (team: 'A' | 'B', isGoalkeeper?: boolean) => void
   onRemovePlayer: (player: Player) => void
 }
@@ -33,6 +34,7 @@ export function TeamDisplay({
   onDrop,
   onDragStart,
   onDragEnd,
+  onGoalkeeperDragOver,
   onAddPlayer,
   onRemovePlayer
 }: TeamDisplayProps) {
@@ -80,7 +82,7 @@ export function TeamDisplay({
         scores={scores}
         onAddPlayer={onAddPlayer}
         onRemovePlayer={onRemovePlayer}
-        onDragOver={(e) => onDragOver(e, team, players)}
+        onDragOver={onGoalkeeperDragOver || ((e) => onDragOver(e, team, players))}
         onDragLeave={onDragLeave}
         onDrop={(e) => onDrop(e, team)}
         onDragStart={onDragStart}
