@@ -10,9 +10,11 @@ interface GameControlsProps {
   rightTeam: 'A' | 'B'
   isDarkMode: boolean
   teamWithVests: 'A' | 'B' | null
+  matchStatus: string
   onScoreIncrement: (team: 'A' | 'B') => void
   onPauseToggle: () => void
   onEndMatch: () => void
+  onStartMatch?: () => void
   onSwapSides: () => void
   onVestToggle: (team: 'A' | 'B') => void
 }
@@ -25,9 +27,11 @@ export function GameControls({
   rightTeam,
   isDarkMode,
   teamWithVests,
+  matchStatus,
   onScoreIncrement,
   onPauseToggle,
   onEndMatch,
+  onStartMatch,
   onSwapSides,
   onVestToggle
 }: GameControlsProps) {
@@ -43,30 +47,32 @@ export function GameControls({
         }`}>
           {timer.formattedTime}
         </div>
-        <div className="absolute left-1/2 ml-32 flex items-center space-x-2">
-          <button
-            onClick={onPauseToggle}
-            className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 hover:scale-110 ${
-              isDarkMode
-                ? 'border-gray-600 hover:border-gray-500 text-white hover:bg-gray-800'
-                : 'border-gray-300 hover:border-gray-400 text-gray-800 hover:bg-gray-50'
-            }`}
-          >
-            {timer.isPaused ? (
-              <div className="w-0 h-0 border-l-[6px] border-l-current border-y-[4px] border-y-transparent ml-0.5"></div>
-            ) : (
-              <div className="flex space-x-0.5">
-                <div className="w-0.5 h-3 bg-current"></div>
-                <div className="w-0.5 h-3 bg-current"></div>
-              </div>
-            )}
-          </button>
-          <span className={`text-xs font-medium transition-colors duration-300 ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            {timer.isPaused ? 'Resume' : 'Pause'}
-          </span>
-        </div>
+        {matchStatus !== 'planned' && (
+          <div className="absolute left-1/2 ml-32 flex items-center space-x-2">
+            <button
+              onClick={onPauseToggle}
+              className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 hover:scale-110 ${
+                isDarkMode
+                  ? 'border-gray-600 hover:border-gray-500 text-white hover:bg-gray-800'
+                  : 'border-gray-300 hover:border-gray-400 text-gray-800 hover:bg-gray-50'
+              }`}
+            >
+              {timer.isPaused ? (
+                <div className="w-0 h-0 border-l-[6px] border-l-current border-y-[4px] border-y-transparent ml-0.5"></div>
+              ) : (
+                <div className="flex space-x-0.5">
+                  <div className="w-0.5 h-3 bg-current"></div>
+                  <div className="w-0.5 h-3 bg-current"></div>
+                </div>
+              )}
+            </button>
+            <span className={`text-xs font-medium transition-colors duration-300 ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              {timer.isPaused ? 'Resume' : 'Pause'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Score Row */}
@@ -108,23 +114,41 @@ export function GameControls({
         </button>
       </div>
 
-      {/* End Match Button */}
+      {/* Start/End Match Button */}
       <div className="flex justify-center mb-8">
-        <button
-          onClick={onEndMatch}
-          className="px-5 py-1.5 rounded-lg font-semibold transition-all duration-300 hover:scale-105 text-white"
-          style={{
-            backgroundColor: 'var(--accent-red)'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--accent-red-hover)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--accent-red)'
-          }}
-        >
-          End Match
-        </button>
+        {matchStatus === 'planned' ? (
+          <button
+            onClick={onStartMatch}
+            className="px-5 py-1.5 rounded-lg font-semibold transition-all duration-300 hover:scale-105 text-white"
+            style={{
+              backgroundColor: 'var(--goal-color)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--goal-color-hover)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--goal-color)'
+            }}
+          >
+            Start Game
+          </button>
+        ) : (
+          <button
+            onClick={onEndMatch}
+            className="px-5 py-1.5 rounded-lg font-semibold transition-all duration-300 hover:scale-105 text-white"
+            style={{
+              backgroundColor: 'var(--accent-red)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent-red-hover)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent-red)'
+            }}
+          >
+            End Match
+          </button>
+        )}
       </div>
 
       {/* Teams Header */}

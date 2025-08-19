@@ -4,7 +4,7 @@ import { Navigation } from '../components/Navigation'
 import { NoActiveGame } from '../components/NoActiveGame'
 import { ActiveGameWrapper } from '../components/ActiveGameWrapper'
 import { GameLoadingSkeleton } from '../components/ui/loading-skeleton'
-import type { ActiveGameData, Player } from '../lib/types'
+import type { ActiveGameData, Player, Match } from '../lib/types'
 
 // PROMPT:
 // Regarding drag and drop of goalkeepers.
@@ -103,13 +103,40 @@ async function getActiveGame(): Promise<ActiveGameData | null> {
   }
 }
 
-export default function Home() {
+async function getPlannedGames(): Promise<Match[]> {
+  try {
+    const { data: matches, error } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('match_status', 'planned')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching planned games:', error)
+      return []
+    }
+
+    return matches || []
+  } catch (error) {
+    console.error('Error fetching planned games:', error)
+    return []
+  }
+}
+
+export default async function Home() {
+  const [activeGame, availablePlayers, plannedGames] = await Promise.all([
+    getActiveGame(),
+    getAvailablePlayers(),
+    getPlannedGames()
+  ])
+
   return (
     <div className="min-h-screen transition-colors duration-300">
       <Suspense fallback={<GameLoadingSkeleton />}>
         <ActiveGameWrapper 
-          initialActiveGame={null}
-          availablePlayers={[]}
+          initialActiveGame={activeGame}
+          availablePlayers={availablePlayers}
+          plannedGames={plannedGames}
         />
       </Suspense>
     </div>

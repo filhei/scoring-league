@@ -1,4 +1,4 @@
-import type { PlayerStats, Score, Player, ActiveGameData } from './types'
+import type { PlayerStats, Score, Player, ActiveGameData, Match } from './types'
 
 /**
  * Calculate player statistics (goals and assists)
@@ -47,4 +47,53 @@ export const getAvailablePlayersForSelection = (
   }
   
   return availablePlayers.filter(p => !currentPlayerIds.includes(p.id))
+}
+
+/**
+ * Convert a planned game to ActiveGameData format
+ */
+export const convertPlannedGameToActiveGameData = async (match: Match): Promise<ActiveGameData> => {
+  const { supabase } = await import('./supabase')
+  
+  // Get match players
+  const { data: matchPlayers, error: playersError } = await supabase
+    .from('match_players')
+    .select(`
+      *,
+      players (*)
+    `)
+    .eq('match_id', match.id)
+
+  if (playersError) throw playersError
+
+  // Get scores (should be empty for planned games)
+  const { data: scores, error: scoresError } = await supabase
+    .from('scores')
+    .select('*')
+    .eq('match_id', match.id)
+
+  if (scoresError) throw scoresError
+
+  const teamA = matchPlayers
+    ?.filter(mp => mp.team === 'A' && !mp.is_goalkeeper)
+    .map(mp => mp.players)
+    .filter(Boolean) as Player[] || []
+  
+  const teamB = matchPlayers
+    ?.filter(mp => mp.team === 'B' && !mp.is_goalkeeper)
+    .map(mp => mp.players)
+    .filter(Boolean) as Player[] || []
+
+  const goalkeepers = {
+    teamA: matchPlayers?.find(mp => mp.team === 'A' && mp.is_goalkeeper)?.players || null,
+    teamB: matchPlayers?.find(mp => mp.team === 'B' && mp.is_goalkeeper)?.players || null
+  }
+
+  return {
+    match,
+    teamA,
+    teamB,
+    scores: scores || [],
+    goalkeepers
+  }
 } 

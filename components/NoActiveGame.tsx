@@ -1,8 +1,41 @@
+'use client'
+
+import { useTransition } from 'react'
+import { createMatch } from '../app/actions'
+import { useSnackbar } from '../lib/hooks/useSnackbar'
+
 interface NoActiveGameProps {
   isDarkMode: boolean
 }
 
 export function NoActiveGame({ isDarkMode }: NoActiveGameProps) {
+  const [isPending, startTransition] = useTransition()
+  const { showSnackbar } = useSnackbar()
+
+  function handleCreateGame() {
+    startTransition(async () => {
+      try {
+        const result = await createMatch({})
+        
+        if (result.validationErrors) {
+          showSnackbar('Invalid input data', 4000)
+          return
+        }
+
+        if (result.serverError) {
+          showSnackbar(result.serverError, 4000)
+          return
+        }
+
+        if (result.data) {
+          showSnackbar('New game created successfully!', 3000)
+        }
+      } catch (error) {
+        showSnackbar('Failed to create game', 4000)
+      }
+    })
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className={`rounded-2xl p-8 transition-colors duration-300 ${
@@ -21,11 +54,24 @@ export function NoActiveGame({ isDarkMode }: NoActiveGameProps) {
           }`}>
             No Active Game
           </h2>
-          <p className={`text-lg transition-colors duration-300 ${
+          <p className={`text-lg mb-8 transition-colors duration-300 ${
             isDarkMode ? 'text-gray-400' : 'text-gray-600'
           }`}>
             Start a new match to see the game status here.
           </p>
+          <button
+            onClick={handleCreateGame}
+            disabled={isPending}
+            className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 ${
+              isDarkMode
+                ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white'
+                : 'bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white'
+            } ${
+              isPending ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'
+            }`}
+          >
+            {isPending ? 'Creating Game...' : 'Create New Game'}
+          </button>
         </div>
       </div>
     </div>

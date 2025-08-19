@@ -11,9 +11,11 @@ interface ActiveGameProps {
   teamBScore: number
   isDarkMode: boolean
   isSidesSwapped: boolean
+  matchStatus?: string
   onScoreIncrement: (team: 'A' | 'B') => void
   onPauseToggle: () => void
   onEndMatch: () => void
+  onStartMatch?: () => void
   onSwapSides: () => void
   onAddPlayer: (team: 'A' | 'B', isGoalkeeper?: boolean) => void
   onRemovePlayer: (player: Player) => void
@@ -28,9 +30,11 @@ export function ActiveGame({
   teamBScore,
   isDarkMode,
   isSidesSwapped,
+  matchStatus,
   onScoreIncrement,
   onPauseToggle,
   onEndMatch,
+  onStartMatch,
   onSwapSides,
   onAddPlayer,
   onRemovePlayer,
@@ -102,7 +106,7 @@ export function ActiveGame({
           <h2 className={`text-3xl font-bold transition-colors duration-300 ${
             isDarkMode ? 'text-white' : 'text-gray-900'
           }`}>
-            Active Game
+            {matchStatus === 'planned' ? 'Planned Game' : 'Active Game'}
           </h2>
           <button
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 ${
@@ -124,9 +128,11 @@ export function ActiveGame({
           rightTeam={rightTeam}
           isDarkMode={isDarkMode}
           teamWithVests={activeGame.match.team_with_vests as 'A' | 'B' | null}
+          matchStatus={matchStatus || activeGame.match.match_status}
           onScoreIncrement={onScoreIncrement}
           onPauseToggle={onPauseToggle}
           onEndMatch={onEndMatch}
+          onStartMatch={onStartMatch}
           onSwapSides={onSwapSides}
           onVestToggle={onVestToggle}
         />

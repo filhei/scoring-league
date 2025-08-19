@@ -46,4 +46,8 @@ export const addPlayerToFieldSchema = z.object({
 export const vestToggleSchema = z.object({
   matchId: z.string().uuid(),
   team: z.enum(['A', 'B']).nullable()
+})
+
+export const createMatchSchema = z.object({
+  teamWithVests: z.enum(['A', 'B']).nullable().optional()
 }) 
