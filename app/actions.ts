@@ -280,9 +280,10 @@ export const toggleVests = actionClient
 
 export const createMatch = actionClient
   .inputSchema(createMatchSchema)
-  .action(async ({ parsedInput: { teamWithVests } }) => {
+  .action(async ({ parsedInput: { teamWithVests, teamAPlayerIds, teamBPlayerIds, teamAGoalkeeperId, teamBGoalkeeperId } }) => {
     try {
-      const { data, error } = await supabase
+      // Create the match first
+      const { data: match, error: matchError } = await supabase
         .from('matches')
         .insert({
           match_status: 'planned',
@@ -291,10 +292,68 @@ export const createMatch = actionClient
         .select()
         .single()
 
-      if (error) throw handleSupabaseError(error)
+      if (matchError) throw handleSupabaseError(matchError)
+
+      // If team data is provided, add players to the match
+      if (teamAPlayerIds || teamBPlayerIds || teamAGoalkeeperId || teamBGoalkeeperId) {
+        const matchPlayersToInsert = []
+
+        // Add Team A field players
+        if (teamAPlayerIds) {
+          teamAPlayerIds.forEach(playerId => {
+            matchPlayersToInsert.push({
+              match_id: match.id,
+              player_id: playerId,
+              team: 'A' as const,
+              is_goalkeeper: false
+            })
+          })
+        }
+
+        // Add Team B field players
+        if (teamBPlayerIds) {
+          teamBPlayerIds.forEach(playerId => {
+            matchPlayersToInsert.push({
+              match_id: match.id,
+              player_id: playerId,
+              team: 'B' as const,
+              is_goalkeeper: false
+            })
+          })
+        }
+
+        // Add Team A goalkeeper
+        if (teamAGoalkeeperId) {
+          matchPlayersToInsert.push({
+            match_id: match.id,
+            player_id: teamAGoalkeeperId,
+            team: 'A' as const,
+            is_goalkeeper: true
+          })
+        }
+
+        // Add Team B goalkeeper
+        if (teamBGoalkeeperId) {
+          matchPlayersToInsert.push({
+            match_id: match.id,
+            player_id: teamBGoalkeeperId,
+            team: 'B' as const,
+            is_goalkeeper: true
+          })
+        }
+
+        // Bulk insert all players
+        if (matchPlayersToInsert.length > 0) {
+          const { error: playersError } = await supabase
+            .from('match_players')
+            .insert(matchPlayersToInsert)
+
+          if (playersError) throw handleSupabaseError(playersError)
+        }
+      }
 
       revalidatePath('/')
-      return { success: true, data }
+      return { success: true, data: match }
     } catch (error) {
       const appError = error instanceof Error ? error : handleSupabaseError(error)
       return { success: false, error: appError.message }

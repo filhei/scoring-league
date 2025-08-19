@@ -14,7 +14,8 @@ import {
   removeGoalkeeper,
   addPlayerToField,
   toggleVests,
-  controlMatch
+  controlMatch,
+  createMatch
 } from '@/app/actions'
 import type { GoalDialogState, PlayerSelectState, Player, Match, ActiveGameData } from '../lib/types'
 import React from 'react' // Added missing import
@@ -105,6 +106,14 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
       setLocalTeamA([])
       setLocalTeamB([])
     }
+  }, [selectedPlannedGame?.match.id]) // Only sync when the match ID changes, not on every property update
+
+  // Separate effect to handle clearing state when selectedPlannedGame becomes null
+  React.useEffect(() => {
+    if (!selectedPlannedGame) {
+      setLocalTeamA([])
+      setLocalTeamB([])
+    }
   }, [selectedPlannedGame])
 
   // Clear local state when switching between different game contexts
@@ -129,6 +138,16 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   // Get current team data (using local state for reordering)
   const getCurrentTeamData = () => {
     if (!currentGame) return { teamA: [], teamB: [] }
+    
+    // For planned games, always use local state if we have a selectedPlannedGame
+    // For active games, use local state only if it's populated (for reordering)
+    if (selectedPlannedGame) {
+      return {
+        teamA: localTeamA,
+        teamB: localTeamB
+      }
+    }
+    
     return {
       teamA: localTeamA.length > 0 ? localTeamA : currentGame.teamA,
       teamB: localTeamB.length > 0 ? localTeamB : currentGame.teamB
@@ -256,6 +275,41 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
     }
   }
 
+  const handleEndMatchAndCreateNew = async () => {
+    const currentGame = activeGame || selectedPlannedGame
+    if (!currentGame) return
+
+    try {
+      // First end the current match
+      const winnerTeam = teamAScore > teamBScore ? 'A' : teamBScore > teamAScore ? 'B' : null
+      await timer.endMatch(winnerTeam)
+
+      // Get current team data for the new match
+      const currentTeamData = getCurrentTeamData()
+      
+      // Create new match with same team configuration
+      const createResult = await createMatch({
+        teamWithVests: currentGame.match.team_with_vests as 'A' | 'B' | null,
+        teamAPlayerIds: currentTeamData.teamA.map(player => player.id),
+        teamBPlayerIds: currentTeamData.teamB.map(player => player.id),
+        teamAGoalkeeperId: currentGame.goalkeepers.teamA?.id || null,
+        teamBGoalkeeperId: currentGame.goalkeepers.teamB?.id || null
+      })
+
+      if (createResult.validationErrors || createResult.serverError) {
+        showSnackbar('Failed to create new match')
+        return
+      }
+
+      if (createResult.data) {
+        showSnackbar('Match ended and new planned match created with same teams!')
+      }
+    } catch (error) {
+      console.error('Error ending match and creating new:', error)
+      showSnackbar('Failed to end match and create new')
+    }
+  }
+
   const handleSwapSides = () => {
     setIsSidesSwapped(!isSidesSwapped)
   }
@@ -268,6 +322,18 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
       const currentTeamWithVests = currentGame.match.team_with_vests as 'A' | 'B' | null
       const newTeamWithVests = currentTeamWithVests === team ? null : team
       
+      // If we're viewing a planned game, update local state immediately for instant feedback
+      if (selectedPlannedGame) {
+        const updatedPlannedGame = {
+          ...selectedPlannedGame,
+          match: {
+            ...selectedPlannedGame.match,
+            team_with_vests: newTeamWithVests
+          }
+        }
+        setSelectedPlannedGame(updatedPlannedGame)
+      }
+      
       const result = await toggleVests({
         matchId: currentGame.match.id,
         team: newTeamWithVests
@@ -275,19 +341,27 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
       
       if (result.validationErrors) {
         showSnackbar('Invalid input data')
+        // Revert local state on error
+        if (selectedPlannedGame) {
+          setSelectedPlannedGame(selectedPlannedGame)
+        }
         return
       }
 
       if (result.serverError) {
         showSnackbar(result.serverError)
+        // Revert local state on error
+        if (selectedPlannedGame) {
+          setSelectedPlannedGame(selectedPlannedGame)
+        }
         return
       }
 
       if (result.data) {
         if (selectedPlannedGame) {
-          // Update the selected planned game data
-          const updatedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
-          setSelectedPlannedGame(updatedGameData)
+          // For planned games, we already updated the local state immediately above
+          // No need to refresh from database since we have the correct state locally
+          console.log('Vest toggle successful - keeping local state')
         } else {
           refreshGameData()
         }
@@ -295,6 +369,10 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
     } catch (error) {
       console.error('Error toggling vests:', error)
       showSnackbar('Failed to update vests')
+      // Revert local state on error
+      if (selectedPlannedGame) {
+        setSelectedPlannedGame(selectedPlannedGame)
+      }
     }
   }
 
@@ -307,6 +385,37 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
     if (!currentGame) return
 
     try {
+      // For planned games, update local state immediately for instant feedback
+      if (selectedPlannedGame) {
+        if (showPlayerSelect.isGoalkeeper) {
+          // Add goalkeeper
+          setSelectedPlannedGame({
+            ...selectedPlannedGame,
+            goalkeepers: {
+              ...selectedPlannedGame.goalkeepers,
+              [team === 'A' ? 'teamA' : 'teamB']: player
+            }
+          })
+        } else {
+          // Add field player
+          if (team === 'A') {
+            const newTeamA = [...localTeamA, player]
+            setLocalTeamA(newTeamA)
+            setSelectedPlannedGame({
+              ...selectedPlannedGame,
+              teamA: newTeamA
+            })
+          } else {
+            const newTeamB = [...localTeamB, player]
+            setLocalTeamB(newTeamB)
+            setSelectedPlannedGame({
+              ...selectedPlannedGame,
+              teamB: newTeamB
+            })
+          }
+        }
+      }
+
       const result = await addPlayerToMatch({
         matchId: currentGame.match.id,
         playerId: player.id,
@@ -316,11 +425,25 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
 
       if (result.validationErrors) {
         showSnackbar('Invalid input data')
+        // Revert local state changes on error
+        if (selectedPlannedGame) {
+          const revertedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
+          setSelectedPlannedGame(revertedGameData)
+          setLocalTeamA([...revertedGameData.teamA])
+          setLocalTeamB([...revertedGameData.teamB])
+        }
         return
       }
 
       if (result.serverError) {
         showSnackbar(result.serverError)
+        // Revert local state changes on error
+        if (selectedPlannedGame) {
+          const revertedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
+          setSelectedPlannedGame(revertedGameData)
+          setLocalTeamA([...revertedGameData.teamA])
+          setLocalTeamB([...revertedGameData.teamB])
+        }
         return
       }
 
@@ -328,18 +451,27 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
         // Close player select modal
         setShowPlayerSelect({ team: null, isGoalkeeper: false })
         
-        // Refresh game data to get updated teams
-        if (selectedPlannedGame) {
-          // Update the selected planned game data
-          const updatedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
-          setSelectedPlannedGame(updatedGameData)
-        } else {
+        // For active games, refresh from server
+        if (!selectedPlannedGame) {
           refreshGameData()
         }
+        // For planned games, local state is already updated above
       }
     } catch (error) {
       console.error('Error adding player:', error)
       showSnackbar('Failed to add player')
+      
+      // Revert local state changes on error
+      if (selectedPlannedGame) {
+        try {
+          const revertedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
+          setSelectedPlannedGame(revertedGameData)
+          setLocalTeamA([...revertedGameData.teamA])
+          setLocalTeamB([...revertedGameData.teamB])
+        } catch (revertError) {
+          console.error('Error reverting state:', revertError)
+        }
+      }
     }
   }
 
@@ -348,6 +480,31 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
     if (!currentGame) return
 
     try {
+      // For planned games, update local state immediately for instant feedback
+      if (selectedPlannedGame) {
+        // Find which team the player is on and remove them locally
+        const playerInTeamA = localTeamA.find(p => p.id === player.id)
+        const playerInTeamB = localTeamB.find(p => p.id === player.id)
+        
+        if (playerInTeamA) {
+          const newTeamA = localTeamA.filter(p => p.id !== player.id)
+          setLocalTeamA(newTeamA)
+          // Also update selectedPlannedGame
+          setSelectedPlannedGame({
+            ...selectedPlannedGame,
+            teamA: newTeamA
+          })
+        } else if (playerInTeamB) {
+          const newTeamB = localTeamB.filter(p => p.id !== player.id)
+          setLocalTeamB(newTeamB)
+          // Also update selectedPlannedGame
+          setSelectedPlannedGame({
+            ...selectedPlannedGame,
+            teamB: newTeamB
+          })
+        }
+      }
+
       const result = await removePlayerFromMatch({
         matchId: currentGame.match.id,
         playerId: player.id
@@ -355,27 +512,50 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
 
       if (result.validationErrors) {
         showSnackbar('Invalid input data')
+        // Revert local state changes on error
+        if (selectedPlannedGame) {
+          const revertedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
+          setSelectedPlannedGame(revertedGameData)
+          setLocalTeamA([...revertedGameData.teamA])
+          setLocalTeamB([...revertedGameData.teamB])
+        }
         return
       }
 
       if (result.serverError) {
         showSnackbar(result.serverError)
+        // Revert local state changes on error
+        if (selectedPlannedGame) {
+          const revertedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
+          setSelectedPlannedGame(revertedGameData)
+          setLocalTeamA([...revertedGameData.teamA])
+          setLocalTeamB([...revertedGameData.teamB])
+        }
         return
       }
 
       if (result.data) {
-        // Refresh game data to get updated teams
-        if (selectedPlannedGame) {
-          // Update the selected planned game data
-          const updatedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
-          setSelectedPlannedGame(updatedGameData)
-        } else {
+        // For active games, refresh from server
+        if (!selectedPlannedGame) {
           refreshGameData()
         }
+        // For planned games, local state is already updated above
       }
     } catch (error) {
       console.error('Error removing player:', error)
       showSnackbar('Failed to remove player')
+      
+      // Revert local state changes on error
+      if (selectedPlannedGame) {
+        try {
+          const revertedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
+          setSelectedPlannedGame(revertedGameData)
+          setLocalTeamA([...revertedGameData.teamA])
+          setLocalTeamB([...revertedGameData.teamB])
+        } catch (revertError) {
+          console.error('Error reverting state:', revertError)
+        }
+      }
     }
   }
 
@@ -833,6 +1013,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
           onPauseToggle={handlePauseToggle}
           onEndMatch={handleEndMatch}
           onStartMatch={handleStartPlannedGame}
+          onEndMatchAndCreateNew={handleEndMatchAndCreateNew}
           onSwapSides={handleSwapSides}
           onAddPlayer={handleAddPlayer}
           onRemovePlayer={handleRemovePlayer}
@@ -913,6 +1094,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
         onScoreIncrement={handleScoreIncrement}
         onPauseToggle={handlePauseToggle}
         onEndMatch={handleEndMatch}
+        onEndMatchAndCreateNew={handleEndMatchAndCreateNew}
         onSwapSides={handleSwapSides}
         onAddPlayer={handleAddPlayer}
         onRemovePlayer={handleRemovePlayer}

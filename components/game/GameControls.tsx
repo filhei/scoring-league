@@ -15,6 +15,7 @@ interface GameControlsProps {
   onPauseToggle: () => void
   onEndMatch: () => void
   onStartMatch?: () => void
+  onEndMatchAndCreateNew?: () => void
   onSwapSides: () => void
   onVestToggle: (team: 'A' | 'B') => void
 }
@@ -32,11 +33,31 @@ export function GameControls({
   onPauseToggle,
   onEndMatch,
   onStartMatch,
+  onEndMatchAndCreateNew,
   onSwapSides,
   onVestToggle
 }: GameControlsProps) {
   const [leftTeamHovered, setLeftTeamHovered] = useState(false)
   const [rightTeamHovered, setRightTeamHovered] = useState(false)
+  const [showEndConfirmation, setShowEndConfirmation] = useState(false)
+
+  const handleEndMatchClick = () => {
+    setShowEndConfirmation(true)
+  }
+
+  const handleConfirmEndMatch = () => {
+    setShowEndConfirmation(false)
+    onEndMatch()
+  }
+
+  const handleEndMatchAndCreateNew = () => {
+    setShowEndConfirmation(false)
+    onEndMatchAndCreateNew?.()
+  }
+
+  const handleCancelEndMatch = () => {
+    setShowEndConfirmation(false)
+  }
 
   return (
     <>
@@ -134,7 +155,7 @@ export function GameControls({
           </button>
         ) : (
           <button
-            onClick={onEndMatch}
+            onClick={handleEndMatchClick}
             className="px-5 py-1.5 rounded-lg font-semibold transition-all duration-300 hover:scale-105 text-white"
             style={{
               backgroundColor: 'var(--accent-red)'
@@ -209,6 +230,70 @@ export function GameControls({
           </h3>
         </div>
       </div>
+
+      {/* End Match Confirmation Dialog */}
+      {showEndConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`rounded-2xl p-6 max-w-md w-full mx-4 ${
+            isDarkMode
+              ? 'bg-gray-800 border border-gray-700'
+              : 'bg-white border border-gray-200'
+          }`}>
+            <h3 className={`text-xl font-bold mb-4 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
+              End Match?
+            </h3>
+            <p className={`mb-6 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>
+              Are you sure you want to end this match? This action cannot be undone.
+            </p>
+            <div className="flex flex-col space-y-3">
+              <button
+                onClick={handleCancelEndMatch}
+                className={`w-full px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  isDarkMode
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmEndMatch}
+                className="w-full px-4 py-2 rounded-lg font-medium transition-all duration-200 text-white"
+                style={{
+                  backgroundColor: 'var(--accent-red)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--accent-red-hover)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--accent-red)'
+                }}
+              >
+                End Match
+              </button>
+              <button
+                onClick={handleEndMatchAndCreateNew}
+                className="w-full px-4 py-2 rounded-lg font-medium transition-all duration-200 text-white"
+                style={{
+                  backgroundColor: 'var(--goal-color)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--goal-color-hover)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--goal-color)'
+                }}
+              >
+                End Match & Create New
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 } 

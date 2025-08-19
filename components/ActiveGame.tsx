@@ -16,6 +16,7 @@ interface ActiveGameProps {
   onPauseToggle: () => void
   onEndMatch: () => void
   onStartMatch?: () => void
+  onEndMatchAndCreateNew?: () => void
   onSwapSides: () => void
   onAddPlayer: (team: 'A' | 'B', isGoalkeeper?: boolean) => void
   onRemovePlayer: (player: Player) => void
@@ -35,6 +36,7 @@ export function ActiveGame({
   onPauseToggle,
   onEndMatch,
   onStartMatch,
+  onEndMatchAndCreateNew,
   onSwapSides,
   onAddPlayer,
   onRemovePlayer,
@@ -133,6 +135,7 @@ export function ActiveGame({
           onPauseToggle={onPauseToggle}
           onEndMatch={onEndMatch}
           onStartMatch={onStartMatch}
+          onEndMatchAndCreateNew={onEndMatchAndCreateNew}
           onSwapSides={onSwapSides}
           onVestToggle={onVestToggle}
         />
