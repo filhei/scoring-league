@@ -12,7 +12,8 @@ import {
   updatePlayerTeam, 
   assignGoalkeeper,
   removeGoalkeeper,
-  addPlayerToField
+  addPlayerToField,
+  toggleVests
 } from '@/app/actions'
 import type { GoalDialogState, PlayerSelectState, Player } from '../lib/types'
 import React from 'react' // Added missing import
@@ -216,6 +217,37 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers }: Activ
 
   const handleSwapSides = () => {
     setIsSidesSwapped(!isSidesSwapped)
+  }
+
+  const handleVestToggle = async (team: 'A' | 'B') => {
+    if (!activeGame) return
+    
+    try {
+      const currentTeamWithVests = activeGame.match.team_with_vests as 'A' | 'B' | null
+      const newTeamWithVests = currentTeamWithVests === team ? null : team
+      
+      const result = await toggleVests({
+        matchId: activeGame.match.id,
+        team: newTeamWithVests
+      })
+      
+      if (result.validationErrors) {
+        showSnackbar('Invalid input data')
+        return
+      }
+
+      if (result.serverError) {
+        showSnackbar(result.serverError)
+        return
+      }
+
+      if (result.data) {
+        refreshGameData()
+      }
+    } catch (error) {
+      console.error('Error toggling vests:', error)
+      showSnackbar('Failed to update vests')
+    }
   }
 
   const handleAddPlayer = (team: 'A' | 'B', isGoalkeeper: boolean = false) => {
@@ -620,6 +652,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers }: Activ
         onAddPlayer={handleAddPlayer}
         onRemovePlayer={handleRemovePlayer}
         onSwitchPlayerTeam={handleSwitchPlayerTeam}
+        onVestToggle={handleVestToggle}
       />
 
       {/* Player Selection Modal */}

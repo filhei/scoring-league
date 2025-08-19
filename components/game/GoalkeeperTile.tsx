@@ -1,6 +1,7 @@
 import React from 'react'
 import type { Player } from '../../lib/types'
 import { getPlayerStats, formatPlayerStats } from '../../lib/game-utils'
+import { getRemoveButtonStyles } from '../../lib/utils/component-styles'
 
 interface GoalkeeperTileProps {
   goalkeeper: Player | null
@@ -86,7 +87,7 @@ export function GoalkeeperTile({
               <span className={`text-sm transition-colors duration-300 ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-600'
               }`}>
-                {displayGoalkeeper.elo || 'N/A'}
+                {formatPlayerStats(getPlayerStats(displayGoalkeeper.id, scores))}
               </span>
             </div>
             <button
@@ -94,9 +95,7 @@ export function GoalkeeperTile({
                 e.stopPropagation()
                 onRemovePlayer(displayGoalkeeper)
               }}
-              className={`absolute top-1/2 right-0 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 ${
-                isDarkMode ? 'text-gray-300 hover:text-gray-100' : 'text-gray-600 hover:text-gray-800'
-              }`}
+              className={getRemoveButtonStyles(isDarkMode, true)}
               title="remove from team"
             >
               −

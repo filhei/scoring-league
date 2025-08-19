@@ -18,6 +18,7 @@ interface ActiveGameProps {
   onAddPlayer: (team: 'A' | 'B', isGoalkeeper?: boolean) => void
   onRemovePlayer: (player: Player) => void
   onSwitchPlayerTeam: (player: Player, newTeam: 'A' | 'B', newIndex?: number) => void
+  onVestToggle: (team: 'A' | 'B') => void
 }
 
 export function ActiveGame({
@@ -33,7 +34,8 @@ export function ActiveGame({
   onSwapSides,
   onAddPlayer,
   onRemovePlayer,
-  onSwitchPlayerTeam
+  onSwitchPlayerTeam,
+  onVestToggle
 }: ActiveGameProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -121,10 +123,12 @@ export function ActiveGame({
           leftTeam={leftTeam}
           rightTeam={rightTeam}
           isDarkMode={isDarkMode}
+          teamWithVests={activeGame.match.team_with_vests as 'A' | 'B' | null}
           onScoreIncrement={onScoreIncrement}
           onPauseToggle={onPauseToggle}
           onEndMatch={onEndMatch}
           onSwapSides={onSwapSides}
+          onVestToggle={onVestToggle}
         />
 
         {/* Teams Display */}

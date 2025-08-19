@@ -2,6 +2,7 @@ import React from 'react'
 import type { Player } from '../../lib/types'
 import { getPlayerStats, formatPlayerStats } from '../../lib/game-utils'
 import type { DragState } from '../../lib/hooks/useDragAndDrop'
+import { getRemoveButtonStyles } from '../../lib/utils/component-styles'
 
 interface PlayerTileProps {
   player: Player
@@ -63,15 +64,14 @@ export function PlayerTile({
           </span>
           {!isGoalkeeper && (
             <button
-              onClick={() => onRemovePlayer(player)}
-              className={`opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 rounded ${
-                isDarkMode 
-                  ? 'hover:bg-gray-600 text-gray-400 hover:text-red-400' 
-                  : 'hover:bg-gray-200 text-gray-500 hover:text-red-500'
-              }`}
-              title="Remove player"
+              onClick={(e) => {
+                e.stopPropagation()
+                onRemovePlayer(player)
+              }}
+              className={getRemoveButtonStyles(isDarkMode, false)}
+              title="remove from team"
             >
-              ✕
+              −
             </button>
           )}
         </div>

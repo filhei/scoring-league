@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useState } from 'react'
 import type { UseMatchTimerReturn } from '../../lib/hooks/useMatchTimer'
+import { VestToggle } from './VestToggle'
 
 interface GameControlsProps {
   timer: UseMatchTimerReturn
@@ -8,10 +9,12 @@ interface GameControlsProps {
   leftTeam: 'A' | 'B'
   rightTeam: 'A' | 'B'
   isDarkMode: boolean
+  teamWithVests: 'A' | 'B' | null
   onScoreIncrement: (team: 'A' | 'B') => void
   onPauseToggle: () => void
   onEndMatch: () => void
   onSwapSides: () => void
+  onVestToggle: (team: 'A' | 'B') => void
 }
 
 export function GameControls({
@@ -21,11 +24,16 @@ export function GameControls({
   leftTeam,
   rightTeam,
   isDarkMode,
+  teamWithVests,
   onScoreIncrement,
   onPauseToggle,
   onEndMatch,
-  onSwapSides
+  onSwapSides,
+  onVestToggle
 }: GameControlsProps) {
+  const [leftTeamHovered, setLeftTeamHovered] = useState(false)
+  const [rightTeamHovered, setRightTeamHovered] = useState(false)
+
   return (
     <>
       {/* Game Time and Pause */}
@@ -121,14 +129,28 @@ export function GameControls({
 
       {/* Teams Header */}
       <div className="flex justify-between items-center mb-6">
-        <h3 
-          className="text-xl font-bold transition-colors duration-300"
-          style={{
-            color: 'var(--accent-blue)'
-          }}
+        <div 
+          className="flex items-center space-x-2 group"
+          onMouseEnter={() => setLeftTeamHovered(true)}
+          onMouseLeave={() => setLeftTeamHovered(false)}
         >
-          Team {leftTeam}
-        </h3>
+          <h3 
+            className="text-xl font-bold transition-colors duration-300"
+            style={{
+              color: 'var(--accent-blue)'
+            }}
+          >
+            Team {leftTeam}
+          </h3>
+          <VestToggle
+            team={leftTeam}
+            hasVests={teamWithVests === leftTeam}
+            isDarkMode={isDarkMode}
+            isAreaHovered={leftTeamHovered}
+            onToggle={onVestToggle}
+          />
+        </div>
+        
         <button
           onClick={onSwapSides}
           className={`w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all duration-300 hover:scale-110 ${
@@ -140,14 +162,28 @@ export function GameControls({
         >
           ⇄
         </button>
-        <h3 
-          className="text-xl font-bold transition-colors duration-300"
-          style={{
-            color: 'var(--accent-blue)'
-          }}
+        
+        <div 
+          className="flex items-center space-x-2 group"
+          onMouseEnter={() => setRightTeamHovered(true)}
+          onMouseLeave={() => setRightTeamHovered(false)}
         >
-          Team {rightTeam}
-        </h3>
+          <VestToggle
+            team={rightTeam}
+            hasVests={teamWithVests === rightTeam}
+            isDarkMode={isDarkMode}
+            isAreaHovered={rightTeamHovered}
+            onToggle={onVestToggle}
+          />
+          <h3 
+            className="text-xl font-bold transition-colors duration-300"
+            style={{
+              color: 'var(--accent-blue)'
+            }}
+          >
+            Team {rightTeam}
+          </h3>
+        </div>
       </div>
     </>
   )

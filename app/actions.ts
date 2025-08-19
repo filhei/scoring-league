@@ -11,7 +11,8 @@ import {
   updatePlayerTeamSchema, 
   assignGoalkeeperSchema,
   removeGoalkeeperSchema,
-  addPlayerToFieldSchema
+  addPlayerToFieldSchema,
+  vestToggleSchema
 } from '../lib/schemas'
 import { handleSupabaseError } from '../lib/utils/errors'
 import { MatchService } from '../lib/match-service'
@@ -247,6 +248,29 @@ export const addPlayerToField = actionClient
         revalidatePath('/')
         return { success: true, data }
       }
+    } catch (error) {
+      const appError = error instanceof Error ? error : handleSupabaseError(error)
+      return { success: false, error: appError.message }
+    }
+  })
+
+export const toggleVests = actionClient
+  .inputSchema(vestToggleSchema)
+  .action(async ({ parsedInput: { matchId, team } }) => {
+    try {
+      const { data, error } = await supabase
+        .from('matches')
+        .update({
+          team_with_vests: team
+        })
+        .eq('id', matchId)
+        .select()
+        .single()
+
+      if (error) throw handleSupabaseError(error)
+
+      revalidatePath('/')
+      return { success: true, data }
     } catch (error) {
       const appError = error instanceof Error ? error : handleSupabaseError(error)
       return { success: false, error: appError.message }
