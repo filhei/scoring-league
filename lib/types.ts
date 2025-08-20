@@ -8,8 +8,15 @@ export type Score = Database['public']['Tables']['scores']['Row']
 
 // Local interface types
 export interface PlayerStats {
+  player: Player
+  rank: number
+  gamesPlayed: number
+  sessionsPlayed: number
+  wins: number
+  losses: number
   goals: number
   assists: number
+  points: number
 }
 
 export interface ActiveGameData {

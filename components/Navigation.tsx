@@ -40,6 +40,14 @@ export function Navigation({ isDarkMode, onToggleDarkMode }: NavigationProps) {
             >
               Results
             </Link>
+            <Link 
+              href="/scoreboard" 
+              className={`text-sm font-medium transition-colors duration-300 hover:opacity-80 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}
+            >
+              Poängliga
+            </Link>
           </nav>
         </div>
         <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />
