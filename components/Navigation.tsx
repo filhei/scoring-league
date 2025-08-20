@@ -30,7 +30,7 @@ export function Navigation({ isDarkMode, onToggleDarkMode }: NavigationProps) {
                 isDarkMode ? 'text-gray-300' : 'text-gray-600'
               }`}
             >
-              Active Game
+              Matches
             </Link>
             <Link 
               href="/results" 

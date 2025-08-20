@@ -6,9 +6,10 @@ import { useSnackbar } from '../lib/hooks/useSnackbar'
 
 interface NoActiveGameProps {
   isDarkMode: boolean
+  onCreateNewGame?: () => void
 }
 
-export function NoActiveGame({ isDarkMode }: NoActiveGameProps) {
+export function NoActiveGame({ isDarkMode, onCreateNewGame }: NoActiveGameProps) {
   const [isPending, startTransition] = useTransition()
   const { showSnackbar } = useSnackbar()
 
@@ -29,6 +30,10 @@ export function NoActiveGame({ isDarkMode }: NoActiveGameProps) {
 
         if (result.data) {
           showSnackbar('New game created successfully!', 3000)
+          // Navigate to the new game view
+          if (onCreateNewGame) {
+            onCreateNewGame()
+          }
         }
       } catch (error) {
         showSnackbar('Failed to create game', 4000)

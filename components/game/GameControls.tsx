@@ -3,7 +3,7 @@ import type { UseMatchTimerReturn } from '../../lib/hooks/useMatchTimer'
 import { VestToggle } from './VestToggle'
 
 interface GameControlsProps {
-  timer: UseMatchTimerReturn
+  timer?: UseMatchTimerReturn | null
   leftScore: number
   rightScore: number
   leftTeam: 'A' | 'B'
@@ -66,9 +66,9 @@ export function GameControls({
         <div className={`text-4xl font-mono font-bold transition-colors duration-300 ${
           isDarkMode ? 'text-white' : 'text-gray-900'
         }`}>
-          {timer.formattedTime}
+          {timer?.formattedTime || '00:00'}
         </div>
-        {matchStatus !== 'planned' && (
+        {matchStatus !== 'planned' && timer && (
           <div className="absolute left-1/2 ml-32 flex items-center space-x-2">
             <button
               onClick={onPauseToggle}
@@ -98,41 +98,45 @@ export function GameControls({
 
       {/* Score Row */}
       <div className="flex justify-center items-center space-x-16 mb-8">
-        <button
-          onClick={() => onScoreIncrement(leftTeam)}
-          className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-300 hover:scale-110 text-white"
-          style={{
-            backgroundColor: 'var(--accent-blue)'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--accent-blue-hover)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--accent-blue)'
-          }}
-        >
-          +
-        </button>
+        {matchStatus !== 'planned' && (
+          <button
+            onClick={() => onScoreIncrement(leftTeam)}
+            className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-300 hover:scale-110 text-white"
+            style={{
+              backgroundColor: 'var(--accent-blue)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent-blue-hover)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent-blue)'
+            }}
+          >
+            +
+          </button>
+        )}
         <div className={`text-8xl font-bold transition-colors duration-300 ${
           isDarkMode ? 'text-white' : 'text-gray-900'
         }`}>
           {leftScore} - {rightScore}
         </div>
-        <button
-          onClick={() => onScoreIncrement(rightTeam)}
-          className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-300 hover:scale-110 text-white"
-          style={{
-            backgroundColor: 'var(--accent-blue)'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--accent-blue-hover)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--accent-blue)'
-          }}
-        >
-          +
-        </button>
+        {matchStatus !== 'planned' && (
+          <button
+            onClick={() => onScoreIncrement(rightTeam)}
+            className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-300 hover:scale-110 text-white"
+            style={{
+              backgroundColor: 'var(--accent-blue)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent-blue-hover)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--accent-blue)'
+            }}
+          >
+            +
+          </button>
+        )}
       </div>
 
       {/* Start/End Match Button */}

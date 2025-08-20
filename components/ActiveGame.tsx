@@ -6,7 +6,7 @@ import { DragImage, TeamDisplay, GameControls } from './game'
 
 interface ActiveGameProps {
   activeGame: ActiveGameData
-  timer: UseMatchTimerReturn
+  timer?: UseMatchTimerReturn | null
   teamAScore: number
   teamBScore: number
   isDarkMode: boolean

@@ -27,7 +27,7 @@ import { PlayerSelectModal } from './PlayerSelectModal'
 import { GoalDialog } from './GoalDialog'
 import { Snackbar } from './Snackbar'
 import { NoActiveGame } from './NoActiveGame'
-import { PlannedGamesList } from './PlannedGamesList'
+import { MatchesList } from './MatchesList'
 import { GameLoadingSkeleton } from './ui/loading-skeleton'
 
 interface ActiveGameWrapperProps {
@@ -44,6 +44,10 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [isSidesSwapped, setIsSidesSwapped] = useState(false)
   const [selectedPlannedGame, setSelectedPlannedGame] = useState<ActiveGameData | null>(null)
+  const [selectedActiveGame, setSelectedActiveGame] = useState<ActiveGameData | null>(null)
+  const [showMatchesList, setShowMatchesList] = useState(false) // Start with false, will be set based on activeGame
+  const [userRequestedMatchesList, setUserRequestedMatchesList] = useState(false) // Track when user explicitly wants matches list
+  const [hasInitialized, setHasInitialized] = useState(false) // Track if we've done initial setup
   const [localTeamA, setLocalTeamA] = useState<Player[]>([])
   const [localTeamB, setLocalTeamB] = useState<Player[]>([])
   const [showPlayerSelect, setShowPlayerSelect] = useState<PlayerSelectState>({ 
@@ -56,10 +60,11 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
     scoringPlayer: null,
     assistingPlayer: null
   })
+  const [isCreatingGame, setIsCreatingGame] = useState(false)
   
   const { snackbar, showSnackbar } = useSnackbar()
   
-  // Timer hook
+  // Timer hook - only for active games
   const timer = useMatchTimer(activeGame?.match || null, (updatedMatch) => {
     // Refresh game data when match updates
     refreshGameData()
@@ -92,8 +97,31 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
         console.log('Updating local Team B from database (players changed)')
         setLocalTeamB([...activeGame.teamB])
       }
+
+      // If we have an active game and we're showing the matches list, 
+      // automatically select the active game (but only on initial load, not when user explicitly goes back)
+      if (showMatchesList && activeGame && !selectedActiveGame && !selectedPlannedGame && !userRequestedMatchesList && hasInitialized) {
+        setSelectedActiveGame(activeGame)
+        setShowMatchesList(false)
+      }
     }
   }, [activeGame])
+
+  // Set initial state based on whether there's an active game (only on first load)
+  React.useEffect(() => {
+    if (!loading && !hasInitialized) {
+      setHasInitialized(true)
+      setUserRequestedMatchesList(false) // Reset flag on initial load
+      if (activeGame) {
+        // If there's an active game, show it directly
+        setSelectedActiveGame(activeGame)
+        setShowMatchesList(false)
+      } else {
+        // If no active game, show the matches list
+        setShowMatchesList(true)
+      }
+    }
+  }, [activeGame, loading, hasInitialized])
 
   // Update local state when selectedPlannedGame changes and clear when switching
   React.useEffect(() => {
@@ -118,26 +146,28 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
 
   // Clear local state when switching between different game contexts
   React.useEffect(() => {
-    // When we have both activeGame and selectedPlannedGame, prioritize activeGame
-    if (activeGame && selectedPlannedGame) {
-      setSelectedPlannedGame(null)
-    }
-    
     // Clear local state when there's no game at all
-    if (!activeGame && !selectedPlannedGame) {
+    if (!activeGame && !selectedPlannedGame && !selectedActiveGame) {
       setLocalTeamA([])
       setLocalTeamB([])
     }
-  }, [activeGame, selectedPlannedGame])
+  }, [activeGame, selectedPlannedGame, selectedActiveGame])
 
-  // Calculate scores
-  const currentGame = activeGame || selectedPlannedGame
-  const teamAScore = currentGame ? getTeamScore(currentGame.scores, 'A') : 0
-  const teamBScore = currentGame ? getTeamScore(currentGame.scores, 'B') : 0
+  // Get the current game context (the game being viewed/edited)
+  const getCurrentGameContext = () => {
+    if (selectedPlannedGame) return selectedPlannedGame
+    if (selectedActiveGame) return selectedActiveGame
+    return activeGame
+  }
+
+  // Calculate scores for the current game context
+  const currentGameContext = getCurrentGameContext()
+  const teamAScore = currentGameContext ? getTeamScore(currentGameContext.scores, 'A') : 0
+  const teamBScore = currentGameContext ? getTeamScore(currentGameContext.scores, 'B') : 0
 
   // Get current team data (using local state for reordering)
   const getCurrentTeamData = () => {
-    if (!currentGame) return { teamA: [], teamB: [] }
+    if (!currentGameContext) return { teamA: [], teamB: [] }
     
     // For planned games, always use local state if we have a selectedPlannedGame
     // For active games, use local state only if it's populated (for reordering)
@@ -149,8 +179,8 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
     }
     
     return {
-      teamA: localTeamA.length > 0 ? localTeamA : currentGame.teamA,
-      teamB: localTeamB.length > 0 ? localTeamB : currentGame.teamB
+      teamA: localTeamA.length > 0 ? localTeamA : currentGameContext.teamA,
+      teamB: localTeamB.length > 0 ? localTeamB : currentGameContext.teamB
     }
   }
 
@@ -160,7 +190,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   }
 
   const handleScoreIncrement = async (team: 'A' | 'B') => {
-    const currentGame = activeGame || selectedPlannedGame
+    const currentGame = getCurrentGameContext()
     if (!currentGame) return
     
     setGoalDialog({
@@ -202,7 +232,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   }
 
   const handleGoalDialogSubmit = async () => {
-    const currentGame = activeGame || selectedPlannedGame
+    const currentGame = getCurrentGameContext()
     if (!currentGame || !goalDialog.team) return
 
     try {
@@ -262,7 +292,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   }
 
   const handleEndMatch = async () => {
-    const currentGame = activeGame || selectedPlannedGame
+    const currentGame = getCurrentGameContext()
     if (!currentGame) return
 
     try {
@@ -665,53 +695,128 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
         
         // Special case: Goalkeeper assignment (newIndex = -1)
         if (newIndex === -1) {
-          console.log(`Assigning ${player.name} as goalkeeper for team ${newTeam}`)
+          // Check if we're swapping goalkeepers (dragging one goalkeeper to another goalkeeper position)
+          const isGoalkeeperSwap = isCurrentlyGoalkeeper && currentTeam !== newTeam
           
-          // Remove player from current field position
-          if (currentTeam === 'A') {
-            const currentIndex = localTeamA.findIndex(p => p.id === player.id)
-            if (currentIndex !== -1) {
-              const newTeamA = [...localTeamA]
-              newTeamA.splice(currentIndex, 1)
-              updateTeamState(newTeamA, localTeamB)
-            }
-          } else {
-            const currentIndex = localTeamB.findIndex(p => p.id === player.id)
-            if (currentIndex !== -1) {
-              const newTeamB = [...localTeamB]
-              newTeamB.splice(currentIndex, 1)
-              updateTeamState(localTeamA, newTeamB)
-            }
-          }
-
-          // Also update goalkeeper in selectedPlannedGame if applicable
-          updateGoalkeeperInPlannedGame(newTeam, player)
-          
-          // Assign goalkeeper
-          assignGoalkeeper({
-            matchId: currentGame.match.id,
-            playerId: player.id,
-            team: newTeam
-          }).then(assignResult => {
-            if (assignResult.validationErrors || assignResult.serverError) {
-              console.error('Failed to assign goalkeeper to database:', assignResult.validationErrors || assignResult.serverError)
-              showSnackbar('Warning: Goalkeeper assignment may not be saved')
-            } else {
-              console.log(`Successfully assigned ${player.name} as goalkeeper for team ${newTeam}`)
-              // Refresh game data to get updated teams and goalkeepers
-              if (selectedPlannedGame) {
-                // Refresh the selected planned game data
-                convertPlannedGameToActiveGameData(currentGame.match).then(updatedGameData => {
-                  setSelectedPlannedGame(updatedGameData)
-                })
+          if (isGoalkeeperSwap) {
+            console.log(`Swapping goalkeepers: ${player.name} (${currentTeam}) ↔ ${currentGame.goalkeepers[newTeam === 'A' ? 'teamA' : 'teamB']?.name || 'None'} (${newTeam})`)
+            
+            // Get the other goalkeeper
+            const otherGoalkeeper = currentGame.goalkeepers[newTeam === 'A' ? 'teamA' : 'teamB']
+            
+            // Update local state for instant feedback
+            if (otherGoalkeeper) {
+              // Both teams have goalkeepers - swap them
+              if (currentTeam === 'A') {
+                // Current goalkeeper is from team A, moving to team B
+                // Other goalkeeper moves from team B to team A
+                const newTeamA = [...localTeamA]
+                newTeamA.push(otherGoalkeeper) // Add other goalkeeper to team A field
+                updateTeamState(newTeamA, localTeamB)
               } else {
-                refreshGameData()
+                // Current goalkeeper is from team B, moving to team A
+                // Other goalkeeper moves from team A to team B
+                const newTeamB = [...localTeamB]
+                newTeamB.push(otherGoalkeeper) // Add other goalkeeper to team B field
+                updateTeamState(localTeamA, newTeamB)
+              }
+            } else {
+              // Only one goalkeeper exists - just move the current one
+              console.log(`Moving goalkeeper ${player.name} from team ${currentTeam} to team ${newTeam}`)
+            }
+            
+            // Update goalkeepers in selectedPlannedGame if applicable
+            updateGoalkeeperInPlannedGame(newTeam, player)
+            if (otherGoalkeeper) {
+              updateGoalkeeperInPlannedGame(currentTeam, otherGoalkeeper)
+            }
+            
+            // Update database - swap goalkeepers
+            Promise.all([
+              assignGoalkeeper({
+                matchId: currentGame.match.id,
+                playerId: player.id,
+                team: newTeam
+              }),
+              otherGoalkeeper ? assignGoalkeeper({
+                matchId: currentGame.match.id,
+                playerId: otherGoalkeeper.id,
+                team: currentTeam
+              }) : Promise.resolve({ validationErrors: null, serverError: null })
+            ]).then(([assignResult1, assignResult2]) => {
+              if (assignResult1.validationErrors || assignResult1.serverError || 
+                  assignResult2.validationErrors || assignResult2.serverError) {
+                console.error('Failed to swap goalkeepers in database:', {
+                  assign1Errors: assignResult1.validationErrors || assignResult1.serverError,
+                  assign2Errors: assignResult2.validationErrors || assignResult2.serverError
+                })
+                showSnackbar('Warning: Goalkeeper swap may not be saved')
+              } else {
+                console.log(`Successfully swapped goalkeepers: ${player.name} ↔ ${otherGoalkeeper?.name || 'None'}`)
+                // Refresh game data to get updated teams and goalkeepers
+                if (selectedPlannedGame) {
+                  convertPlannedGameToActiveGameData(currentGame.match).then(updatedGameData => {
+                    setSelectedPlannedGame(updatedGameData)
+                  })
+                } else {
+                  refreshGameData()
+                }
+              }
+            }).catch(error => {
+              console.error('Error swapping goalkeepers:', error)
+              showSnackbar('Failed to swap goalkeepers')
+            })
+            
+          } else {
+            // Regular goalkeeper assignment (field player becoming goalkeeper)
+            console.log(`Assigning ${player.name} as goalkeeper for team ${newTeam}`)
+            
+            // Remove player from current field position
+            if (currentTeam === 'A') {
+              const currentIndex = localTeamA.findIndex(p => p.id === player.id)
+              if (currentIndex !== -1) {
+                const newTeamA = [...localTeamA]
+                newTeamA.splice(currentIndex, 1)
+                updateTeamState(newTeamA, localTeamB)
+              }
+            } else {
+              const currentIndex = localTeamB.findIndex(p => p.id === player.id)
+              if (currentIndex !== -1) {
+                const newTeamB = [...localTeamB]
+                newTeamB.splice(currentIndex, 1)
+                updateTeamState(localTeamA, newTeamB)
               }
             }
-          }).catch(error => {
-            console.error('Error assigning goalkeeper:', error)
-            showSnackbar('Failed to assign goalkeeper')
-          })
+
+            // Also update goalkeeper in selectedPlannedGame if applicable
+            updateGoalkeeperInPlannedGame(newTeam, player)
+            
+            // Assign goalkeeper
+            assignGoalkeeper({
+              matchId: currentGame.match.id,
+              playerId: player.id,
+              team: newTeam
+            }).then(assignResult => {
+              if (assignResult.validationErrors || assignResult.serverError) {
+                console.error('Failed to assign goalkeeper to database:', assignResult.validationErrors || assignResult.serverError)
+                showSnackbar('Warning: Goalkeeper assignment may not be saved')
+              } else {
+                console.log(`Successfully assigned ${player.name} as goalkeeper for team ${newTeam}`)
+                // Refresh game data to get updated teams and goalkeepers
+                if (selectedPlannedGame) {
+                  // Refresh the selected planned game data
+                  convertPlannedGameToActiveGameData(currentGame.match).then(updatedGameData => {
+                    setSelectedPlannedGame(updatedGameData)
+                  })
+                } else {
+                  refreshGameData()
+                }
+              }
+            }).catch(error => {
+              console.error('Error assigning goalkeeper:', error)
+              showSnackbar('Failed to assign goalkeeper')
+            })
+          }
           
           return
         }
@@ -929,8 +1034,59 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
     }
   }
 
-  const handleBackToPlannedGames = () => {
+  const handleBackToMatchesList = () => {
     setSelectedPlannedGame(null)
+    setSelectedActiveGame(null)
+    setUserRequestedMatchesList(true)
+    setShowMatchesList(true)
+  }
+
+  const handleSelectGame = async (game: Match) => {
+    try {
+      setUserRequestedMatchesList(false) // Reset the flag when selecting a game
+      if (game.match_status === 'active' || game.match_status === 'paused') {
+        // This is the active game, so we should already have it in activeGame
+        if (activeGame && activeGame.match.id === game.id) {
+          setSelectedActiveGame(activeGame)
+          setShowMatchesList(false)
+        }
+      } else {
+        // This is a planned game
+        const gameData = await convertPlannedGameToActiveGameData(game)
+        setSelectedPlannedGame(gameData)
+        setShowMatchesList(false)
+      }
+    } catch (error) {
+      console.error('Error loading game:', error)
+      showSnackbar('Failed to load game')
+    }
+  }
+
+  const handleCreateNewGame = async () => {
+    setIsCreatingGame(true)
+    try {
+      const result = await createMatch({})
+      
+      if (result.validationErrors) {
+        showSnackbar('Invalid input data', 4000)
+        return
+      }
+
+      if (result.serverError) {
+        showSnackbar(result.serverError, 4000)
+        return
+      }
+
+      if (result.data) {
+        showSnackbar('New game created successfully!', 3000)
+        // Refresh data to get the new game
+        refreshGameData()
+      }
+    } catch (error) {
+      showSnackbar('Failed to create game', 4000)
+    } finally {
+      setIsCreatingGame(false)
+    }
   }
 
   // Helper function to update both local state and selectedPlannedGame
@@ -962,8 +1118,8 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   }
 
   // Get available players for selection
-  const availablePlayersForSelection = currentGame 
-    ? getAvailablePlayersForSelection(queryAvailablePlayers, currentGame.teamA, currentGame.teamB, currentGame.goalkeepers)
+  const availablePlayersForSelection = currentGameContext 
+    ? getAvailablePlayersForSelection(queryAvailablePlayers, currentGameContext.teamA, currentGameContext.teamB, currentGameContext.goalkeepers)
     : queryAvailablePlayers
 
   // Show loading state
@@ -986,14 +1142,14 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
         {/* Back button */}
         <div className="max-w-6xl mx-auto p-6 pb-0">
           <button
-            onClick={handleBackToPlannedGames}
+            onClick={handleBackToMatchesList}
             className={`mb-4 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105 ${
               isDarkMode
                 ? 'bg-gray-700 hover:bg-gray-600 text-white'
                 : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
             }`}
           >
-            ← Back to Planned Games
+            ← Back to Matches
           </button>
         </div>
         
@@ -1003,7 +1159,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
             teamA: getCurrentTeamData().teamA,
             teamB: getCurrentTeamData().teamB
           }}
-          timer={timer}
+          timer={null} // No timer for planned games
           teamAScore={getTeamScore(selectedPlannedGame.scores, 'A')}
           teamBScore={getTeamScore(selectedPlannedGame.scores, 'B')}
           isDarkMode={isDarkMode}
@@ -1047,8 +1203,8 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
     )
   }
 
-  // Show no active game state with planned games
-  if (!activeGame) {
+  // Show matches list view
+  if (showMatchesList) {
     return (
       <div 
         className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark' : ''}`}
@@ -1058,72 +1214,96 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
         }}
       >
         <Navigation isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} />
-        <PlannedGamesList 
+        <MatchesList 
+          activeGame={activeGame || null}
           plannedGames={plannedGames}
           isDarkMode={isDarkMode}
-          onSelectGame={handleSelectPlannedGame}
+          onSelectGame={handleSelectGame}
+          onCreateNewGame={handleCreateNewGame}
+          isCreatingGame={isCreatingGame}
         />
-        <NoActiveGame isDarkMode={isDarkMode} />
         <Snackbar snackbar={snackbar} isDarkMode={isDarkMode} />
       </div>
     )
   }
 
-  return (
-    <div 
-      className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark' : ''}`}
-      style={{
-        backgroundColor: 'var(--background)',
-        color: 'var(--foreground)'
-      }}
-    >
-      <Navigation isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} />
-      
-      <ActiveGame
-        activeGame={{
-          ...activeGame,
-          teamA: getCurrentTeamData().teamA,
-          teamB: getCurrentTeamData().teamB
+  // Show selected active game view
+  if (selectedActiveGame) {
+    const displayGame = selectedActiveGame
+
+    return (
+      <div 
+        className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark' : ''}`}
+        style={{
+          backgroundColor: 'var(--background)',
+          color: 'var(--foreground)'
         }}
-        timer={timer}
-        teamAScore={teamAScore}
-        teamBScore={teamBScore}
-        isDarkMode={isDarkMode}
-        isSidesSwapped={isSidesSwapped}
-        matchStatus={activeGame.match.match_status}
-        onScoreIncrement={handleScoreIncrement}
-        onPauseToggle={handlePauseToggle}
-        onEndMatch={handleEndMatch}
-        onEndMatchAndCreateNew={handleEndMatchAndCreateNew}
-        onSwapSides={handleSwapSides}
-        onAddPlayer={handleAddPlayer}
-        onRemovePlayer={handleRemovePlayer}
-        onSwitchPlayerTeam={handleSwitchPlayerTeam}
-        onVestToggle={handleVestToggle}
-      />
+      >
+        <Navigation isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} />
+        
+        {/* Back button for active game view */}
+        <div className="max-w-6xl mx-auto p-6 pb-0">
+          <button
+            onClick={handleBackToMatchesList}
+            className={`mb-4 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105 ${
+              isDarkMode
+                ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+            }`}
+          >
+            ← Back to Matches
+          </button>
+        </div>
+        
+        <ActiveGame
+          activeGame={{
+            ...displayGame,
+            teamA: getCurrentTeamData().teamA,
+            teamB: getCurrentTeamData().teamB
+          }}
+          timer={timer}
+          teamAScore={teamAScore}
+          teamBScore={teamBScore}
+          isDarkMode={isDarkMode}
+          isSidesSwapped={isSidesSwapped}
+          matchStatus={displayGame.match.match_status}
+          onScoreIncrement={handleScoreIncrement}
+          onPauseToggle={handlePauseToggle}
+          onEndMatch={handleEndMatch}
+          onEndMatchAndCreateNew={handleEndMatchAndCreateNew}
+          onSwapSides={handleSwapSides}
+          onAddPlayer={handleAddPlayer}
+          onRemovePlayer={handleRemovePlayer}
+          onSwitchPlayerTeam={handleSwitchPlayerTeam}
+          onVestToggle={handleVestToggle}
+        />
 
-      {/* Player Selection Modal */}
-      <PlayerSelectModal
-        showPlayerSelect={showPlayerSelect}
-        availablePlayers={availablePlayersForSelection}
-        isDarkMode={isDarkMode}
-        onPlayerSelect={handlePlayerSelect}
-        onClose={handleClosePlayerSelect}
-      />
+        {/* Player Selection Modal */}
+        <PlayerSelectModal
+          showPlayerSelect={showPlayerSelect}
+          availablePlayers={availablePlayersForSelection}
+          isDarkMode={isDarkMode}
+          onPlayerSelect={handlePlayerSelect}
+          onClose={handleClosePlayerSelect}
+        />
 
-      {/* Goal Dialog */}
-      <GoalDialog
-        goalDialog={goalDialog}
-        activeGame={activeGame}
-        isDarkMode={isDarkMode}
-        onPlayerClick={handleGoalDialogPlayerClick}
-        onSubmit={handleGoalDialogSubmit}
-        onCancel={handleGoalDialogCancel}
-        onRemoveSelectedPlayer={removeSelectedPlayer}
-      />
+        {/* Goal Dialog */}
+        <GoalDialog
+          goalDialog={goalDialog}
+          activeGame={displayGame}
+          isDarkMode={isDarkMode}
+          onPlayerClick={handleGoalDialogPlayerClick}
+          onSubmit={handleGoalDialogSubmit}
+          onCancel={handleGoalDialogCancel}
+          onRemoveSelectedPlayer={removeSelectedPlayer}
+        />
 
-      {/* Snackbar */}
-      <Snackbar snackbar={snackbar} isDarkMode={isDarkMode} />
-    </div>
-  )
+        {/* Snackbar */}
+        <Snackbar snackbar={snackbar} isDarkMode={isDarkMode} />
+      </div>
+    )
+  }
+
+  // If no specific game is selected, show loading or fallback
+  return <GameLoadingSkeleton />
 } 
