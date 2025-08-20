@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { DarkModeToggle } from './DarkModeToggle'
 
 interface NavigationProps {
@@ -13,11 +14,34 @@ export function Navigation({ isDarkMode, onToggleDarkMode }: NavigationProps) {
         : 'bg-white/80 border-gray-200'
     }`}>
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-        <h1 className={`text-2xl font-bold transition-colors duration-300 ${
-          isDarkMode ? 'text-white' : 'text-black'
-        }`}>
-          Scoring League
-        </h1>
+        <div className="flex items-center space-x-8">
+          <Link 
+            href="/" 
+            className={`text-2xl font-bold transition-colors duration-300 hover:opacity-80 ${
+              isDarkMode ? 'text-white' : 'text-black'
+            }`}
+          >
+            Scoring League
+          </Link>
+          <nav className="flex space-x-6">
+            <Link 
+              href="/" 
+              className={`text-sm font-medium transition-colors duration-300 hover:opacity-80 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}
+            >
+              Active Game
+            </Link>
+            <Link 
+              href="/results" 
+              className={`text-sm font-medium transition-colors duration-300 hover:opacity-80 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}
+            >
+              Results
+            </Link>
+          </nav>
+        </div>
         <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />
       </div>
     </div>
