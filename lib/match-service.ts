@@ -113,6 +113,8 @@ export class MatchService {
    */
   static async endMatch(matchId: string, winnerTeam?: 'A' | 'B' | null): Promise<Match | null> {
     try {
+      console.log('MatchService.endMatch: Starting to end match', matchId)
+      
       // Get current match data
       const { data: match, error: fetchError } = await supabase
         .from('matches')
@@ -120,7 +122,12 @@ export class MatchService {
         .eq('id', matchId)
         .single()
 
-      if (fetchError || !match) throw fetchError || new Error('Match not found')
+      if (fetchError || !match) {
+        console.error('MatchService.endMatch: Error fetching match or match not found', fetchError)
+        throw fetchError || new Error('Match not found')
+      }
+
+      console.log('MatchService.endMatch: Current match status:', match.match_status)
 
       const now = new Date()
       const updates: MatchUpdate = {
@@ -135,7 +142,10 @@ export class MatchService {
         const pauseDuration = match.pause_duration ? this.parseInterval(match.pause_duration) : 0
         const finalDuration = Math.floor((now.getTime() - startTime.getTime()) / 1000) - pauseDuration
         updates.duration = `${finalDuration} seconds`
+        console.log('MatchService.endMatch: Calculated final duration:', finalDuration, 'seconds')
       }
+
+      console.log('MatchService.endMatch: Updating match with:', updates)
 
       const { data, error } = await supabase
         .from('matches')
@@ -144,7 +154,12 @@ export class MatchService {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('MatchService.endMatch: Error updating match:', error)
+        throw error
+      }
+
+      console.log('MatchService.endMatch: Match updated successfully, new status:', data?.match_status)
       return data
     } catch (error) {
       console.error('Error ending match:', error)

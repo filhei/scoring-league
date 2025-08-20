@@ -45,6 +45,11 @@ export function ActiveGame({
 }: ActiveGameProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // Debug log to track game display
+  React.useEffect(() => {
+    console.log(`ActiveGame: Displaying game ${activeGame.match.id.slice(0, 8)}... (${matchStatus}) with ${activeGame.teamA.length + activeGame.teamB.length} players`)
+  }, [activeGame.match.id, matchStatus, activeGame.teamA.length, activeGame.teamB.length])
+
   // Use the drag and drop hook
   const {
     dragState,
@@ -109,6 +114,9 @@ export function ActiveGame({
             isDarkMode ? 'text-white' : 'text-gray-900'
           }`}>
             {matchStatus === 'planned' ? 'Planned Game' : 'Active Game'}
+            <span className="text-sm font-normal ml-2 opacity-60">
+              (ID: {activeGame.match.id.slice(0, 8)}...)
+            </span>
           </h2>
           <button
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 ${

@@ -33,18 +33,24 @@ import { GameLoadingSkeleton } from './ui/loading-skeleton'
 interface ActiveGameWrapperProps {
   initialActiveGame: any // We'll use React Query instead
   availablePlayers: Player[]
-  plannedGames: Match[]
+  allGames: Match[]
 }
 
-export function ActiveGameWrapper({ initialActiveGame, availablePlayers, plannedGames }: ActiveGameWrapperProps) {
+// Game context type to track which game we're currently viewing
+interface GameContext {
+  type: 'active' | 'planned' | 'selected-active'
+  gameData: ActiveGameData
+  matchId: string
+}
+
+export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGames }: ActiveGameWrapperProps) {
   // Use React Query for data fetching
   const { activeGame, availablePlayers: queryAvailablePlayers, loading, refreshGameData } = useGameData()
   
   // Local state
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [isSidesSwapped, setIsSidesSwapped] = useState(false)
-  const [selectedPlannedGame, setSelectedPlannedGame] = useState<ActiveGameData | null>(null)
-  const [selectedActiveGame, setSelectedActiveGame] = useState<ActiveGameData | null>(null)
+  const [currentGameContext, setCurrentGameContext] = useState<GameContext | null>(null)
   const [showMatchesList, setShowMatchesList] = useState(false) // Start with false, will be set based on activeGame
   const [userRequestedMatchesList, setUserRequestedMatchesList] = useState(false) // Track when user explicitly wants matches list
   const [hasInitialized, setHasInitialized] = useState(false) // Track if we've done initial setup
@@ -64,46 +70,47 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   
   const { snackbar, showSnackbar } = useSnackbar()
   
-  // Timer hook - only for active games
-  const timer = useMatchTimer(activeGame?.match || null, (updatedMatch) => {
-    // Refresh game data when match updates
-    refreshGameData()
-  })
+  // Timer hook - use current game context for active games
+  const timer = useMatchTimer(
+    currentGameContext?.type === 'active' ? currentGameContext.gameData.match : null, 
+    (updatedMatch) => {
+      // Update current game context with the updated match
+      if (currentGameContext?.type === 'active' && updatedMatch) {
+        setCurrentGameContext({
+          type: 'active',
+          gameData: {
+            ...currentGameContext.gameData,
+            match: updatedMatch
+          },
+          matchId: updatedMatch.id
+        })
+      }
+      // Refresh game data when match updates
+      refreshGameData()
+    }
+  )
 
-  // Update local state when activeGame changes, but preserve local changes
+  // Update current game context when activeGame changes
   React.useEffect(() => {
     if (activeGame) {
-      // Check if local state is empty or significantly different from database
-      const localTeamAIds = localTeamA.map(p => p.id).sort()
-      const localTeamBIds = localTeamB.map(p => p.id).sort()
-      const dbTeamAIds = activeGame.teamA.map(p => p.id).sort()
-      const dbTeamBIds = activeGame.teamB.map(p => p.id).sort()
+      console.log(`ActiveGame effect: Updating context to active game ${activeGame.match.id.slice(0, 8)}...`)
+      // If we have an active game, update the context
+      // This handles both initial load and transitions from planned to active
+      setCurrentGameContext({
+        type: 'active',
+        gameData: activeGame,
+        matchId: activeGame.match.id
+      })
       
-      // Only update if local state is empty or has different players (not just different order)
-      const teamADifferent = localTeamAIds.length === 0 || 
-        localTeamAIds.length !== dbTeamAIds.length ||
-        localTeamAIds.some((id, index) => id !== dbTeamAIds[index])
-        
-      const teamBDifferent = localTeamBIds.length === 0 || 
-        localTeamBIds.length !== dbTeamBIds.length ||
-        localTeamBIds.some((id, index) => id !== dbTeamBIds[index])
-      
-      if (teamADifferent) {
-        console.log('Updating local Team A from database (players changed)')
-        setLocalTeamA([...activeGame.teamA])
-      }
-      
-      if (teamBDifferent) {
-        console.log('Updating local Team B from database (players changed)')
-        setLocalTeamB([...activeGame.teamB])
-      }
-
-      // If we have an active game and we're showing the matches list, 
-      // automatically select the active game (but only on initial load, not when user explicitly goes back)
-      if (showMatchesList && activeGame && !selectedActiveGame && !selectedPlannedGame && !userRequestedMatchesList && hasInitialized) {
-        setSelectedActiveGame(activeGame)
-        setShowMatchesList(false)
-      }
+      // Initialize local state
+      setLocalTeamA([...activeGame.teamA])
+      setLocalTeamB([...activeGame.teamB])
+    } else {
+      // Clear current game context when no active game (e.g., when match is ended)
+      console.log('ActiveGame effect: No active game, clearing context')
+      setCurrentGameContext(null)
+      setLocalTeamA([])
+      setLocalTeamB([])
     }
   }, [activeGame])
 
@@ -114,64 +121,50 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
       setUserRequestedMatchesList(false) // Reset flag on initial load
       if (activeGame) {
         // If there's an active game, show it directly
-        setSelectedActiveGame(activeGame)
+        setCurrentGameContext({
+          type: 'active',
+          gameData: activeGame,
+          matchId: activeGame.match.id
+        })
         setShowMatchesList(false)
       } else {
         // If no active game, show the matches list
+        setCurrentGameContext(null)
         setShowMatchesList(true)
       }
     }
   }, [activeGame, loading, hasInitialized])
 
-  // Update local state when selectedPlannedGame changes and clear when switching
+  // Update local state when currentGameContext changes
   React.useEffect(() => {
-    if (selectedPlannedGame) {
-      console.log('Syncing local state with selected planned game')
-      setLocalTeamA([...selectedPlannedGame.teamA])
-      setLocalTeamB([...selectedPlannedGame.teamB])
+    if (currentGameContext) {
+      console.log(`Updating local state for game context: ${currentGameContext.type} (ID: ${currentGameContext.matchId})`)
+      setLocalTeamA([...currentGameContext.gameData.teamA])
+      setLocalTeamB([...currentGameContext.gameData.teamB])
     } else {
-      // Clear local state when no planned game is selected
+      // Clear local state when no game context
       setLocalTeamA([])
       setLocalTeamB([])
     }
-  }, [selectedPlannedGame?.match.id]) // Only sync when the match ID changes, not on every property update
-
-  // Separate effect to handle clearing state when selectedPlannedGame becomes null
-  React.useEffect(() => {
-    if (!selectedPlannedGame) {
-      setLocalTeamA([])
-      setLocalTeamB([])
-    }
-  }, [selectedPlannedGame])
-
-  // Clear local state when switching between different game contexts
-  React.useEffect(() => {
-    // Clear local state when there's no game at all
-    if (!activeGame && !selectedPlannedGame && !selectedActiveGame) {
-      setLocalTeamA([])
-      setLocalTeamB([])
-    }
-  }, [activeGame, selectedPlannedGame, selectedActiveGame])
+  }, [currentGameContext?.matchId]) // Only sync when the match ID changes
 
   // Get the current game context (the game being viewed/edited)
-  const getCurrentGameContext = () => {
-    if (selectedPlannedGame) return selectedPlannedGame
-    if (selectedActiveGame) return selectedActiveGame
-    return activeGame
+  const getCurrentGameContext = (): ActiveGameData | null => {
+    return currentGameContext?.gameData || null
   }
 
   // Calculate scores for the current game context
-  const currentGameContext = getCurrentGameContext()
-  const teamAScore = currentGameContext ? getTeamScore(currentGameContext.scores, 'A') : 0
-  const teamBScore = currentGameContext ? getTeamScore(currentGameContext.scores, 'B') : 0
+  const currentGameData = getCurrentGameContext()
+  const teamAScore = currentGameData ? getTeamScore(currentGameData.scores, 'A') : 0
+  const teamBScore = currentGameData ? getTeamScore(currentGameData.scores, 'B') : 0
 
   // Get current team data (using local state for reordering)
   const getCurrentTeamData = () => {
-    if (!currentGameContext) return { teamA: [], teamB: [] }
+    if (!currentGameData) return { teamA: [], teamB: [] }
     
-    // For planned games, always use local state if we have a selectedPlannedGame
+    // For planned games, always use local state if we have a currentGameContext
     // For active games, use local state only if it's populated (for reordering)
-    if (selectedPlannedGame) {
+    if (currentGameContext?.type === 'planned') {
       return {
         teamA: localTeamA,
         teamB: localTeamB
@@ -179,9 +172,21 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
     }
     
     return {
-      teamA: localTeamA.length > 0 ? localTeamA : currentGameContext.teamA,
-      teamB: localTeamB.length > 0 ? localTeamB : currentGameContext.teamB
+      teamA: localTeamA.length > 0 ? localTeamA : currentGameData.teamA,
+      teamB: localTeamB.length > 0 ? localTeamB : currentGameData.teamB
     }
+  }
+
+  // Helper function to ensure we're operating on the correct match
+  const ensureCorrectMatch = (operation: string): boolean => {
+    if (!currentGameContext) {
+      console.error(`${operation}: No current game context`)
+      showSnackbar('No game selected')
+      return false
+    }
+    
+    console.log(`${operation}: Operating on match ID ${currentGameContext.matchId}`)
+    return true
   }
 
   // Event handlers
@@ -190,8 +195,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   }
 
   const handleScoreIncrement = async (team: 'A' | 'B') => {
-    const currentGame = getCurrentGameContext()
-    if (!currentGame) return
+    if (!ensureCorrectMatch('Score increment')) return
     
     setGoalDialog({
       isOpen: true,
@@ -232,12 +236,12 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   }
 
   const handleGoalDialogSubmit = async () => {
-    const currentGame = getCurrentGameContext()
-    if (!currentGame || !goalDialog.team) return
+    if (!ensureCorrectMatch('Goal dialog submit')) return
+    if (!goalDialog.team) return
 
     try {
       const result = await addScore({
-        matchId: currentGame.match.id,
+        matchId: currentGameContext!.matchId,
         team: goalDialog.team,
         scoringPlayerId: goalDialog.scoringPlayer?.id,
         assistingPlayerId: goalDialog.assistingPlayer?.id
@@ -258,10 +262,14 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
         setGoalDialog({ isOpen: false, team: null, scoringPlayer: null, assistingPlayer: null })
         
         // Refresh game data to get updated scores
-        if (selectedPlannedGame) {
+        if (currentGameContext?.type === 'planned') {
           // Update the selected planned game data
-          const updatedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
-          setSelectedPlannedGame(updatedGameData)
+          const updatedGameData = await convertPlannedGameToActiveGameData(currentGameContext.gameData.match)
+          setCurrentGameContext({
+            type: 'planned',
+            gameData: updatedGameData,
+            matchId: updatedGameData.match.id
+          })
         } else {
           refreshGameData()
         }
@@ -292,13 +300,27 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   }
 
   const handleEndMatch = async () => {
-    const currentGame = getCurrentGameContext()
-    if (!currentGame) return
+    if (!ensureCorrectMatch('End match')) return
 
     try {
+      console.log('handleEndMatch: Starting to end match...')
+      console.log('handleEndMatch: Current game context:', currentGameContext?.type, currentGameContext?.matchId)
+      console.log('handleEndMatch: Timer match available:', !!timer)
       const winnerTeam = teamAScore > teamBScore ? 'A' : teamBScore > teamAScore ? 'B' : null
+      console.log('handleEndMatch: Winner team:', winnerTeam)
+      console.log('handleEndMatch: Calling timer.endMatch...')
       await timer.endMatch(winnerTeam)
-      // Don't set to null, let the server component handle the state change
+      console.log('handleEndMatch: timer.endMatch completed successfully')
+      
+      // Show success message
+      const winnerText = winnerTeam ? `Team ${winnerTeam} wins!` : 'Match ended in a tie!'
+      showSnackbar(`Match ended successfully. ${winnerText}`, 3000)
+      
+      // Go back to matches list after ending the match
+      console.log('handleEndMatch: Going back to matches list')
+      setCurrentGameContext(null)
+      setUserRequestedMatchesList(true)
+      setShowMatchesList(true)
     } catch (error) {
       console.error('Error ending match:', error)
       showSnackbar('Failed to end match')
@@ -306,8 +328,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   }
 
   const handleEndMatchAndCreateNew = async () => {
-    const currentGame = activeGame || selectedPlannedGame
-    if (!currentGame) return
+    if (!ensureCorrectMatch('End match and create new')) return
 
     try {
       // First end the current match
@@ -319,11 +340,11 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
       
       // Create new match with same team configuration
       const createResult = await createMatch({
-        teamWithVests: currentGame.match.team_with_vests as 'A' | 'B' | null,
+        teamWithVests: currentGameContext!.gameData.match.team_with_vests as 'A' | 'B' | null,
         teamAPlayerIds: currentTeamData.teamA.map(player => player.id),
         teamBPlayerIds: currentTeamData.teamB.map(player => player.id),
-        teamAGoalkeeperId: currentGame.goalkeepers.teamA?.id || null,
-        teamBGoalkeeperId: currentGame.goalkeepers.teamB?.id || null
+        teamAGoalkeeperId: currentGameContext!.gameData.goalkeepers.teamA?.id || null,
+        teamBGoalkeeperId: currentGameContext!.gameData.goalkeepers.teamB?.id || null
       })
 
       if (createResult.validationErrors || createResult.serverError) {
@@ -332,7 +353,14 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
       }
 
       if (createResult.data) {
-        showSnackbar('Match ended and new planned match created with same teams!')
+        const winnerText = winnerTeam ? `Team ${winnerTeam} wins!` : 'Match ended in a tie!'
+        showSnackbar(`Match ended successfully. ${winnerText} New match created with same teams!`, 4000)
+        
+        // Go back to matches list to show the new planned match
+        console.log('handleEndMatchAndCreateNew: Going back to matches list')
+        setCurrentGameContext(null)
+        setUserRequestedMatchesList(true)
+        setShowMatchesList(true)
       }
     } catch (error) {
       console.error('Error ending match and creating new:', error)
@@ -345,35 +373,42 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   }
 
   const handleVestToggle = async (team: 'A' | 'B') => {
-    const currentGame = activeGame || selectedPlannedGame
-    if (!currentGame) return
+    if (!ensureCorrectMatch('Vest toggle')) return
     
     try {
-      const currentTeamWithVests = currentGame.match.team_with_vests as 'A' | 'B' | null
+      const currentTeamWithVests = currentGameContext!.gameData.match.team_with_vests as 'A' | 'B' | null
       const newTeamWithVests = currentTeamWithVests === team ? null : team
       
       // If we're viewing a planned game, update local state immediately for instant feedback
-      if (selectedPlannedGame) {
+      if (currentGameContext?.type === 'planned') {
         const updatedPlannedGame = {
-          ...selectedPlannedGame,
+          ...currentGameContext.gameData,
           match: {
-            ...selectedPlannedGame.match,
+            ...currentGameContext.gameData.match,
             team_with_vests: newTeamWithVests
           }
         }
-        setSelectedPlannedGame(updatedPlannedGame)
+        setCurrentGameContext({
+          type: 'planned',
+          gameData: updatedPlannedGame,
+          matchId: currentGameContext.matchId
+        })
       }
       
       const result = await toggleVests({
-        matchId: currentGame.match.id,
+        matchId: currentGameContext!.matchId,
         team: newTeamWithVests
       })
       
       if (result.validationErrors) {
         showSnackbar('Invalid input data')
         // Revert local state on error
-        if (selectedPlannedGame) {
-          setSelectedPlannedGame(selectedPlannedGame)
+        if (currentGameContext?.type === 'planned') {
+          setCurrentGameContext({
+            type: 'planned',
+            gameData: currentGameContext.gameData,
+            matchId: currentGameContext.matchId
+          })
         }
         return
       }
@@ -381,14 +416,18 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
       if (result.serverError) {
         showSnackbar(result.serverError)
         // Revert local state on error
-        if (selectedPlannedGame) {
-          setSelectedPlannedGame(selectedPlannedGame)
+        if (currentGameContext?.type === 'planned') {
+          setCurrentGameContext({
+            type: 'planned',
+            gameData: currentGameContext.gameData,
+            matchId: currentGameContext.matchId
+          })
         }
         return
       }
 
       if (result.data) {
-        if (selectedPlannedGame) {
+        if (currentGameContext?.type === 'planned') {
           // For planned games, we already updated the local state immediately above
           // No need to refresh from database since we have the correct state locally
           console.log('Vest toggle successful - keeping local state')
@@ -400,8 +439,12 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
       console.error('Error toggling vests:', error)
       showSnackbar('Failed to update vests')
       // Revert local state on error
-      if (selectedPlannedGame) {
-        setSelectedPlannedGame(selectedPlannedGame)
+      if (currentGameContext?.type === 'planned') {
+        setCurrentGameContext({
+          type: 'planned',
+          gameData: currentGameContext.gameData,
+          matchId: currentGameContext.matchId
+        })
       }
     }
   }
@@ -411,43 +454,54 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   }
 
   const handlePlayerSelect = async (player: Player, team: 'A' | 'B') => {
-    const currentGame = activeGame || selectedPlannedGame
-    if (!currentGame) return
+    if (!ensureCorrectMatch('Add player')) return
 
     try {
       // For planned games, update local state immediately for instant feedback
-      if (selectedPlannedGame) {
+      if (currentGameContext?.type === 'planned') {
         if (showPlayerSelect.isGoalkeeper) {
           // Add goalkeeper
-          setSelectedPlannedGame({
-            ...selectedPlannedGame,
-            goalkeepers: {
-              ...selectedPlannedGame.goalkeepers,
-              [team === 'A' ? 'teamA' : 'teamB']: player
-            }
+          setCurrentGameContext({
+            type: 'planned',
+            gameData: {
+              ...currentGameContext.gameData,
+              goalkeepers: {
+                ...currentGameContext.gameData.goalkeepers,
+                [team === 'A' ? 'teamA' : 'teamB']: player
+              }
+            },
+            matchId: currentGameContext.matchId
           })
         } else {
           // Add field player
           if (team === 'A') {
             const newTeamA = [...localTeamA, player]
             setLocalTeamA(newTeamA)
-            setSelectedPlannedGame({
-              ...selectedPlannedGame,
-              teamA: newTeamA
+            setCurrentGameContext({
+              type: 'planned',
+              gameData: {
+                ...currentGameContext.gameData,
+                teamA: newTeamA
+              },
+              matchId: currentGameContext.matchId
             })
           } else {
             const newTeamB = [...localTeamB, player]
             setLocalTeamB(newTeamB)
-            setSelectedPlannedGame({
-              ...selectedPlannedGame,
-              teamB: newTeamB
+            setCurrentGameContext({
+              type: 'planned',
+              gameData: {
+                ...currentGameContext.gameData,
+                teamB: newTeamB
+              },
+              matchId: currentGameContext.matchId
             })
           }
         }
       }
 
       const result = await addPlayerToMatch({
-        matchId: currentGame.match.id,
+        matchId: currentGameContext!.matchId,
         playerId: player.id,
         team,
         isGoalkeeper: showPlayerSelect.isGoalkeeper
@@ -456,9 +510,13 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
       if (result.validationErrors) {
         showSnackbar('Invalid input data')
         // Revert local state changes on error
-        if (selectedPlannedGame) {
-          const revertedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
-          setSelectedPlannedGame(revertedGameData)
+        if (currentGameContext?.type === 'planned') {
+          const revertedGameData = await convertPlannedGameToActiveGameData(currentGameContext.gameData.match)
+          setCurrentGameContext({
+            type: 'planned',
+            gameData: revertedGameData,
+            matchId: currentGameContext.matchId
+          })
           setLocalTeamA([...revertedGameData.teamA])
           setLocalTeamB([...revertedGameData.teamB])
         }
@@ -468,9 +526,13 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
       if (result.serverError) {
         showSnackbar(result.serverError)
         // Revert local state changes on error
-        if (selectedPlannedGame) {
-          const revertedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
-          setSelectedPlannedGame(revertedGameData)
+        if (currentGameContext?.type === 'planned') {
+          const revertedGameData = await convertPlannedGameToActiveGameData(currentGameContext.gameData.match)
+          setCurrentGameContext({
+            type: 'planned',
+            gameData: revertedGameData,
+            matchId: currentGameContext.matchId
+          })
           setLocalTeamA([...revertedGameData.teamA])
           setLocalTeamB([...revertedGameData.teamB])
         }
@@ -482,7 +544,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
         setShowPlayerSelect({ team: null, isGoalkeeper: false })
         
         // For active games, refresh from server
-        if (!selectedPlannedGame) {
+        if (currentGameContext?.type !== 'planned') {
           refreshGameData()
         }
         // For planned games, local state is already updated above
@@ -492,10 +554,14 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
       showSnackbar('Failed to add player')
       
       // Revert local state changes on error
-      if (selectedPlannedGame) {
+      if (currentGameContext?.type === 'planned') {
         try {
-          const revertedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
-          setSelectedPlannedGame(revertedGameData)
+          const revertedGameData = await convertPlannedGameToActiveGameData(currentGameContext.gameData.match)
+          setCurrentGameContext({
+            type: 'planned',
+            gameData: revertedGameData,
+            matchId: currentGameContext.matchId
+          })
           setLocalTeamA([...revertedGameData.teamA])
           setLocalTeamB([...revertedGameData.teamB])
         } catch (revertError) {
@@ -506,12 +572,11 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   }
 
   const handleRemovePlayer = async (player: Player) => {
-    const currentGame = activeGame || selectedPlannedGame
-    if (!currentGame) return
+    if (!ensureCorrectMatch('Remove player')) return
 
     try {
       // For planned games, update local state immediately for instant feedback
-      if (selectedPlannedGame) {
+      if (currentGameContext?.type === 'planned') {
         // Find which team the player is on and remove them locally
         const playerInTeamA = localTeamA.find(p => p.id === player.id)
         const playerInTeamB = localTeamB.find(p => p.id === player.id)
@@ -519,33 +584,45 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
         if (playerInTeamA) {
           const newTeamA = localTeamA.filter(p => p.id !== player.id)
           setLocalTeamA(newTeamA)
-          // Also update selectedPlannedGame
-          setSelectedPlannedGame({
-            ...selectedPlannedGame,
-            teamA: newTeamA
+          // Also update currentGameContext
+          setCurrentGameContext({
+            type: 'planned',
+            gameData: {
+              ...currentGameContext.gameData,
+              teamA: newTeamA
+            },
+            matchId: currentGameContext.matchId
           })
         } else if (playerInTeamB) {
           const newTeamB = localTeamB.filter(p => p.id !== player.id)
           setLocalTeamB(newTeamB)
-          // Also update selectedPlannedGame
-          setSelectedPlannedGame({
-            ...selectedPlannedGame,
-            teamB: newTeamB
+          // Also update currentGameContext
+          setCurrentGameContext({
+            type: 'planned',
+            gameData: {
+              ...currentGameContext.gameData,
+              teamB: newTeamB
+            },
+            matchId: currentGameContext.matchId
           })
         }
       }
 
       const result = await removePlayerFromMatch({
-        matchId: currentGame.match.id,
+        matchId: currentGameContext!.matchId,
         playerId: player.id
       })
 
       if (result.validationErrors) {
         showSnackbar('Invalid input data')
         // Revert local state changes on error
-        if (selectedPlannedGame) {
-          const revertedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
-          setSelectedPlannedGame(revertedGameData)
+        if (currentGameContext?.type === 'planned') {
+          const revertedGameData = await convertPlannedGameToActiveGameData(currentGameContext.gameData.match)
+          setCurrentGameContext({
+            type: 'planned',
+            gameData: revertedGameData,
+            matchId: currentGameContext.matchId
+          })
           setLocalTeamA([...revertedGameData.teamA])
           setLocalTeamB([...revertedGameData.teamB])
         }
@@ -555,9 +632,13 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
       if (result.serverError) {
         showSnackbar(result.serverError)
         // Revert local state changes on error
-        if (selectedPlannedGame) {
-          const revertedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
-          setSelectedPlannedGame(revertedGameData)
+        if (currentGameContext?.type === 'planned') {
+          const revertedGameData = await convertPlannedGameToActiveGameData(currentGameContext.gameData.match)
+          setCurrentGameContext({
+            type: 'planned',
+            gameData: revertedGameData,
+            matchId: currentGameContext.matchId
+          })
           setLocalTeamA([...revertedGameData.teamA])
           setLocalTeamB([...revertedGameData.teamB])
         }
@@ -566,7 +647,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
 
       if (result.data) {
         // For active games, refresh from server
-        if (!selectedPlannedGame) {
+        if (currentGameContext?.type !== 'planned') {
           refreshGameData()
         }
         // For planned games, local state is already updated above
@@ -576,10 +657,14 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
       showSnackbar('Failed to remove player')
       
       // Revert local state changes on error
-      if (selectedPlannedGame) {
+      if (currentGameContext?.type === 'planned') {
         try {
-          const revertedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
-          setSelectedPlannedGame(revertedGameData)
+          const revertedGameData = await convertPlannedGameToActiveGameData(currentGameContext.gameData.match)
+          setCurrentGameContext({
+            type: 'planned',
+            gameData: revertedGameData,
+            matchId: currentGameContext.matchId
+          })
           setLocalTeamA([...revertedGameData.teamA])
           setLocalTeamB([...revertedGameData.teamB])
         } catch (revertError) {
@@ -590,15 +675,21 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   }
 
   const handleSwitchPlayerTeam = async (player: Player, newTeam: 'A' | 'B', newIndex?: number) => {
-    const currentGame = activeGame || selectedPlannedGame
-    if (!currentGame) return
+    if (!ensureCorrectMatch('Switch player team')) return
 
     try {
-      // Find the player's current position
-      const currentTeamA = currentGame.teamA.find(p => p.id === player.id)
-      const currentTeamB = currentGame.teamB.find(p => p.id === player.id)
-      const isGoalkeeperA = currentGame.goalkeepers.teamA?.id === player.id
-      const isGoalkeeperB = currentGame.goalkeepers.teamB?.id === player.id
+      // Find the player's current position using local state (what's actually displayed)
+      // If local state is empty, fall back to currentGameContext data
+      const teamA = localTeamA.length > 0 ? localTeamA : currentGameContext!.gameData.teamA
+      const teamB = localTeamB.length > 0 ? localTeamB : currentGameContext!.gameData.teamB
+      
+      const currentTeamA = teamA.find(p => p.id === player.id)
+      const currentTeamB = teamB.find(p => p.id === player.id)
+      
+      // Check goalkeeper status from currentGameContext, but also consider if player might be a goalkeeper
+      // that was recently moved to field position
+      const isGoalkeeperA = currentGameContext!.gameData.goalkeepers.teamA?.id === player.id
+      const isGoalkeeperB = currentGameContext!.gameData.goalkeepers.teamB?.id === player.id
       
       let currentTeam: 'A' | 'B' | null = null
       if (currentTeamA) currentTeam = 'A'
@@ -607,6 +698,16 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
       else if (isGoalkeeperB) currentTeam = 'B'
       
       if (!currentTeam) {
+        console.error(`Player ${player.name} (${player.id}) not found in any team:`, {
+          teamA: teamA.map(p => `${p.name} (${p.id.slice(0, 8)}...)`),
+          teamB: teamB.map(p => `${p.name} (${p.id.slice(0, 8)}...)`),
+          localTeamASize: localTeamA.length,
+          localTeamBSize: localTeamB.length,
+          goalkeepers: {
+            teamA: currentGameContext!.gameData.goalkeepers.teamA?.name,
+            teamB: currentGameContext!.gameData.goalkeepers.teamB?.name
+          }
+        })
         showSnackbar('Player not found in any team')
         return
       }
@@ -614,7 +715,12 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
       const isCurrentlyGoalkeeper = isGoalkeeperA || isGoalkeeperB
       console.log(`Player ${player.name} current position:`, {
         team: currentTeam,
-        isGoalkeeper: isCurrentlyGoalkeeper
+        isGoalkeeper: isCurrentlyGoalkeeper,
+        localTeamASize: localTeamA.length,
+        localTeamBSize: localTeamB.length,
+        usingLocalState: localTeamA.length > 0 && localTeamB.length > 0,
+        goalkeeperA: currentGameContext!.gameData.goalkeepers.teamA?.name,
+        goalkeeperB: currentGameContext!.gameData.goalkeepers.teamB?.name
       })
 
       // Handle all drag and drop moves locally (both same-team and cross-team)
@@ -623,7 +729,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
         if (isCurrentlyGoalkeeper && newIndex >= 0) {
           console.log(`Moving goalkeeper ${player.name} from team ${currentTeam} to field position ${newIndex} on team ${newTeam}`)
           
-          // Handle local state updates first for instant feedback
+          // Handle local state updates first for instant feedback (for both planned and active games)
           if (currentTeam === newTeam) {
             // Same team: Remove from goalkeeper, add to field at specified position
             console.log(`Same team goalkeeper to field: ${player.name} to position ${newIndex}`)
@@ -650,19 +756,19 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
             }
           }
           
-          // Also update goalkeeper removal in selectedPlannedGame if applicable
-          if (selectedPlannedGame && isCurrentlyGoalkeeper) {
+          // Also update goalkeeper removal in currentGameContext if applicable
+          if (isCurrentlyGoalkeeper) {
             updateGoalkeeperInPlannedGame(currentTeam, null)
           }
           
           // Update database in background
           Promise.all([
             removeGoalkeeper({
-              matchId: currentGame.match.id,
+              matchId: currentGameContext!.matchId,
               playerId: player.id
             }),
             addPlayerToField({
-              matchId: currentGame.match.id,
+              matchId: currentGameContext!.matchId,
               playerId: player.id,
               team: newTeam
             })
@@ -676,13 +782,16 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
               showSnackbar('Warning: Goalkeeper move may not be saved')
             } else {
               console.log(`Successfully moved goalkeeper ${player.name} to field position`)
-              if (selectedPlannedGame) {
+              // For active games, we don't need to refresh since local state is already updated
+              if (currentGameContext?.type === 'planned') {
                 // Refresh the selected planned game data
-                convertPlannedGameToActiveGameData(currentGame.match).then(updatedGameData => {
-                  setSelectedPlannedGame(updatedGameData)
+                convertPlannedGameToActiveGameData(currentGameContext.gameData.match).then(updatedGameData => {
+                  setCurrentGameContext({
+                    type: 'planned',
+                    gameData: updatedGameData,
+                    matchId: updatedGameData.match.id
+                  })
                 })
-              } else {
-                refreshGameData()
               }
             }
           }).catch(error => {
@@ -698,24 +807,35 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
           // Check if we're swapping goalkeepers (dragging one goalkeeper to another goalkeeper position)
           const isGoalkeeperSwap = isCurrentlyGoalkeeper && currentTeam !== newTeam
           
+          console.log(`Goalkeeper assignment case:`, {
+            player: player.name,
+            currentTeam,
+            newTeam,
+            isCurrentlyGoalkeeper,
+            isGoalkeeperSwap,
+            currentGoalkeeperA: currentGameContext!.gameData.goalkeepers.teamA?.name,
+            currentGoalkeeperB: currentGameContext!.gameData.goalkeepers.teamB?.name
+          })
+          
           if (isGoalkeeperSwap) {
-            console.log(`Swapping goalkeepers: ${player.name} (${currentTeam}) ↔ ${currentGame.goalkeepers[newTeam === 'A' ? 'teamA' : 'teamB']?.name || 'None'} (${newTeam})`)
+            console.log(`Swapping goalkeepers: ${player.name} (${currentTeam}) ↔ ${currentGameContext!.gameData.goalkeepers[newTeam === 'A' ? 'teamA' : 'teamB']?.name || 'None'} (${newTeam})`)
             
             // Get the other goalkeeper
-            const otherGoalkeeper = currentGame.goalkeepers[newTeam === 'A' ? 'teamA' : 'teamB']
+            const otherGoalkeeper = currentGameContext!.gameData.goalkeepers[newTeam === 'A' ? 'teamA' : 'teamB']
             
-            // Update local state for instant feedback
+            // Update local state for instant feedback (for both planned and active games)
             if (otherGoalkeeper) {
               // Both teams have goalkeepers - swap them
+              // The other goalkeeper moves to the current goalkeeper's team field
               if (currentTeam === 'A') {
                 // Current goalkeeper is from team A, moving to team B
-                // Other goalkeeper moves from team B to team A
+                // Other goalkeeper (from team B) moves to team A field
                 const newTeamA = [...localTeamA]
                 newTeamA.push(otherGoalkeeper) // Add other goalkeeper to team A field
                 updateTeamState(newTeamA, localTeamB)
               } else {
                 // Current goalkeeper is from team B, moving to team A
-                // Other goalkeeper moves from team A to team B
+                // Other goalkeeper (from team A) moves to team B field
                 const newTeamB = [...localTeamB]
                 newTeamB.push(otherGoalkeeper) // Add other goalkeeper to team B field
                 updateTeamState(localTeamA, newTeamB)
@@ -725,21 +845,29 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
               console.log(`Moving goalkeeper ${player.name} from team ${currentTeam} to team ${newTeam}`)
             }
             
-            // Update goalkeepers in selectedPlannedGame if applicable
+            // Update goalkeepers in currentGameContext
             updateGoalkeeperInPlannedGame(newTeam, player)
             if (otherGoalkeeper) {
               updateGoalkeeperInPlannedGame(currentTeam, otherGoalkeeper)
             }
             
+            console.log(`Goalkeeper swap completed: ${player.name} ↔ ${otherGoalkeeper?.name || 'None'}`)
+            console.log('Updated goalkeeper state:', {
+              teamA: currentGameContext!.gameData.goalkeepers.teamA?.name,
+              teamB: currentGameContext!.gameData.goalkeepers.teamB?.name,
+              localTeamASize: localTeamA.length,
+              localTeamBSize: localTeamB.length
+            })
+            
             // Update database - swap goalkeepers
             Promise.all([
               assignGoalkeeper({
-                matchId: currentGame.match.id,
+                matchId: currentGameContext!.matchId,
                 playerId: player.id,
                 team: newTeam
               }),
               otherGoalkeeper ? assignGoalkeeper({
-                matchId: currentGame.match.id,
+                matchId: currentGameContext!.matchId,
                 playerId: otherGoalkeeper.id,
                 team: currentTeam
               }) : Promise.resolve({ validationErrors: null, serverError: null })
@@ -753,13 +881,15 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
                 showSnackbar('Warning: Goalkeeper swap may not be saved')
               } else {
                 console.log(`Successfully swapped goalkeepers: ${player.name} ↔ ${otherGoalkeeper?.name || 'None'}`)
-                // Refresh game data to get updated teams and goalkeepers
-                if (selectedPlannedGame) {
-                  convertPlannedGameToActiveGameData(currentGame.match).then(updatedGameData => {
-                    setSelectedPlannedGame(updatedGameData)
+                // For active games, we don't need to refresh since local state is already updated
+                if (currentGameContext?.type === 'planned') {
+                  convertPlannedGameToActiveGameData(currentGameContext.gameData.match).then(updatedGameData => {
+                    setCurrentGameContext({
+                      type: 'planned',
+                      gameData: updatedGameData,
+                      matchId: updatedGameData.match.id
+                    })
                   })
-                } else {
-                  refreshGameData()
                 }
               }
             }).catch(error => {
@@ -770,30 +900,81 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
           } else {
             // Regular goalkeeper assignment (field player becoming goalkeeper)
             console.log(`Assigning ${player.name} as goalkeeper for team ${newTeam}`)
+            console.log(`Field player ${player.name} (${currentTeam}) becoming goalkeeper for ${newTeam}`)
             
-            // Remove player from current field position
+            // Get the current goalkeeper for the target team (if any)
+            const currentGoalkeeper = currentGameContext!.gameData.goalkeepers[newTeam === 'A' ? 'teamA' : 'teamB']
+            
+            console.log(`Goalkeeper replacement: ${player.name} (${currentTeam}) → goalkeeper for ${newTeam}, current goalkeeper: ${currentGoalkeeper?.name || 'None'}`)
+            
+            // Remove player from current field position (for both planned and active games)
             if (currentTeam === 'A') {
               const currentIndex = localTeamA.findIndex(p => p.id === player.id)
               if (currentIndex !== -1) {
                 const newTeamA = [...localTeamA]
                 newTeamA.splice(currentIndex, 1)
-                updateTeamState(newTeamA, localTeamB)
+                
+                // If there was a goalkeeper in the target team, add them to their original team's field
+                if (currentGoalkeeper) {
+                  if (newTeam === 'A') {
+                    // Player from team A becomes goalkeeper for team A, old goalkeeper goes to team A field
+                    newTeamA.push(currentGoalkeeper)
+                    console.log(`Same-team goalkeeper assignment: ${player.name} becomes goalkeeper for team A, ${currentGoalkeeper.name} moves to team A field`)
+                    updateTeamState(newTeamA, localTeamB)
+                  } else {
+                    // Player from team A becomes goalkeeper for team B, old goalkeeper goes to team B field
+                    const newTeamB = [...localTeamB]
+                    newTeamB.push(currentGoalkeeper)
+                    console.log(`Cross-team goalkeeper assignment: ${player.name} (team A) becomes goalkeeper for team B, ${currentGoalkeeper.name} moves to team B field`)
+                    updateTeamState(newTeamA, newTeamB)
+                  }
+                } else {
+                  console.log(`No current goalkeeper to replace: ${player.name} becomes goalkeeper for team ${newTeam}`)
+                  updateTeamState(newTeamA, localTeamB)
+                }
               }
             } else {
               const currentIndex = localTeamB.findIndex(p => p.id === player.id)
               if (currentIndex !== -1) {
                 const newTeamB = [...localTeamB]
                 newTeamB.splice(currentIndex, 1)
-                updateTeamState(localTeamA, newTeamB)
+                
+                // If there was a goalkeeper in the target team, add them to their original team's field
+                if (currentGoalkeeper) {
+                  if (newTeam === 'B') {
+                    // Player from team B becomes goalkeeper for team B, old goalkeeper goes to team B field
+                    newTeamB.push(currentGoalkeeper)
+                    console.log(`Same-team goalkeeper assignment: ${player.name} becomes goalkeeper for team B, ${currentGoalkeeper.name} moves to team B field`)
+                    updateTeamState(localTeamA, newTeamB)
+                  } else {
+                    // Player from team B becomes goalkeeper for team A, old goalkeeper goes to team A field
+                    const newTeamA = [...localTeamA]
+                    newTeamA.push(currentGoalkeeper)
+                    console.log(`Cross-team goalkeeper assignment: ${player.name} (team B) becomes goalkeeper for team A, ${currentGoalkeeper.name} moves to team A field`)
+                    updateTeamState(newTeamA, newTeamB)
+                  }
+                } else {
+                  console.log(`No current goalkeeper to replace: ${player.name} becomes goalkeeper for team ${newTeam}`)
+                  updateTeamState(localTeamA, newTeamB)
+                }
               }
             }
 
-            // Also update goalkeeper in selectedPlannedGame if applicable
+            // Update goalkeeper in currentGameContext
             updateGoalkeeperInPlannedGame(newTeam, player)
             
+            console.log(`Goalkeeper assignment completed: ${player.name} is now goalkeeper for team ${newTeam}`)
+            console.log('Updated goalkeeper state:', {
+              teamA: currentGameContext!.gameData.goalkeepers.teamA?.name,
+              teamB: currentGameContext!.gameData.goalkeepers.teamB?.name,
+              localTeamASize: localTeamA.length,
+              localTeamBSize: localTeamB.length
+            })
+            console.log('Final state update - goalkeeper assignment should be visible now')
+
             // Assign goalkeeper
             assignGoalkeeper({
-              matchId: currentGame.match.id,
+              matchId: currentGameContext!.matchId,
               playerId: player.id,
               team: newTeam
             }).then(assignResult => {
@@ -802,14 +983,16 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
                 showSnackbar('Warning: Goalkeeper assignment may not be saved')
               } else {
                 console.log(`Successfully assigned ${player.name} as goalkeeper for team ${newTeam}`)
-                // Refresh game data to get updated teams and goalkeepers
-                if (selectedPlannedGame) {
+                // For active games, we don't need to refresh since local state is already updated
+                if (currentGameContext?.type === 'planned') {
                   // Refresh the selected planned game data
-                  convertPlannedGameToActiveGameData(currentGame.match).then(updatedGameData => {
-                    setSelectedPlannedGame(updatedGameData)
+                  convertPlannedGameToActiveGameData(currentGameContext.gameData.match).then(updatedGameData => {
+                    setCurrentGameContext({
+                      type: 'planned',
+                      gameData: updatedGameData,
+                      matchId: updatedGameData.match.id
+                    })
                   })
-                } else {
-                  refreshGameData()
                 }
               }
             }).catch(error => {
@@ -824,7 +1007,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
         console.log(`Moving player ${player.name} from team ${currentTeam} to team ${newTeam} at position ${newIndex}`)
         
         if (currentTeam === newTeam) {
-          // Same team reordering
+          // Same team reordering (for both planned and active games)
           if (currentTeam === 'A') {
             const currentIndex = localTeamA.findIndex(p => p.id === player.id)
             if (currentIndex !== -1) {
@@ -878,8 +1061,13 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
               updateTeamState(localTeamA, newTeamB)
             }
           }
+          
+          // For same-team reordering, we don't need to update the database since the order is maintained locally
+          // The database doesn't store player order, so this is purely a UI optimization
+          console.log(`Same-team reordering completed locally for ${player.name}`)
+          
         } else {
-          // Cross-team move - update locally first for snappy UI, then sync to database
+          // Cross-team move - update locally first for snappy UI, then sync to database (for both planned and active games)
           console.log(`Cross-team move: ${player.name} from team ${currentTeam} to team ${newTeam} at position ${newIndex}`)
           
           // Update local state immediately for instant visual feedback
@@ -915,7 +1103,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
           
           // Update database in the background (don't await - let it happen async)
           updatePlayerTeam({
-            matchId: currentGame.match.id,
+            matchId: currentGameContext!.matchId,
             playerId: player.id,
             newTeam: newTeam
           }).then(result => {
@@ -934,9 +1122,9 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
         return
       }
 
-      // If moving between teams, use the server operations
+      // If moving between teams without specific index, use the server operations
       const removeResult = await removePlayerFromMatch({
-        matchId: currentGame.match.id,
+        matchId: currentGameContext!.matchId,
         playerId: player.id
       })
 
@@ -947,7 +1135,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
 
       // Then add them to the new team
       const addResult = await addPlayerToMatch({
-        matchId: currentGame.match.id,
+        matchId: currentGameContext!.matchId,
         playerId: player.id,
         team: newTeam,
         isGoalkeeper: false // Assuming we're not switching goalkeepers via drag and drop
@@ -965,10 +1153,14 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
 
       if (addResult.data) {
         // Refresh game data to get updated teams
-        if (selectedPlannedGame) {
+        if (currentGameContext?.type === 'planned') {
           // Update the selected planned game data
-          const updatedGameData = await convertPlannedGameToActiveGameData(currentGame.match)
-          setSelectedPlannedGame(updatedGameData)
+          const updatedGameData = await convertPlannedGameToActiveGameData(currentGameContext.gameData.match)
+          setCurrentGameContext({
+            type: 'planned',
+            gameData: updatedGameData,
+            matchId: updatedGameData.match.id
+          })
         } else {
           refreshGameData()
         }
@@ -986,7 +1178,11 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   const handleSelectPlannedGame = async (game: Match) => {
     try {
       const gameData = await convertPlannedGameToActiveGameData(game)
-      setSelectedPlannedGame(gameData)
+      setCurrentGameContext({
+        type: 'planned',
+        gameData: gameData,
+        matchId: game.id
+      })
     } catch (error) {
       console.error('Error loading planned game:', error)
       showSnackbar('Failed to load planned game')
@@ -994,68 +1190,88 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   }
 
   const handleStartPlannedGame = async () => {
-    if (!selectedPlannedGame) return
+    if (!ensureCorrectMatch('Start planned game')) return
+
+    console.log(`Starting planned game ${currentGameContext!.matchId.slice(0, 8)}...`)
 
     // Immediately update UI by changing the match status in local state
     const updatedGameData = {
-      ...selectedPlannedGame,
+      ...currentGameContext!.gameData,
       match: {
-        ...selectedPlannedGame.match,
+        ...currentGameContext!.gameData.match,
         match_status: 'active' as const,
         start_time: new Date().toISOString()
       }
     }
-    setSelectedPlannedGame(updatedGameData)
+    setCurrentGameContext({
+      type: 'active', // Change to active type immediately
+      gameData: updatedGameData,
+      matchId: currentGameContext!.matchId
+    })
+
+    console.log('Updated local context to active, now updating database...')
 
     // Update database in background
     try {
       const result = await controlMatch({
-        matchId: selectedPlannedGame.match.id,
+        matchId: currentGameContext!.gameData.match.id,
         action: 'start'
       })
 
       if (result.validationErrors || result.serverError) {
-        // Revert on error
-        setSelectedPlannedGame(selectedPlannedGame)
+        console.log('Database update failed, reverting to planned game')
+        // Revert on error - change back to planned
+        setCurrentGameContext({
+          type: 'planned',
+          gameData: currentGameContext!.gameData,
+          matchId: currentGameContext!.matchId
+        })
         return
       }
 
       if (result.data) {
-        // Refresh data and clear planned game state after successful start
+        console.log('Database update successful, refreshing game data...')
+        // Refresh data to get the updated active game from database
+        // The effect will handle updating the context when activeGame changes
         refreshGameData()
-        setTimeout(() => {
-          setSelectedPlannedGame(null)
-        }, 100)
       }
     } catch (error) {
       console.error('Error starting game:', error)
-      // Revert on error
-      setSelectedPlannedGame(selectedPlannedGame)
+      // Revert on error - change back to planned
+      setCurrentGameContext({
+        type: 'planned',
+        gameData: currentGameContext!.gameData,
+        matchId: currentGameContext!.matchId
+      })
     }
   }
 
   const handleBackToMatchesList = () => {
-    setSelectedPlannedGame(null)
-    setSelectedActiveGame(null)
+    setCurrentGameContext(null) // Clear current game context
     setUserRequestedMatchesList(true)
     setShowMatchesList(true)
   }
 
   const handleSelectGame = async (game: Match) => {
     try {
+      console.log(`Selecting game: ${game.id.slice(0, 8)}... (${game.match_status})`)
       setUserRequestedMatchesList(false) // Reset the flag when selecting a game
-      if (game.match_status === 'active' || game.match_status === 'paused') {
-        // This is the active game, so we should already have it in activeGame
-        if (activeGame && activeGame.match.id === game.id) {
-          setSelectedActiveGame(activeGame)
-          setShowMatchesList(false)
-        }
-      } else {
-        // This is a planned game
-        const gameData = await convertPlannedGameToActiveGameData(game)
-        setSelectedPlannedGame(gameData)
-        setShowMatchesList(false)
-      }
+      
+      // Convert any game to ActiveGameData format, regardless of status
+      const gameData = await convertPlannedGameToActiveGameData(game)
+      
+      // Set the appropriate context type based on game status
+      const contextType = (game.match_status === 'active' || game.match_status === 'paused') ? 'active' : 'planned'
+      
+      console.log(`Setting game context to ${contextType} for game ${game.id.slice(0, 8)}...`)
+      
+      setCurrentGameContext({
+        type: contextType,
+        gameData: gameData,
+        matchId: game.id
+      })
+      setShowMatchesList(false)
+      
     } catch (error) {
       console.error('Error loading game:', error)
       showSnackbar('Failed to load game')
@@ -1089,29 +1305,35 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
     }
   }
 
-  // Helper function to update both local state and selectedPlannedGame
+  // Helper function to update both local state and currentGameContext
   const updateTeamState = (newTeamA: Player[], newTeamB: Player[]) => {
     setLocalTeamA(newTeamA)
     setLocalTeamB(newTeamB)
     
-    // If we're viewing a planned game, also update its state
-    if (selectedPlannedGame) {
-      setSelectedPlannedGame({
-        ...selectedPlannedGame,
-        teamA: newTeamA,
-        teamB: newTeamB
+    // Update currentGameContext for both planned and active games
+    if (currentGameContext) {
+      setCurrentGameContext({
+        ...currentGameContext,
+        gameData: {
+          ...currentGameContext.gameData,
+          teamA: newTeamA,
+          teamB: newTeamB
+        }
       })
     }
   }
 
-  // Helper function to update goalkeeper in selectedPlannedGame
+  // Helper function to update goalkeeper in currentGameContext
   const updateGoalkeeperInPlannedGame = (team: 'A' | 'B', goalkeeper: Player | null) => {
-    if (selectedPlannedGame) {
-      setSelectedPlannedGame({
-        ...selectedPlannedGame,
-        goalkeepers: {
-          ...selectedPlannedGame.goalkeepers,
-          [team === 'A' ? 'teamA' : 'teamB']: goalkeeper
+    if (currentGameContext) {
+      setCurrentGameContext({
+        ...currentGameContext,
+        gameData: {
+          ...currentGameContext.gameData,
+          goalkeepers: {
+            ...currentGameContext.gameData.goalkeepers,
+            [team === 'A' ? 'teamA' : 'teamB']: goalkeeper
+          }
         }
       })
     }
@@ -1119,7 +1341,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
 
   // Get available players for selection
   const availablePlayersForSelection = currentGameContext 
-    ? getAvailablePlayersForSelection(queryAvailablePlayers, currentGameContext.teamA, currentGameContext.teamB, currentGameContext.goalkeepers)
+    ? getAvailablePlayersForSelection(queryAvailablePlayers, currentGameContext.gameData.teamA, currentGameContext.gameData.teamB, currentGameContext.gameData.goalkeepers)
     : queryAvailablePlayers
 
   // Show loading state
@@ -1128,7 +1350,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   }
 
   // Show selected planned game
-  if (selectedPlannedGame) {
+  if (currentGameContext?.type === 'planned') {
     return (
       <div 
         className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'dark' : ''}`}
@@ -1155,16 +1377,16 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
         
         <ActiveGame
           activeGame={{
-            ...selectedPlannedGame,
+            ...currentGameContext.gameData,
             teamA: getCurrentTeamData().teamA,
             teamB: getCurrentTeamData().teamB
           }}
           timer={null} // No timer for planned games
-          teamAScore={getTeamScore(selectedPlannedGame.scores, 'A')}
-          teamBScore={getTeamScore(selectedPlannedGame.scores, 'B')}
+          teamAScore={getTeamScore(currentGameContext.gameData.scores, 'A')}
+          teamBScore={getTeamScore(currentGameContext.gameData.scores, 'B')}
           isDarkMode={isDarkMode}
           isSidesSwapped={isSidesSwapped}
-          matchStatus={selectedPlannedGame.match.match_status}
+          matchStatus={currentGameContext.gameData.match.match_status}
           onScoreIncrement={handleScoreIncrement}
           onPauseToggle={handlePauseToggle}
           onEndMatch={handleEndMatch}
@@ -1189,7 +1411,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
         {/* Goal Dialog */}
         <GoalDialog
           goalDialog={goalDialog}
-          activeGame={selectedPlannedGame}
+          activeGame={currentGameContext.gameData}
           isDarkMode={isDarkMode}
           onPlayerClick={handleGoalDialogPlayerClick}
           onSubmit={handleGoalDialogSubmit}
@@ -1216,7 +1438,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
         <Navigation isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} />
         <MatchesList 
           activeGame={activeGame || null}
-          plannedGames={plannedGames}
+          allGames={allGames}
           isDarkMode={isDarkMode}
           onSelectGame={handleSelectGame}
           onCreateNewGame={handleCreateNewGame}
@@ -1228,8 +1450,8 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, planned
   }
 
   // Show selected active game view
-  if (selectedActiveGame) {
-    const displayGame = selectedActiveGame
+  if (currentGameContext?.type === 'active') {
+    const displayGame = currentGameContext.gameData
 
     return (
       <div 

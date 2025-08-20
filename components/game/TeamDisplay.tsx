@@ -38,6 +38,11 @@ export function TeamDisplay({
 }: TeamDisplayProps) {
   const isDragging = !!dragState
 
+  // Debug log to track team rendering
+  React.useEffect(() => {
+    console.log(`TeamDisplay: Rendering team ${team} with ${players.length} players, goalkeeper: ${goalkeeper?.name || 'none'}`)
+  }, [team, players.length, goalkeeper?.name])
+
   // Render drop placeholder for a specific position
   const renderDropPlaceholder = (index: number) => {
     if (!dragState || dragState.currentTeam !== team || dragState.currentIndex !== index) {

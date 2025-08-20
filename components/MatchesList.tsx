@@ -4,21 +4,35 @@ import type { Match, ActiveGameData } from '../lib/types'
 
 interface MatchesListProps {
   activeGame: ActiveGameData | null
-  plannedGames: Match[]
+  allGames: Match[]
   isDarkMode: boolean
   onSelectGame: (game: Match) => void
   onCreateNewGame: () => void
   isCreatingGame?: boolean
 }
 
-export function MatchesList({ activeGame, plannedGames, isDarkMode, onSelectGame, onCreateNewGame, isCreatingGame = false }: MatchesListProps) {
-  // Combine active and planned games
-  const allGames = [
-    ...(activeGame ? [activeGame.match] : []),
+export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, onCreateNewGame, isCreatingGame = false }: MatchesListProps) {
+  // Filter games by status
+  const plannedGames = allGames.filter(game => game.match_status === 'planned')
+  const activeGames = allGames.filter(game => game.match_status === 'active' || game.match_status === 'paused')
+  
+  // Combine active games (excluding the current activeGame if it exists)
+  const allGamesToShow = [
+    ...activeGames.filter(game => !activeGame || game.id !== activeGame.match.id),
     ...plannedGames
   ]
 
-  if (allGames.length === 0) {
+  // Debug logging
+  console.log('MatchesList:', {
+    totalGames: allGames.length,
+    plannedGames: plannedGames.length,
+    activeGames: activeGames.length,
+    activeGameId: activeGame?.match.id,
+    gamesToShow: allGamesToShow.length,
+    gamesToShowIds: allGamesToShow.map(g => `${g.id.slice(0, 8)}... (${g.match_status})`)
+  })
+
+  if (allGamesToShow.length === 0) {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <div className={`rounded-2xl p-8 transition-colors duration-300 ${
@@ -89,14 +103,17 @@ export function MatchesList({ activeGame, plannedGames, isDarkMode, onSelectGame
           </button>
         </div>
         <div className="space-y-3">
-          {allGames.map((game) => {
+          {allGamesToShow.map((game) => {
             const isActive = game.match_status === 'active' || game.match_status === 'paused'
             const isPlanned = game.match_status === 'planned'
             
             return (
               <button
                 key={game.id}
-                onClick={() => onSelectGame(game)}
+                onClick={() => {
+                  console.log(`MatchesList: Clicked on game ${game.id.slice(0, 8)}... (${game.match_status})`)
+                  onSelectGame(game)
+                }}
                 className={`w-full p-4 rounded-xl text-left transition-all duration-200 hover:scale-[1.02] ${
                   isDarkMode
                     ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600'

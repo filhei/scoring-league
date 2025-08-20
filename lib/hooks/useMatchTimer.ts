@@ -25,7 +25,9 @@ export function useMatchTimer(match: Match | null, onMatchUpdate?: (match: Match
 
   // Update timer state based on match
   useEffect(() => {
+    console.log('useMatchTimer: Match changed:', match?.id, match?.match_status)
     if (!match) {
+      console.log('useMatchTimer: No match available, resetting timer state')
       setCurrentDuration(0)
       setIsPaused(false)
       setIsActive(false)
@@ -84,11 +86,21 @@ export function useMatchTimer(match: Match | null, onMatchUpdate?: (match: Match
   }, [match, onMatchUpdate])
 
   const endMatch = useCallback(async (winnerTeam?: 'A' | 'B' | null) => {
-    if (!match) return
+    console.log('useMatchTimer.endMatch: Called with winnerTeam:', winnerTeam, 'match:', match?.id, 'status:', match?.match_status)
+    if (!match) {
+      console.log('useMatchTimer.endMatch: No match available')
+      return
+    }
     
+    console.log('useMatchTimer.endMatch: Calling MatchService.endMatch for match', match.id)
     const updatedMatch = await MatchService.endMatch(match.id, winnerTeam)
+    console.log('useMatchTimer.endMatch: MatchService.endMatch returned:', updatedMatch)
+    
     if (updatedMatch && onMatchUpdate) {
+      console.log('useMatchTimer.endMatch: Calling onMatchUpdate with updated match')
       onMatchUpdate(updatedMatch)
+    } else {
+      console.log('useMatchTimer.endMatch: No updated match or no onMatchUpdate callback')
     }
   }, [match, onMatchUpdate])
 

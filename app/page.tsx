@@ -103,31 +103,37 @@ async function getActiveGame(): Promise<ActiveGameData | null> {
   }
 }
 
-async function getPlannedGames(): Promise<Match[]> {
+async function getAllGames(): Promise<Match[]> {
   try {
     const { data: matches, error } = await supabase
       .from('matches')
       .select('*')
-      .eq('match_status', 'planned')
+      .in('match_status', ['planned', 'active', 'paused'])
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Error fetching planned games:', error)
+      console.error('Error fetching all games:', error)
       return []
     }
 
-    return matches || []
+    const games = matches || []
+    console.log('getAllGames:', {
+      totalGames: games.length,
+      games: games.map(g => `${g.id.slice(0, 8)}... (${g.match_status})`)
+    })
+
+    return games
   } catch (error) {
-    console.error('Error fetching planned games:', error)
+    console.error('Error fetching all games:', error)
     return []
   }
 }
 
 export default async function Home() {
-  const [activeGame, availablePlayers, plannedGames] = await Promise.all([
+  const [activeGame, availablePlayers, allGames] = await Promise.all([
     getActiveGame(),
     getAvailablePlayers(),
-    getPlannedGames()
+    getAllGames()
   ])
 
   return (
@@ -136,7 +142,7 @@ export default async function Home() {
         <ActiveGameWrapper 
           initialActiveGame={activeGame}
           availablePlayers={availablePlayers}
-          plannedGames={plannedGames}
+          allGames={allGames}
         />
       </Suspense>
     </div>
