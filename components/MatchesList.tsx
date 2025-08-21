@@ -16,11 +16,8 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
   const plannedGames = allGames.filter(game => game.match_status === 'planned')
   const activeGames = allGames.filter(game => game.match_status === 'active' || game.match_status === 'paused')
   
-  // Combine active games (excluding the current activeGame if it exists)
-  const allGamesToShow = [
-    ...activeGames.filter(game => !activeGame || game.id !== activeGame.match.id),
-    ...plannedGames
-  ]
+  // Show all games (active and planned)
+  const allGamesToShow = [...activeGames, ...plannedGames]
 
   // Debug logging
   console.log('MatchesList:', {
@@ -106,6 +103,7 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
           {allGamesToShow.map((game) => {
             const isActive = game.match_status === 'active' || game.match_status === 'paused'
             const isPlanned = game.match_status === 'planned'
+            const isCurrentActiveGame = activeGame && game.id === activeGame.match.id
             
             return (
               <button
@@ -115,9 +113,13 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
                   onSelectGame(game)
                 }}
                 className={`w-full p-4 rounded-xl text-left transition-all duration-200 hover:scale-[1.02] ${
-                  isDarkMode
-                    ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600'
-                    : 'bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
+                  isCurrentActiveGame
+                    ? isDarkMode
+                      ? 'bg-blue-700 hover:bg-blue-600 border-2 border-blue-500'
+                      : 'bg-blue-50 hover:bg-blue-100 border-2 border-blue-500'
+                    : isDarkMode
+                      ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600'
+                      : 'bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <div className="flex justify-between items-center">
@@ -137,15 +139,19 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
                     </div>
                   </div>
                   <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    isActive
+                    isCurrentActiveGame
                       ? isDarkMode
-                        ? 'bg-green-900 text-green-200'
-                        : 'bg-green-100 text-green-800'
-                      : isDarkMode
                         ? 'bg-blue-900 text-blue-200'
                         : 'bg-blue-100 text-blue-800'
+                      : isActive
+                        ? isDarkMode
+                          ? 'bg-green-900 text-green-200'
+                          : 'bg-green-100 text-green-800'
+                        : isDarkMode
+                          ? 'bg-gray-700 text-gray-300'
+                          : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {isActive ? 'Active' : 'Planned'}
+                    {isCurrentActiveGame ? 'Current' : isActive ? 'Active' : 'Planned'}
                   </div>
                 </div>
               </button>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useMatchTimer } from '../lib/hooks/useMatchTimer'
 import { useSnackbar } from '../lib/hooks/useSnackbar'
 import { useGameData } from '../lib/hooks/useGameData'
@@ -33,7 +33,7 @@ import { GameLoadingSkeleton } from './ui/loading-skeleton'
 interface ActiveGameWrapperProps {
   initialActiveGame: any // We'll use React Query instead
   availablePlayers: Player[]
-  allGames: Match[]
+  allGames: Match[] // This will be replaced by React Query
 }
 
 // Game context type to track which game we're currently viewing
@@ -44,9 +44,6 @@ interface GameContext {
 }
 
 export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGames }: ActiveGameWrapperProps) {
-  // Use React Query for data fetching
-  const { activeGame, availablePlayers: queryAvailablePlayers, loading, refreshGameData } = useGameData()
-  
   // Local state
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [isSidesSwapped, setIsSidesSwapped] = useState(false)
@@ -67,8 +64,23 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
     assistingPlayer: null
   })
   const [isCreatingGame, setIsCreatingGame] = useState(false)
+  const [isStartingGame, setIsStartingGame] = useState(false)
+  const [startingGameId, setStartingGameId] = useState<string | null>(null)
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   
   const { snackbar, showSnackbar } = useSnackbar()
+  
+  // Use React Query for data fetching - use selectedGameId if available, otherwise currentGameContext
+  const { 
+    activeGame, 
+    availablePlayers: queryAvailablePlayers, 
+    allGames: queryAllGames, 
+    loading,
+    playersLoading,
+    gameLoading,
+    allGamesLoading,
+    refreshGameData 
+  } = useGameData(selectedGameId || currentGameContext?.matchId)
   
   // Timer hook - use current game context for active games
   const timer = useMatchTimer(
@@ -93,11 +105,10 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
   // Update current game context when activeGame changes
   React.useEffect(() => {
     if (activeGame) {
-      console.log(`ActiveGame effect: Updating context to active game ${activeGame.match.id.slice(0, 8)}...`)
-      // If we have an active game, update the context
-      // This handles both initial load and transitions from planned to active
+      console.log(`ActiveGame effect: Updating context to game ${activeGame.match.id.slice(0, 8)}... (${activeGame.match.match_status})`)
+      // Update the context with the game data from the query
       setCurrentGameContext({
-        type: 'active',
+        type: activeGame.match.match_status === 'active' || activeGame.match.match_status === 'paused' ? 'active' : 'planned',
         gameData: activeGame,
         matchId: activeGame.match.id
       })
@@ -105,14 +116,32 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
       // Initialize local state
       setLocalTeamA([...activeGame.teamA])
       setLocalTeamB([...activeGame.teamB])
+      
+      // Clear starting game flags if this is the game we were starting
+      if (isStartingGame && startingGameId && activeGame.match.id === startingGameId) {
+        console.log('ActiveGame effect: Game start completed, clearing flags')
+        setIsStartingGame(false)
+        setStartingGameId(null)
+      }
+      
+      // Clear selected game ID since we now have the game data
+      if (selectedGameId && activeGame.match.id === selectedGameId) {
+        console.log('ActiveGame effect: Selected game loaded, clearing selectedGameId')
+        setSelectedGameId(null)
+      }
     } else {
-      // Clear current game context when no active game (e.g., when match is ended)
-      console.log('ActiveGame effect: No active game, clearing context')
-      setCurrentGameContext(null)
-      setLocalTeamA([])
-      setLocalTeamB([])
+      // Only clear current game context if we're not in the process of starting a game
+      // This prevents clearing the context when the query temporarily fails during game start
+      if (!isStartingGame) {
+        console.log('ActiveGame effect: No active game, clearing context')
+        setCurrentGameContext(null)
+        setLocalTeamA([])
+        setLocalTeamB([])
+      } else {
+        console.log('ActiveGame effect: No active game from query, but starting game in progress, keeping context')
+      }
     }
-  }, [activeGame])
+  }, [activeGame, isStartingGame, startingGameId, selectedGameId])
 
   // Set initial state based on whether there's an active game (only on first load)
   React.useEffect(() => {
@@ -321,6 +350,9 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
       setCurrentGameContext(null)
       setUserRequestedMatchesList(true)
       setShowMatchesList(true)
+      
+      // Refresh all games data to reflect the status change
+      refreshGameData()
     } catch (error) {
       console.error('Error ending match:', error)
       showSnackbar('Failed to end match')
@@ -361,6 +393,9 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
         setCurrentGameContext(null)
         setUserRequestedMatchesList(true)
         setShowMatchesList(true)
+        
+        // Refresh all games data to reflect the status change and new match
+        refreshGameData()
       }
     } catch (error) {
       console.error('Error ending match and creating new:', error)
@@ -1194,6 +1229,10 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
 
     console.log(`Starting planned game ${currentGameContext!.matchId.slice(0, 8)}...`)
 
+    // Set flags to prevent context clearing during the start process
+    setIsStartingGame(true)
+    setStartingGameId(currentGameContext!.matchId)
+
     // Immediately update UI by changing the match status in local state
     const updatedGameData = {
       ...currentGameContext!.gameData,
@@ -1209,53 +1248,48 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
       matchId: currentGameContext!.matchId
     })
 
-    console.log('Updated local context to active, now updating database...')
+    console.log('Updated local context to active, now updating database in background...')
 
-    // Update database in background
-    try {
-      const result = await controlMatch({
-        matchId: currentGameContext!.gameData.match.id,
-        action: 'start'
-      })
+    // Clear the starting game flags immediately since UI is updated
+    setIsStartingGame(false)
+    setStartingGameId(null)
 
+    // Update database in background (non-blocking)
+    controlMatch({
+      matchId: currentGameContext!.gameData.match.id,
+      action: 'start'
+    }).then(result => {
       if (result.validationErrors || result.serverError) {
-        console.log('Database update failed, reverting to planned game')
-        // Revert on error - change back to planned
-        setCurrentGameContext({
-          type: 'planned',
-          gameData: currentGameContext!.gameData,
-          matchId: currentGameContext!.matchId
-        })
-        return
+        console.error('Database update failed:', result.validationErrors || result.serverError)
+        showSnackbar('Warning: Game start may not be saved')
+        // Don't revert UI - let the user continue and the error will be handled by the refetch interval
+      } else {
+        console.log('Database update successful')
       }
-
-      if (result.data) {
-        console.log('Database update successful, refreshing game data...')
-        // Refresh data to get the updated active game from database
-        // The effect will handle updating the context when activeGame changes
-        refreshGameData()
-      }
-    } catch (error) {
+    }).catch(error => {
       console.error('Error starting game:', error)
-      // Revert on error - change back to planned
-      setCurrentGameContext({
-        type: 'planned',
-        gameData: currentGameContext!.gameData,
-        matchId: currentGameContext!.matchId
-      })
-    }
+      showSnackbar('Warning: Game start may not be saved')
+      // Don't revert UI - let the user continue and the error will be handled by the refetch interval
+    })
   }
 
   const handleBackToMatchesList = () => {
     setCurrentGameContext(null) // Clear current game context
     setUserRequestedMatchesList(true)
     setShowMatchesList(true)
+    
+    // Refresh game data to ensure matches list shows latest state
+    // This is especially important after starting a game or making other changes
+    refreshGameData()
   }
 
   const handleSelectGame = async (game: Match) => {
     try {
       console.log(`Selecting game: ${game.id.slice(0, 8)}... (${game.match_status})`)
       setUserRequestedMatchesList(false) // Reset the flag when selecting a game
+      
+      // Set the selected game ID to trigger the targeted query
+      setSelectedGameId(game.id)
       
       // Convert any game to ActiveGameData format, regardless of status
       const gameData = await convertPlannedGameToActiveGameData(game)
@@ -1344,8 +1378,13 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
     ? getAvailablePlayersForSelection(queryAvailablePlayers, currentGameContext.gameData.teamA, currentGameContext.gameData.teamB, currentGameContext.gameData.goalkeepers)
     : queryAvailablePlayers
 
-  // Show loading state
-  if (loading) {
+  // Show loading state only if we don't have any data to display
+  // This prevents showing loading skeleton when we already have a game to display
+  const shouldShowLoading = (playersLoading && queryAvailablePlayers.length === 0) || 
+                           (gameLoading && !activeGame && !currentGameContext) ||
+                           (allGamesLoading && queryAllGames.length === 0)
+  
+  if (shouldShowLoading) {
     return <GameLoadingSkeleton />
   }
 
@@ -1438,7 +1477,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
         <Navigation isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} />
         <MatchesList 
           activeGame={activeGame || null}
-          allGames={allGames}
+          allGames={queryAllGames}
           isDarkMode={isDarkMode}
           onSelectGame={handleSelectGame}
           onCreateNewGame={handleCreateNewGame}

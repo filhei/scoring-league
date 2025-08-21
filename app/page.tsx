@@ -103,37 +103,12 @@ async function getActiveGame(): Promise<ActiveGameData | null> {
   }
 }
 
-async function getAllGames(): Promise<Match[]> {
-  try {
-    const { data: matches, error } = await supabase
-      .from('matches')
-      .select('*')
-      .in('match_status', ['planned', 'active', 'paused'])
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching all games:', error)
-      return []
-    }
-
-    const games = matches || []
-    console.log('getAllGames:', {
-      totalGames: games.length,
-      games: games.map(g => `${g.id.slice(0, 8)}... (${g.match_status})`)
-    })
-
-    return games
-  } catch (error) {
-    console.error('Error fetching all games:', error)
-    return []
-  }
-}
+// getAllGames function removed - now handled by React Query in useGameData hook
 
 export default async function Home() {
-  const [activeGame, availablePlayers, allGames] = await Promise.all([
+  const [activeGame, availablePlayers] = await Promise.all([
     getActiveGame(),
-    getAvailablePlayers(),
-    getAllGames()
+    getAvailablePlayers()
   ])
 
   return (
@@ -142,7 +117,7 @@ export default async function Home() {
         <ActiveGameWrapper 
           initialActiveGame={activeGame}
           availablePlayers={availablePlayers}
-          allGames={allGames}
+          allGames={[]} // This will be replaced by React Query
         />
       </Suspense>
     </div>
