@@ -67,6 +67,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
   const [isStartingGame, setIsStartingGame] = useState(false)
   const [startingGameId, setStartingGameId] = useState<string | null>(null)
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
+  const [isEndingGame, setIsEndingGame] = useState(false)
   
   const { snackbar, showSnackbar } = useSnackbar()
   
@@ -86,6 +87,12 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
   const timer = useMatchTimer(
     currentGameContext?.type === 'active' ? currentGameContext.gameData.match : null, 
     (updatedMatch) => {
+      // Don't update context if we're ending a game - this prevents flickering
+      if (isEndingGame) {
+        console.log('Timer callback: Skipping context update while ending game')
+        return
+      }
+      
       // Update current game context with the updated match
       if (currentGameContext?.type === 'active' && updatedMatch) {
         setCurrentGameContext({
@@ -104,6 +111,12 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
 
   // Update current game context when activeGame changes
   React.useEffect(() => {
+    // Don't update context if we're ending a game - this prevents flickering
+    if (isEndingGame) {
+      console.log('ActiveGame effect: Skipping context update while ending game')
+      return
+    }
+    
     if (activeGame) {
       console.log(`ActiveGame effect: Updating context to game ${activeGame.match.id.slice(0, 8)}... (${activeGame.match.match_status})`)
       // Update the context with the game data from the query
@@ -141,7 +154,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
         console.log('ActiveGame effect: No active game from query, but starting game in progress, keeping context')
       }
     }
-  }, [activeGame, isStartingGame, startingGameId, selectedGameId])
+  }, [activeGame, isStartingGame, startingGameId, selectedGameId, isEndingGame])
 
   // Set initial state based on whether there's an active game (only on first load)
   React.useEffect(() => {
@@ -335,6 +348,10 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
       console.log('handleEndMatch: Starting to end match...')
       console.log('handleEndMatch: Current game context:', currentGameContext?.type, currentGameContext?.matchId)
       console.log('handleEndMatch: Timer match available:', !!timer)
+      
+      // Set ending game flag to prevent context updates during the process
+      setIsEndingGame(true)
+      
       const winnerTeam = teamAScore > teamBScore ? 'A' : teamBScore > teamAScore ? 'B' : null
       console.log('handleEndMatch: Winner team:', winnerTeam)
       console.log('handleEndMatch: Calling timer.endMatch...')
@@ -353,9 +370,17 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
       
       // Refresh all games data to reflect the status change
       refreshGameData()
+      
+      // Clear the ending game flag after a short delay to allow data to refresh
+      setTimeout(() => {
+        setIsEndingGame(false)
+        console.log('handleEndMatch: Cleared ending game flag')
+      }, 1000)
     } catch (error) {
       console.error('Error ending match:', error)
       showSnackbar('Failed to end match')
+      // Clear the ending game flag on error
+      setIsEndingGame(false)
     }
   }
 
@@ -363,6 +388,9 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
     if (!ensureCorrectMatch('End match and create new')) return
 
     try {
+      // Set ending game flag to prevent context updates during the process
+      setIsEndingGame(true)
+      
       // First end the current match
       const winnerTeam = teamAScore > teamBScore ? 'A' : teamBScore > teamAScore ? 'B' : null
       await timer.endMatch(winnerTeam)
@@ -381,6 +409,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
 
       if (createResult.validationErrors || createResult.serverError) {
         showSnackbar('Failed to create new match')
+        setIsEndingGame(false) // Clear flag on error
         return
       }
 
@@ -396,10 +425,18 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
         
         // Refresh all games data to reflect the status change and new match
         refreshGameData()
+        
+        // Clear the ending game flag after a short delay to allow data to refresh
+        setTimeout(() => {
+          setIsEndingGame(false)
+          console.log('handleEndMatchAndCreateNew: Cleared ending game flag')
+        }, 1000)
       }
     } catch (error) {
       console.error('Error ending match and creating new:', error)
       showSnackbar('Failed to end match and create new')
+      // Clear the ending game flag on error
+      setIsEndingGame(false)
     }
   }
 
@@ -1288,6 +1325,12 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
       console.log(`Selecting game: ${game.id.slice(0, 8)}... (${game.match_status})`)
       setUserRequestedMatchesList(false) // Reset the flag when selecting a game
       
+      // Clear ending game flag if user selects a different game
+      if (isEndingGame) {
+        console.log('handleSelectGame: Clearing ending game flag due to new game selection')
+        setIsEndingGame(false)
+      }
+      
       // Set the selected game ID to trigger the targeted query
       setSelectedGameId(game.id)
       
@@ -1315,6 +1358,12 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
   const handleCreateNewGame = async () => {
     setIsCreatingGame(true)
     try {
+      // Clear ending game flag if user creates a new game
+      if (isEndingGame) {
+        console.log('handleCreateNewGame: Clearing ending game flag due to new game creation')
+        setIsEndingGame(false)
+      }
+      
       const result = await createMatch({})
       
       if (result.validationErrors) {

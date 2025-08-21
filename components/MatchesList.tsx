@@ -139,19 +139,15 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
                     </div>
                   </div>
                   <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    isCurrentActiveGame
+                    isActive
                       ? isDarkMode
-                        ? 'bg-blue-900 text-blue-200'
-                        : 'bg-blue-100 text-blue-800'
-                      : isActive
-                        ? isDarkMode
-                          ? 'bg-green-900 text-green-200'
-                          : 'bg-green-100 text-green-800'
-                        : isDarkMode
-                          ? 'bg-gray-700 text-gray-300'
-                          : 'bg-gray-100 text-gray-800'
+                        ? 'bg-green-900 text-green-200'
+                        : 'bg-green-100 text-green-800'
+                      : isDarkMode
+                        ? 'bg-gray-700 text-gray-300'
+                        : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {isCurrentActiveGame ? 'Current' : isActive ? 'Active' : 'Planned'}
+                    {isActive ? 'Active' : 'Planned'}
                   </div>
                 </div>
               </button>
