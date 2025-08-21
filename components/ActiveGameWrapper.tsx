@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { useMatchTimer } from '../lib/hooks/useMatchTimer'
 import { useSnackbar } from '../lib/hooks/useSnackbar'
 import { useGameData } from '../lib/hooks/useGameData'
+import { useDarkMode } from '../lib/hooks/useDarkMode'
 import { getTeamScore, getAvailablePlayersForSelection, convertPlannedGameToActiveGameData } from '../lib/game-utils'
 import { 
   addScore, 
@@ -44,8 +45,10 @@ interface GameContext {
 }
 
 export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGames }: ActiveGameWrapperProps) {
+  // Global dark mode state
+  const { isDarkMode, toggleDarkMode } = useDarkMode()
+  
   // Local state
-  const [isDarkMode, setIsDarkMode] = useState(false)
   const [isSidesSwapped, setIsSidesSwapped] = useState(false)
   const [currentGameContext, setCurrentGameContext] = useState<GameContext | null>(null)
   const [showMatchesList, setShowMatchesList] = useState(false) // Start with false, will be set based on activeGame
@@ -233,9 +236,6 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
   }
 
   // Event handlers
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode)
-  }
 
   const handleScoreIncrement = async (team: 'A' | 'B') => {
     if (!ensureCorrectMatch('Score increment')) return

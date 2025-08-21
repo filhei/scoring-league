@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
 import { Navigation } from './Navigation'
 import { PastGamesList } from './PastGamesList'
+import { useDarkMode } from '../lib/hooks/useDarkMode'
 import type { PastGameData } from '../lib/types'
 
 interface ResultsWrapperProps {
@@ -10,11 +10,7 @@ interface ResultsWrapperProps {
 }
 
 export function ResultsWrapper({ pastGames }: ResultsWrapperProps) {
-  const [isDarkMode, setIsDarkMode] = useState(false)
-  
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode)
-  }
+  const { isDarkMode, toggleDarkMode } = useDarkMode()
 
   return (
     <>
@@ -25,7 +21,7 @@ export function ResultsWrapper({ pastGames }: ResultsWrapperProps) {
         }`}>
           Past Game Results
         </h1>
-        <PastGamesList pastGames={pastGames} />
+        <PastGamesList pastGames={pastGames} isDarkMode={isDarkMode} />
       </div>
     </>
   )

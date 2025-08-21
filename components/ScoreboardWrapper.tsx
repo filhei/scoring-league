@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
 import { Navigation } from './Navigation'
 import { ScoreboardTable } from './ScoreboardTable'
+import { useDarkMode } from '../lib/hooks/useDarkMode'
 import type { PlayerStats } from '../lib/types'
 
 interface ScoreboardWrapperProps {
@@ -10,11 +10,7 @@ interface ScoreboardWrapperProps {
 }
 
 export function ScoreboardWrapper({ scoreboardData }: ScoreboardWrapperProps) {
-  const [isDarkMode, setIsDarkMode] = useState(false)
-  
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode)
-  }
+  const { isDarkMode, toggleDarkMode } = useDarkMode()
 
   return (
     <>
