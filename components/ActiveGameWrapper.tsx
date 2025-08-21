@@ -204,18 +204,19 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
   const getCurrentTeamData = () => {
     if (!currentGameData) return { teamA: [], teamB: [] }
     
-    // For planned games, always use local state if we have a currentGameContext
-    // For active games, use local state only if it's populated (for reordering)
-    if (currentGameContext?.type === 'planned') {
+    // For both planned and active games, always use local state if we have a currentGameContext
+    // This ensures that local state updates (like goalkeeper assignments) are immediately reflected
+    if (currentGameContext) {
       return {
         teamA: localTeamA,
         teamB: localTeamB
       }
     }
     
+    // Fallback to currentGameData if no context (shouldn't happen in normal flow)
     return {
-      teamA: localTeamA.length > 0 ? localTeamA : currentGameData.teamA,
-      teamB: localTeamB.length > 0 ? localTeamB : currentGameData.teamB
+      teamA: currentGameData.teamA,
+      teamB: currentGameData.teamB
     }
   }
 
@@ -830,7 +831,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
           
           // Also update goalkeeper removal in currentGameContext if applicable
           if (isCurrentlyGoalkeeper) {
-            updateGoalkeeperInPlannedGame(currentTeam, null)
+            updateGoalkeeperInContext(currentTeam, null)
           }
           
           // Update database in background
@@ -854,17 +855,8 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
               showSnackbar('Warning: Goalkeeper move may not be saved')
             } else {
               console.log(`Successfully moved goalkeeper ${player.name} to field position`)
-              // For active games, we don't need to refresh since local state is already updated
-              if (currentGameContext?.type === 'planned') {
-                // Refresh the selected planned game data
-                convertPlannedGameToActiveGameData(currentGameContext.gameData.match).then(updatedGameData => {
-                  setCurrentGameContext({
-                    type: 'planned',
-                    gameData: updatedGameData,
-                    matchId: updatedGameData.match.id
-                  })
-                })
-              }
+              // For both planned and active games, we don't need to refresh since local state is already updated
+              // The local state updates provide instant feedback for both game types
             }
           }).catch(error => {
             console.error('Error moving goalkeeper to field:', error)
@@ -917,10 +909,10 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
               console.log(`Moving goalkeeper ${player.name} from team ${currentTeam} to team ${newTeam}`)
             }
             
-            // Update goalkeepers in currentGameContext
-            updateGoalkeeperInPlannedGame(newTeam, player)
+            // Update goalkeepers in currentGameContext for both planned and active games
+            updateGoalkeeperInContext(newTeam, player)
             if (otherGoalkeeper) {
-              updateGoalkeeperInPlannedGame(currentTeam, otherGoalkeeper)
+              updateGoalkeeperInContext(currentTeam, otherGoalkeeper)
             }
             
             console.log(`Goalkeeper swap completed: ${player.name} ↔ ${otherGoalkeeper?.name || 'None'}`)
@@ -953,16 +945,8 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
                 showSnackbar('Warning: Goalkeeper swap may not be saved')
               } else {
                 console.log(`Successfully swapped goalkeepers: ${player.name} ↔ ${otherGoalkeeper?.name || 'None'}`)
-                // For active games, we don't need to refresh since local state is already updated
-                if (currentGameContext?.type === 'planned') {
-                  convertPlannedGameToActiveGameData(currentGameContext.gameData.match).then(updatedGameData => {
-                    setCurrentGameContext({
-                      type: 'planned',
-                      gameData: updatedGameData,
-                      matchId: updatedGameData.match.id
-                    })
-                  })
-                }
+                // For both planned and active games, we don't need to refresh since local state is already updated
+                // The local state updates provide instant feedback for both game types
               }
             }).catch(error => {
               console.error('Error swapping goalkeepers:', error)
@@ -1032,8 +1016,8 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
               }
             }
 
-            // Update goalkeeper in currentGameContext
-            updateGoalkeeperInPlannedGame(newTeam, player)
+            // Update goalkeeper in currentGameContext for both planned and active games
+            updateGoalkeeperInContext(newTeam, player)
             
             console.log(`Goalkeeper assignment completed: ${player.name} is now goalkeeper for team ${newTeam}`)
             console.log('Updated goalkeeper state:', {
@@ -1055,17 +1039,8 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
                 showSnackbar('Warning: Goalkeeper assignment may not be saved')
               } else {
                 console.log(`Successfully assigned ${player.name} as goalkeeper for team ${newTeam}`)
-                // For active games, we don't need to refresh since local state is already updated
-                if (currentGameContext?.type === 'planned') {
-                  // Refresh the selected planned game data
-                  convertPlannedGameToActiveGameData(currentGameContext.gameData.match).then(updatedGameData => {
-                    setCurrentGameContext({
-                      type: 'planned',
-                      gameData: updatedGameData,
-                      matchId: updatedGameData.match.id
-                    })
-                  })
-                }
+                // For both planned and active games, we don't need to refresh since local state is already updated
+                // The local state updates provide instant feedback for both game types
               }
             }).catch(error => {
               console.error('Error assigning goalkeeper:', error)
@@ -1407,7 +1382,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
   }
 
   // Helper function to update goalkeeper in currentGameContext
-  const updateGoalkeeperInPlannedGame = (team: 'A' | 'B', goalkeeper: Player | null) => {
+  const updateGoalkeeperInContext = (team: 'A' | 'B', goalkeeper: Player | null) => {
     if (currentGameContext) {
       setCurrentGameContext({
         ...currentGameContext,
