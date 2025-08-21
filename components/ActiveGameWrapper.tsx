@@ -831,7 +831,19 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
           
           // Also update goalkeeper removal in currentGameContext if applicable
           if (isCurrentlyGoalkeeper) {
-            updateGoalkeeperInContext(currentTeam, null)
+            setCurrentGameContext(prev => {
+              if (!prev) return prev
+              return {
+                ...prev,
+                gameData: {
+                  ...prev.gameData,
+                  goalkeepers: {
+                    ...prev.gameData.goalkeepers,
+                    [currentTeam === 'A' ? 'teamA' : 'teamB']: null
+                  }
+                }
+              }
+            })
           }
           
           // Update database in background
@@ -910,9 +922,37 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
             }
             
             // Update goalkeepers in currentGameContext for both planned and active games
-            updateGoalkeeperInContext(newTeam, player)
+            // This must be done AFTER updating the local state to ensure proper synchronization
+            setCurrentGameContext(prev => {
+              if (!prev) return prev
+              return {
+                ...prev,
+                gameData: {
+                  ...prev.gameData,
+                  goalkeepers: {
+                    ...prev.gameData.goalkeepers,
+                    [newTeam === 'A' ? 'teamA' : 'teamB']: player,
+                    [currentTeam === 'A' ? 'teamA' : 'teamB']: otherGoalkeeper || null
+                  }
+                }
+              }
+            })
+            
+            // Also update local state to ensure goalkeeper is removed from field positions
+            // This prevents the goalkeeper from appearing in both goalkeeper tile and field
             if (otherGoalkeeper) {
-              updateGoalkeeperInContext(currentTeam, otherGoalkeeper)
+              // Remove the other goalkeeper from their current field position if they exist there
+              const otherGoalkeeperInTeamA = localTeamA.find(p => p.id === otherGoalkeeper.id)
+              const otherGoalkeeperInTeamB = localTeamB.find(p => p.id === otherGoalkeeper.id)
+              
+              if (otherGoalkeeperInTeamA) {
+                const newTeamA = localTeamA.filter(p => p.id !== otherGoalkeeper.id)
+                setLocalTeamA(newTeamA)
+              }
+              if (otherGoalkeeperInTeamB) {
+                const newTeamB = localTeamB.filter(p => p.id !== otherGoalkeeper.id)
+                setLocalTeamB(newTeamB)
+              }
             }
             
             console.log(`Goalkeeper swap completed: ${player.name} ↔ ${otherGoalkeeper?.name || 'None'}`)
@@ -1017,7 +1057,36 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
             }
 
             // Update goalkeeper in currentGameContext for both planned and active games
-            updateGoalkeeperInContext(newTeam, player)
+            // This must be done AFTER updating the local state to ensure proper synchronization
+            setCurrentGameContext(prev => {
+              if (!prev) return prev
+              return {
+                ...prev,
+                gameData: {
+                  ...prev.gameData,
+                  goalkeepers: {
+                    ...prev.gameData.goalkeepers,
+                    [newTeam === 'A' ? 'teamA' : 'teamB']: player
+                  }
+                }
+              }
+            })
+            
+            // Only remove goalkeeper from field positions if they were already a goalkeeper (for swaps)
+            // Don't remove field players who are becoming goalkeepers
+            if (isCurrentlyGoalkeeper) {
+              const goalkeeperInTeamA = localTeamA.find(p => p.id === player.id)
+              const goalkeeperInTeamB = localTeamB.find(p => p.id === player.id)
+              
+              if (goalkeeperInTeamA) {
+                const newTeamA = localTeamA.filter(p => p.id !== player.id)
+                setLocalTeamA(newTeamA)
+              }
+              if (goalkeeperInTeamB) {
+                const newTeamB = localTeamB.filter(p => p.id !== player.id)
+                setLocalTeamB(newTeamB)
+              }
+            }
             
             console.log(`Goalkeeper assignment completed: ${player.name} is now goalkeeper for team ${newTeam}`)
             console.log('Updated goalkeeper state:', {
@@ -1381,21 +1450,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
     }
   }
 
-  // Helper function to update goalkeeper in currentGameContext
-  const updateGoalkeeperInContext = (team: 'A' | 'B', goalkeeper: Player | null) => {
-    if (currentGameContext) {
-      setCurrentGameContext({
-        ...currentGameContext,
-        gameData: {
-          ...currentGameContext.gameData,
-          goalkeepers: {
-            ...currentGameContext.gameData.goalkeepers,
-            [team === 'A' ? 'teamA' : 'teamB']: goalkeeper
-          }
-        }
-      })
-    }
-  }
+
 
   // Get available players for selection
   const availablePlayersForSelection = currentGameContext 
