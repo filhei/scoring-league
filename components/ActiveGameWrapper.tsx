@@ -759,8 +759,9 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
       const currentTeamA = teamA.find(p => p.id === player.id)
       const currentTeamB = teamB.find(p => p.id === player.id)
       
-      // Check goalkeeper status from currentGameContext, but also consider if player might be a goalkeeper
-      // that was recently moved to field position
+      // Check goalkeeper status from currentGameContext
+      // Note: This might be stale during rapid swaps, but it's the best we can do for now
+      // The local state updates will ensure consistency
       const isGoalkeeperA = currentGameContext!.gameData.goalkeepers.teamA?.id === player.id
       const isGoalkeeperB = currentGameContext!.gameData.goalkeepers.teamB?.id === player.id
       
@@ -802,18 +803,18 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
         if (isCurrentlyGoalkeeper && newIndex >= 0) {
           console.log(`Moving goalkeeper ${player.name} from team ${currentTeam} to field position ${newIndex} on team ${newTeam}`)
           
-          // Handle local state updates first for instant feedback (for both planned and active games)
+          // Handle local state updates with goalkeeper context update for instant feedback
           if (currentTeam === newTeam) {
             // Same team: Remove from goalkeeper, add to field at specified position
             console.log(`Same team goalkeeper to field: ${player.name} to position ${newIndex}`)
             if (currentTeam === 'A') {
               const newTeamA = [...localTeamA]
               newTeamA.splice(newIndex, 0, player)
-              updateTeamState(newTeamA, localTeamB)
+              updateTeamStateAndGoalkeeper(newTeamA, localTeamB, currentTeam, null)
             } else {
               const newTeamB = [...localTeamB]
               newTeamB.splice(newIndex, 0, player)
-              updateTeamState(localTeamA, newTeamB)
+              updateTeamStateAndGoalkeeper(localTeamA, newTeamB, currentTeam, null)
             }
           } else {
             // Cross team: Remove from goalkeeper, add to other team's field
@@ -821,29 +822,12 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
             if (newTeam === 'A') {
               const newTeamA = [...localTeamA]
               newTeamA.splice(newIndex, 0, player)
-              updateTeamState(newTeamA, localTeamB)
+              updateTeamStateAndGoalkeeper(newTeamA, localTeamB, currentTeam, null)
             } else {
               const newTeamB = [...localTeamB]
               newTeamB.splice(newIndex, 0, player)
-              updateTeamState(localTeamA, newTeamB)
+              updateTeamStateAndGoalkeeper(localTeamA, newTeamB, currentTeam, null)
             }
-          }
-          
-          // Also update goalkeeper removal in currentGameContext if applicable
-          if (isCurrentlyGoalkeeper) {
-            setCurrentGameContext(prev => {
-              if (!prev) return prev
-              return {
-                ...prev,
-                gameData: {
-                  ...prev.gameData,
-                  goalkeepers: {
-                    ...prev.gameData.goalkeepers,
-                    [currentTeam === 'A' ? 'teamA' : 'teamB']: null
-                  }
-                }
-              }
-            })
           }
           
           // Update database in background
@@ -894,35 +878,36 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
           })
           
           if (isGoalkeeperSwap) {
-            console.log(`Swapping goalkeepers: ${player.name} (${currentTeam}) ↔ ${currentGameContext!.gameData.goalkeepers[newTeam === 'A' ? 'teamA' : 'teamB']?.name || 'None'} (${newTeam})`)
-            
-            // Get the other goalkeeper
+            // Get the other goalkeeper from the target team
             const otherGoalkeeper = currentGameContext!.gameData.goalkeepers[newTeam === 'A' ? 'teamA' : 'teamB']
             
-            // Update local state for instant feedback (for both planned and active games)
+            console.log(`Swapping goalkeepers: ${player.name} (${currentTeam}) ↔ ${otherGoalkeeper?.name || 'None'} (${newTeam})`)
+            
+            // Create new team arrays, ensuring no duplicates
+            let newTeamA = [...localTeamA]
+            let newTeamB = [...localTeamB]
+            
+            // Remove both goalkeepers from field positions first to prevent duplicates
+            newTeamA = newTeamA.filter(p => p.id !== player.id && p.id !== otherGoalkeeper?.id)
+            newTeamB = newTeamB.filter(p => p.id !== player.id && p.id !== otherGoalkeeper?.id)
+            
+            // Add the other goalkeeper to the current goalkeeper's team field
             if (otherGoalkeeper) {
-              // Both teams have goalkeepers - swap them
-              // The other goalkeeper moves to the current goalkeeper's team field
               if (currentTeam === 'A') {
                 // Current goalkeeper is from team A, moving to team B
                 // Other goalkeeper (from team B) moves to team A field
-                const newTeamA = [...localTeamA]
-                newTeamA.push(otherGoalkeeper) // Add other goalkeeper to team A field
-                updateTeamState(newTeamA, localTeamB)
+                newTeamA.push(otherGoalkeeper)
               } else {
                 // Current goalkeeper is from team B, moving to team A
                 // Other goalkeeper (from team A) moves to team B field
-                const newTeamB = [...localTeamB]
-                newTeamB.push(otherGoalkeeper) // Add other goalkeeper to team B field
-                updateTeamState(localTeamA, newTeamB)
+                newTeamB.push(otherGoalkeeper)
               }
-            } else {
-              // Only one goalkeeper exists - just move the current one
-              console.log(`Moving goalkeeper ${player.name} from team ${currentTeam} to team ${newTeam}`)
             }
             
-            // Update goalkeepers in currentGameContext for both planned and active games
-            // This must be done AFTER updating the local state to ensure proper synchronization
+            // Update local state immediately
+            updateTeamState(newTeamA, newTeamB)
+            
+            // Update goalkeepers in currentGameContext
             setCurrentGameContext(prev => {
               if (!prev) return prev
               return {
@@ -938,29 +923,14 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
               }
             })
             
-            // Also update local state to ensure goalkeeper is removed from field positions
-            // This prevents the goalkeeper from appearing in both goalkeeper tile and field
-            if (otherGoalkeeper) {
-              // Remove the other goalkeeper from their current field position if they exist there
-              const otherGoalkeeperInTeamA = localTeamA.find(p => p.id === otherGoalkeeper.id)
-              const otherGoalkeeperInTeamB = localTeamB.find(p => p.id === otherGoalkeeper.id)
-              
-              if (otherGoalkeeperInTeamA) {
-                const newTeamA = localTeamA.filter(p => p.id !== otherGoalkeeper.id)
-                setLocalTeamA(newTeamA)
-              }
-              if (otherGoalkeeperInTeamB) {
-                const newTeamB = localTeamB.filter(p => p.id !== otherGoalkeeper.id)
-                setLocalTeamB(newTeamB)
-              }
-            }
+
             
             console.log(`Goalkeeper swap completed: ${player.name} ↔ ${otherGoalkeeper?.name || 'None'}`)
             console.log('Updated goalkeeper state:', {
               teamA: currentGameContext!.gameData.goalkeepers.teamA?.name,
               teamB: currentGameContext!.gameData.goalkeepers.teamB?.name,
-              localTeamASize: localTeamA.length,
-              localTeamBSize: localTeamB.length
+              localTeamASize: newTeamA.length,
+              localTeamBSize: newTeamB.length
             })
             
             // Update database - swap goalkeepers
@@ -1003,90 +973,41 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
             
             console.log(`Goalkeeper replacement: ${player.name} (${currentTeam}) → goalkeeper for ${newTeam}, current goalkeeper: ${currentGoalkeeper?.name || 'None'}`)
             
-            // Remove player from current field position (for both planned and active games)
+            // Remove player from current field position and handle goalkeeper replacement
+            let newTeamA = [...localTeamA]
+            let newTeamB = [...localTeamB]
+            
+            // Remove the player from their current field position
             if (currentTeam === 'A') {
-              const currentIndex = localTeamA.findIndex(p => p.id === player.id)
-              if (currentIndex !== -1) {
-                const newTeamA = [...localTeamA]
-                newTeamA.splice(currentIndex, 1)
-                
-                // If there was a goalkeeper in the target team, add them to their original team's field
-                if (currentGoalkeeper) {
-                  if (newTeam === 'A') {
-                    // Player from team A becomes goalkeeper for team A, old goalkeeper goes to team A field
-                    newTeamA.push(currentGoalkeeper)
-                    console.log(`Same-team goalkeeper assignment: ${player.name} becomes goalkeeper for team A, ${currentGoalkeeper.name} moves to team A field`)
-                    updateTeamState(newTeamA, localTeamB)
-                  } else {
-                    // Player from team A becomes goalkeeper for team B, old goalkeeper goes to team B field
-                    const newTeamB = [...localTeamB]
-                    newTeamB.push(currentGoalkeeper)
-                    console.log(`Cross-team goalkeeper assignment: ${player.name} (team A) becomes goalkeeper for team B, ${currentGoalkeeper.name} moves to team B field`)
-                    updateTeamState(newTeamA, newTeamB)
-                  }
-                } else {
-                  console.log(`No current goalkeeper to replace: ${player.name} becomes goalkeeper for team ${newTeam}`)
-                  updateTeamState(newTeamA, localTeamB)
-                }
+              newTeamA = newTeamA.filter(p => p.id !== player.id)
+            } else {
+              newTeamB = newTeamB.filter(p => p.id !== player.id)
+            }
+            
+            // If there was a goalkeeper in the target team, add them to their original team's field
+            if (currentGoalkeeper) {
+              // Remove the current goalkeeper from field positions first to prevent duplicates
+              newTeamA = newTeamA.filter(p => p.id !== currentGoalkeeper.id)
+              newTeamB = newTeamB.filter(p => p.id !== currentGoalkeeper.id)
+              
+              // Add the old goalkeeper to the appropriate team field
+              if (newTeam === 'A') {
+                // Old goalkeeper goes to team A field
+                newTeamA.push(currentGoalkeeper)
+                console.log(`Goalkeeper replacement: ${player.name} becomes goalkeeper for team A, ${currentGoalkeeper.name} moves to team A field`)
+              } else {
+                // Old goalkeeper goes to team B field
+                newTeamB.push(currentGoalkeeper)
+                console.log(`Goalkeeper replacement: ${player.name} becomes goalkeeper for team B, ${currentGoalkeeper.name} moves to team B field`)
               }
             } else {
-              const currentIndex = localTeamB.findIndex(p => p.id === player.id)
-              if (currentIndex !== -1) {
-                const newTeamB = [...localTeamB]
-                newTeamB.splice(currentIndex, 1)
-                
-                // If there was a goalkeeper in the target team, add them to their original team's field
-                if (currentGoalkeeper) {
-                  if (newTeam === 'B') {
-                    // Player from team B becomes goalkeeper for team B, old goalkeeper goes to team B field
-                    newTeamB.push(currentGoalkeeper)
-                    console.log(`Same-team goalkeeper assignment: ${player.name} becomes goalkeeper for team B, ${currentGoalkeeper.name} moves to team B field`)
-                    updateTeamState(localTeamA, newTeamB)
-                  } else {
-                    // Player from team B becomes goalkeeper for team A, old goalkeeper goes to team A field
-                    const newTeamA = [...localTeamA]
-                    newTeamA.push(currentGoalkeeper)
-                    console.log(`Cross-team goalkeeper assignment: ${player.name} (team B) becomes goalkeeper for team A, ${currentGoalkeeper.name} moves to team A field`)
-                    updateTeamState(newTeamA, newTeamB)
-                  }
-                } else {
-                  console.log(`No current goalkeeper to replace: ${player.name} becomes goalkeeper for team ${newTeam}`)
-                  updateTeamState(localTeamA, newTeamB)
-                }
-              }
+              console.log(`No current goalkeeper to replace: ${player.name} becomes goalkeeper for team ${newTeam}`)
             }
-
-            // Update goalkeeper in currentGameContext for both planned and active games
-            // This must be done AFTER updating the local state to ensure proper synchronization
-            setCurrentGameContext(prev => {
-              if (!prev) return prev
-              return {
-                ...prev,
-                gameData: {
-                  ...prev.gameData,
-                  goalkeepers: {
-                    ...prev.gameData.goalkeepers,
-                    [newTeam === 'A' ? 'teamA' : 'teamB']: player
-                  }
-                }
-              }
-            })
             
-            // Only remove goalkeeper from field positions if they were already a goalkeeper (for swaps)
-            // Don't remove field players who are becoming goalkeepers
-            if (isCurrentlyGoalkeeper) {
-              const goalkeeperInTeamA = localTeamA.find(p => p.id === player.id)
-              const goalkeeperInTeamB = localTeamB.find(p => p.id === player.id)
-              
-              if (goalkeeperInTeamA) {
-                const newTeamA = localTeamA.filter(p => p.id !== player.id)
-                setLocalTeamA(newTeamA)
-              }
-              if (goalkeeperInTeamB) {
-                const newTeamB = localTeamB.filter(p => p.id !== player.id)
-                setLocalTeamB(newTeamB)
-              }
-            }
+            // Update local state and goalkeeper context immediately
+            updateTeamStateAndGoalkeeper(newTeamA, newTeamB, newTeam, player)
+            
+
             
             console.log(`Goalkeeper assignment completed: ${player.name} is now goalkeeper for team ${newTeam}`)
             console.log('Updated goalkeeper state:', {
@@ -1445,6 +1366,29 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
           ...currentGameContext.gameData,
           teamA: newTeamA,
           teamB: newTeamB
+        }
+      })
+    }
+  }
+
+  // Helper function to update team state and goalkeeper context simultaneously
+  // This ensures instant UI feedback for goalkeeper operations by updating both states atomically
+  const updateTeamStateAndGoalkeeper = (newTeamA: Player[], newTeamB: Player[], goalkeeperTeam: 'A' | 'B', goalkeeperPlayer: Player | null) => {
+    setLocalTeamA(newTeamA)
+    setLocalTeamB(newTeamB)
+    
+    // Update currentGameContext for both planned and active games
+    if (currentGameContext) {
+      setCurrentGameContext({
+        ...currentGameContext,
+        gameData: {
+          ...currentGameContext.gameData,
+          teamA: newTeamA,
+          teamB: newTeamB,
+          goalkeepers: {
+            ...currentGameContext.gameData.goalkeepers,
+            [goalkeeperTeam === 'A' ? 'teamA' : 'teamB']: goalkeeperPlayer
+          }
         }
       })
     }
