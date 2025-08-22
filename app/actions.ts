@@ -359,3 +359,38 @@ export const createMatch = actionClient
       return { success: false, error: appError.message }
     }
   }) 
+
+export const deleteMatch = actionClient
+  .inputSchema(z.object({ matchId: z.string().uuid() }))
+  .action(async ({ parsedInput: { matchId } }) => {
+    try {
+      // Delete related data first (scores and match_players)
+      const { error: scoresError } = await supabase
+        .from('scores')
+        .delete()
+        .eq('match_id', matchId)
+
+      if (scoresError) throw handleSupabaseError(scoresError)
+
+      const { error: playersError } = await supabase
+        .from('match_players')
+        .delete()
+        .eq('match_id', matchId)
+
+      if (playersError) throw handleSupabaseError(playersError)
+
+      // Delete the match itself
+      const { error: matchError } = await supabase
+        .from('matches')
+        .delete()
+        .eq('id', matchId)
+
+      if (matchError) throw handleSupabaseError(matchError)
+
+      revalidatePath('/')
+      return { success: true, data: { deleted: true } }
+    } catch (error) {
+      const appError = error instanceof Error ? error : handleSupabaseError(error)
+      return { success: false, error: appError.message }
+    }
+  }) 

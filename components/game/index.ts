@@ -1,6 +1,7 @@
 export { DragImage } from './DragImage'
 export { DropPlaceholder } from './DropPlaceholder'
 export { GameControls } from './GameControls'
+export { GameSettingsDropdown } from './GameSettingsDropdown'
 export { GoalkeeperTile } from './GoalkeeperTile'
 export { PlayerTile } from './PlayerTile'
 export { TeamDisplay } from './TeamDisplay' 

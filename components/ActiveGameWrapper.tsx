@@ -16,7 +16,8 @@ import {
   addPlayerToField,
   toggleVests,
   controlMatch,
-  createMatch
+  createMatch,
+  deleteMatch
 } from '@/app/actions'
 import type { GoalDialogState, PlayerSelectState, Player, Match, ActiveGameData } from '../lib/types'
 import React from 'react' // Added missing import
@@ -438,6 +439,34 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
       showSnackbar('Failed to end match and create new')
       // Clear the ending game flag on error
       setIsEndingGame(false)
+    }
+  }
+
+  const handleDeleteGame = async () => {
+    if (!ensureCorrectMatch('Delete game')) return
+
+    try {
+      const result = await deleteMatch({
+        matchId: currentGameContext!.matchId
+      })
+
+      if (result.validationErrors || result.serverError) {
+        showSnackbar('Failed to delete game')
+        return
+      }
+
+      showSnackbar('Game deleted successfully')
+      
+      // Go back to matches list
+      setCurrentGameContext(null)
+      setUserRequestedMatchesList(true)
+      setShowMatchesList(true)
+      
+      // Refresh all games data
+      refreshGameData()
+    } catch (error) {
+      console.error('Error deleting game:', error)
+      showSnackbar('Failed to delete game')
     }
   }
 
@@ -1459,6 +1488,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
           onRemovePlayer={handleRemovePlayer}
           onSwitchPlayerTeam={handleSwitchPlayerTeam}
           onVestToggle={handleVestToggle}
+          onDeleteGame={handleDeleteGame}
         />
 
         {/* Player Selection Modal */}
@@ -1560,6 +1590,7 @@ export function ActiveGameWrapper({ initialActiveGame, availablePlayers, allGame
           onRemovePlayer={handleRemovePlayer}
           onSwitchPlayerTeam={handleSwitchPlayerTeam}
           onVestToggle={handleVestToggle}
+          onDeleteGame={handleDeleteGame}
         />
 
         {/* Player Selection Modal */}

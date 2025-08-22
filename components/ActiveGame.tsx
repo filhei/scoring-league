@@ -2,7 +2,7 @@ import React, { useRef } from 'react'
 import type { ActiveGameData, Player } from '../lib/types'
 import type { UseMatchTimerReturn } from '../lib/hooks/useMatchTimer'
 import { useDragAndDrop } from '../lib/hooks/useDragAndDrop'
-import { DragImage, TeamDisplay, GameControls } from './game'
+import { DragImage, TeamDisplay, GameControls, GameSettingsDropdown } from './game'
 
 interface ActiveGameProps {
   activeGame: ActiveGameData
@@ -22,6 +22,7 @@ interface ActiveGameProps {
   onRemovePlayer: (player: Player) => void
   onSwitchPlayerTeam: (player: Player, newTeam: 'A' | 'B', newIndex?: number) => void
   onVestToggle: (team: 'A' | 'B') => void
+  onDeleteGame?: () => void
 }
 
 export function ActiveGame({
@@ -41,7 +42,8 @@ export function ActiveGame({
   onAddPlayer,
   onRemovePlayer,
   onSwitchPlayerTeam,
-  onVestToggle
+  onVestToggle,
+  onDeleteGame
 }: ActiveGameProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -118,15 +120,12 @@ export function ActiveGame({
               (ID: {activeGame.match.id.slice(0, 8)}...)
             </span>
           </h2>
-          <button
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 ${
-              isDarkMode
-                ? 'bg-gray-800 hover:bg-gray-700 text-white border border-gray-600'
-                : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300'
-            }`}
-          >
-            ⚙️ Edit
-          </button>
+          {onDeleteGame && (
+            <GameSettingsDropdown
+              isDarkMode={isDarkMode}
+              onDeleteGame={onDeleteGame}
+            />
+          )}
         </div>
 
         {/* Game Controls */}
