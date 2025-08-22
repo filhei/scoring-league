@@ -3,7 +3,7 @@ import type { PlayerStats, Score, Player, ActiveGameData, Match } from './types'
 /**
  * Calculate player statistics (goals and assists)
  */
-export const getPlayerStats = (playerId: string, scores: Score[]): PlayerStats => {
+export const getPlayerStats = (playerId: string, scores: Score[]): { goals: number; assists: number } => {
   const goals = scores.filter(score => score.scoring_player_id === playerId).length
   const assists = scores.filter(score => score.assisting_player_id === playerId).length
   
@@ -96,4 +96,12 @@ export const convertPlannedGameToActiveGameData = async (match: Match): Promise<
     scores: scores || [],
     goalkeepers
   }
+}
+
+/**
+ * Safely extracts game data from game context
+ * This utility function helps with TypeScript type safety
+ */
+export function getGameDataFromContext(context: { gameData: ActiveGameData } | null): ActiveGameData | null {
+  return context?.gameData ?? null
 } 
