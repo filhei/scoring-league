@@ -28,11 +28,11 @@ CREATE POLICY "Authenticated can create matches" ON matches
   FOR INSERT TO authenticated
   WITH CHECK (true);
 
--- Authenticated users can update active, paused, and planned matches
-CREATE POLICY "Authenticated can update non-finished matches" ON matches
+-- Authenticated users can update non-finished matches, and can set status to 'finished' but not update from 'finished'
+CREATE POLICY "Authenticated can update non-finished matches or finish a match" ON matches
   FOR UPDATE TO authenticated
   USING (match_status IN ('active', 'paused', 'planned'))
-  WITH CHECK (match_status IN ('active', 'paused', 'planned'));
+  WITH CHECK (match_status IN ('active', 'paused', 'planned', 'finished'));
 
 -- Authenticated users can delete active, paused, and planned matches
 CREATE POLICY "Authenticated can delete non-finished matches" ON matches

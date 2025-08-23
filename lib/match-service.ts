@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import type { Database } from '../supabase/database.types'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 type Match = Database['public']['Tables']['matches']['Row']
 type MatchUpdate = Database['public']['Tables']['matches']['Update']
@@ -8,9 +9,10 @@ export class MatchService {
   /**
    * Start a match - changes status from 'planned' to 'active'
    */
-  static async startMatch(matchId: string): Promise<Match | null> {
+  static async startMatch(matchId: string, supabaseClient?: SupabaseClient<Database>): Promise<Match | null> {
     try {
-      const { data, error } = await supabase
+      const client = supabaseClient || supabase
+      const { data, error } = await client
         .from('matches')
         .update({
           match_status: 'active',
@@ -33,10 +35,11 @@ export class MatchService {
   /**
    * Pause an active match - saves current duration and sets status to 'paused'
    */
-  static async pauseMatch(matchId: string): Promise<Match | null> {
+  static async pauseMatch(matchId: string, supabaseClient?: SupabaseClient<Database>): Promise<Match | null> {
     try {
+      const client = supabaseClient || supabase
       // Get current match data
-      const { data: match, error: fetchError } = await supabase
+      const { data: match, error: fetchError } = await client
         .from('matches')
         .select('*')
         .eq('id', matchId)
@@ -51,7 +54,7 @@ export class MatchService {
       // Calculate current duration: NOW - start_time - pause_duration
       const currentDuration = Math.floor((now.getTime() - startTime.getTime()) / 1000) - pauseDuration
 
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('matches')
         .update({
           match_status: 'paused',
@@ -72,10 +75,11 @@ export class MatchService {
   /**
    * Resume a paused match - calculates new pause_duration and sets status to 'active'
    */
-  static async resumeMatch(matchId: string): Promise<Match | null> {
+  static async resumeMatch(matchId: string, supabaseClient?: SupabaseClient<Database>): Promise<Match | null> {
     try {
+      const client = supabaseClient || supabase
       // Get current match data
-      const { data: match, error: fetchError } = await supabase
+      const { data: match, error: fetchError } = await client
         .from('matches')
         .select('*')
         .eq('id', matchId)
@@ -90,7 +94,7 @@ export class MatchService {
       // Calculate new pause_duration: NOW - start_time - duration
       const newPauseDuration = Math.floor((now.getTime() - startTime.getTime()) / 1000) - duration
 
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('matches')
         .update({
           match_status: 'active',
@@ -111,12 +115,13 @@ export class MatchService {
   /**
    * End a match - calculates final duration and sets status to 'finished'
    */
-  static async endMatch(matchId: string, winnerTeam?: 'A' | 'B' | null): Promise<Match | null> {
+  static async endMatch(matchId: string, winnerTeam?: 'A' | 'B' | null, supabaseClient?: SupabaseClient<Database>): Promise<Match | null> {
     try {
       console.log('MatchService.endMatch: Starting to end match', matchId)
       
+      const client = supabaseClient || supabase
       // Get current match data
-      const { data: match, error: fetchError } = await supabase
+      const { data: match, error: fetchError } = await client
         .from('matches')
         .select('*')
         .eq('id', matchId)
@@ -147,7 +152,7 @@ export class MatchService {
 
       console.log('MatchService.endMatch: Updating match with:', updates)
 
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('matches')
         .update(updates)
         .eq('id', matchId)

@@ -19,11 +19,12 @@ interface GameViewProps {
 }
 
 export function GameView({ initialActiveGame, availablePlayers, allGames }: GameViewProps) {
-  // Global dark mode state
+  
   const { isDarkMode, toggleDarkMode } = useDarkMode()
   
   // Auth state
   const { user, player, loading: authLoading } = useAuth()
+  const isAuthenticated = user && player
   
   // Game state management
   const gameState = useGameState()
@@ -44,45 +45,9 @@ export function GameView({ initialActiveGame, availablePlayers, allGames }: Game
     return <GameLoadingSkeleton />
   }
 
-  // Show login prompt if user is not authenticated
-  if (!user || !player) {
-    return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className={`rounded-2xl p-8 transition-colors duration-300 ${
-          isDarkMode
-            ? 'bg-gray-800 border border-gray-700'
-            : 'bg-gray-50 border border-gray-200'
-        }`}>
-          <div className="text-center">
-            <div className={`text-6xl mb-6 transition-colors duration-300 ${
-              isDarkMode ? 'text-gray-600' : 'text-gray-400'
-            }`}>
-              🔐
-            </div>
-            <h2 className={`text-3xl font-bold mb-4 transition-colors duration-300 ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              Authentication Required
-            </h2>
-            <p className={`text-lg mb-8 transition-colors duration-300 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              Please sign in to create and manage games.
-            </p>
-            <a
-              href="/login"
-              className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 inline-block ${
-                isDarkMode
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
-              } hover:scale-105 active:scale-95`}
-            >
-              Sign In
-            </a>
-          </div>
-        </div>
-      </div>
-    )
+  // Show no active game view (handles both authenticated and anonymous users)
+  if (!gameState.activeGame && !gameState.currentGameContext && !gameState.showMatchesList) {
+    return <NoActiveGame isDarkMode={isDarkMode} onCreateNewGame={actions.handleCreateNewGame} />
   }
 
   // Show selected planned game
@@ -149,11 +114,6 @@ export function GameView({ initialActiveGame, availablePlayers, allGames }: Game
     )
   }
 
-  // Show NoActiveGame when there's no active game and no matches list (only for authenticated users)
-  return (
-    <NoActiveGame 
-      isDarkMode={isDarkMode} 
-      onCreateNewGame={actions.handleCreateNewGame}
-    />
-  )
+  // Fallback - should not reach here
+  return <GameLoadingSkeleton />
 } 

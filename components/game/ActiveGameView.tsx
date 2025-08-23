@@ -56,6 +56,7 @@ export function ActiveGameView({
         onVestToggle={actions.handleVestToggle}
         onDeleteGame={actions.handleDeleteGame}
         onResetGame={actions.handleResetGame}
+        isAuthenticated={actions.isAuthenticated}
       />
 
       {/* Player Selection Modal */}

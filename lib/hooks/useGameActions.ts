@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '../auth-context'
 import { 
   addScore, 
   addPlayerToMatch, 
@@ -57,6 +58,9 @@ export interface GameActions {
   
   // Computed values
   availablePlayersForSelection: Player[]
+  
+  // Authentication status
+  isAuthenticated: boolean
 }
 
 export function useGameActions(
@@ -64,6 +68,9 @@ export function useGameActions(
   showSnackbar: (message: string, duration?: number) => void
 ): GameActions {
   const queryClient = useQueryClient()
+  const { user, player } = useAuth()
+  const isAuthenticated = Boolean(user && player)
+  
   const [showPlayerSelect, setShowPlayerSelect] = useState<PlayerSelectState>({ 
     team: null, 
     isGoalkeeper: false 
@@ -84,6 +91,15 @@ export function useGameActions(
     }
     
     console.log(`${operation}: Operating on match ID ${gameState.currentGameContext.matchId}`)
+    return true
+  }
+
+  // Helper function to check authentication for actions
+  const requireAuth = (action: string): boolean => {
+    if (!isAuthenticated) {
+      showSnackbar('Please sign in to perform this action', 3000)
+      return false
+    }
     return true
   }
 
@@ -127,6 +143,7 @@ export function useGameActions(
 
   // Event handlers
   const handleScoreIncrement = async (team: 'A' | 'B') => {
+    if (!requireAuth('score increment')) return
     if (!ensureCorrectMatch('Score increment')) return
     
     setGoalDialog({
@@ -221,14 +238,53 @@ export function useGameActions(
   }
 
   const handlePauseToggle = async () => {
-    if (gameState.timer.isPaused) {
-      await gameState.timer.resumeMatch()
-    } else {
-      await gameState.timer.pauseMatch()
+    if (!requireAuth('pause/resume match')) return
+    if (!ensureCorrectMatch('pause/resume match')) return
+
+    try {
+      const action = gameState.timer.isPaused ? 'resume' : 'pause'
+      const newStatus = gameState.timer.isPaused ? 'active' : 'paused'
+      
+      // Update local state immediately for better UX
+      if (gameState.currentGameContext) {
+        const updatedMatch = {
+          ...gameState.currentGameContext.gameData.match,
+          match_status: newStatus
+        }
+        
+        gameState.setCurrentGameContext({
+          ...gameState.currentGameContext,
+          gameData: {
+            ...gameState.currentGameContext.gameData,
+            match: updatedMatch
+          }
+        })
+      }
+
+      // Call server action in background
+      const result = await controlMatch({
+        matchId: gameState.currentGameContext!.matchId,
+        action
+      })
+
+      if (result.validationErrors || result.serverError) {
+        console.error('Database update failed:', result.validationErrors || result.serverError)
+        showSnackbar('Warning: Game state may not be saved')
+        // Revert local state on error
+        gameState.refreshGameData()
+      } else {
+        console.log('Database update successful')
+      }
+    } catch (error) {
+      console.error('Error toggling pause:', error)
+      showSnackbar('Warning: Game state may not be saved')
+      // Revert local state on error
+      gameState.refreshGameData()
     }
   }
 
   const handleEndMatch = async () => {
+    if (!requireAuth('end match')) return
     if (!ensureCorrectMatch('End match')) return
 
     try {
@@ -239,8 +295,20 @@ export function useGameActions(
       const winnerTeam = gameState.teamAScore > gameState.teamBScore ? 'A' : gameState.teamBScore > gameState.teamAScore ? 'B' : null
       console.log('handleEndMatch: Winner team:', winnerTeam)
       
-      await gameState.timer.endMatch(winnerTeam)
-      console.log('handleEndMatch: timer.endMatch completed successfully')
+      const result = await controlMatch({
+        matchId: gameState.currentGameContext!.matchId,
+        action: 'end',
+        winnerTeam: winnerTeam || undefined
+      })
+
+      if (result.validationErrors || result.serverError) {
+        console.error('Database update failed:', result.validationErrors || result.serverError)
+        showSnackbar('Failed to end match')
+        gameState.setIsEndingGame(false)
+        return
+      }
+
+      console.log('handleEndMatch: controlMatch completed successfully')
       
       const winnerText = winnerTeam ? `Team ${winnerTeam} wins!` : 'Match ended in a tie!'
       showSnackbar(`Match ended successfully. ${winnerText}`, 3000)
@@ -264,13 +332,26 @@ export function useGameActions(
   }
 
   const handleEndMatchAndCreateNew = async () => {
+    if (!requireAuth('end match and create new')) return
     if (!ensureCorrectMatch('End match and create new')) return
 
     try {
       gameState.setIsEndingGame(true)
       
       const winnerTeam = gameState.teamAScore > gameState.teamBScore ? 'A' : gameState.teamBScore > gameState.teamAScore ? 'B' : null
-      await gameState.timer.endMatch(winnerTeam)
+      
+      const result = await controlMatch({
+        matchId: gameState.currentGameContext!.matchId,
+        action: 'end',
+        winnerTeam: winnerTeam || undefined
+      })
+
+      if (result.validationErrors || result.serverError) {
+        console.error('Database update failed:', result.validationErrors || result.serverError)
+        showSnackbar('Failed to end match')
+        gameState.setIsEndingGame(false)
+        return
+      }
 
       const currentTeamData = gameState.currentTeamData
       
@@ -312,6 +393,7 @@ export function useGameActions(
   }
 
   const handleDeleteGame = async () => {
+    if (!requireAuth('delete game')) return
     if (!ensureCorrectMatch('Delete game')) return
 
     try {
@@ -1270,6 +1352,7 @@ export function useGameActions(
   }
 
   const handleCreateNewGame = async () => {
+    if (!requireAuth('create new game')) return
     console.log('handleCreateNewGame: Starting game creation')
     gameState.setIsCreatingGame(true)
     try {
@@ -1367,6 +1450,9 @@ export function useGameActions(
     ensureCorrectMatch,
     
     // Computed values
-    availablePlayersForSelection
+    availablePlayersForSelection,
+    
+    // Authentication status
+    isAuthenticated
   }
 } 

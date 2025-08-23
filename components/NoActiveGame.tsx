@@ -16,7 +16,8 @@ export function NoActiveGame({ isDarkMode, onCreateNewGame }: NoActiveGameProps)
   const [isPending, startTransition] = useTransition()
   const { showSnackbar } = useSnackbar()
   const queryClient = useQueryClient()
-  const { user } = useAuth()
+  const { user, player } = useAuth()
+  const isAuthenticated = user && player
 
   function handleCreateGame() {
     console.log('NoActiveGame: Starting game creation')
@@ -88,9 +89,12 @@ export function NoActiveGame({ isDarkMode, onCreateNewGame }: NoActiveGameProps)
           <p className={`text-lg mb-8 transition-colors duration-300 ${
             isDarkMode ? 'text-gray-400' : 'text-gray-600'
           }`}>
-            {user ? 'Start a new match to see the game status here.' : 'Sign in to create and manage games.'}
+            {isAuthenticated 
+              ? 'Start a new match to see the game status here.' 
+              : 'Sign in to create and manage games, or browse existing games.'
+            }
           </p>
-          {user ? (
+          {isAuthenticated ? (
             <button
               onClick={handleCreateGame}
               disabled={isPending}

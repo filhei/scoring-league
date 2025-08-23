@@ -20,6 +20,7 @@ interface TeamDisplayProps {
   onAddPlayer: (team: 'A' | 'B', isGoalkeeper?: boolean) => void
   onRemovePlayer: (player: Player) => void
   matchStatus?: string // Add match status to determine if it's planned
+  isAuthenticated?: boolean
 }
 
 export function TeamDisplay({
@@ -36,7 +37,8 @@ export function TeamDisplay({
   onDragEnd,
   onAddPlayer,
   onRemovePlayer,
-  matchStatus
+  matchStatus,
+  isAuthenticated = true
 }: TeamDisplayProps) {
   const isDragging = !!dragState
 
@@ -85,13 +87,13 @@ export function TeamDisplay({
         team={team}
         isDarkMode={isDarkMode}
         scores={scores}
-        onAddPlayer={onAddPlayer}
-        onRemovePlayer={onRemovePlayer}
-        onDragOver={(e) => onDragOver(e, team, players)}
-        onDragLeave={onDragLeave}
-        onDrop={(e) => onDrop(e, team)}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
+        onAddPlayer={isAuthenticated ? onAddPlayer : undefined}
+        onRemovePlayer={isAuthenticated ? onRemovePlayer : undefined}
+        onDragOver={isAuthenticated ? (e) => onDragOver(e, team, players) : undefined}
+        onDragLeave={isAuthenticated ? onDragLeave : undefined}
+        onDrop={isAuthenticated ? (e) => onDrop(e, team) : undefined}
+        onDragStart={isAuthenticated ? onDragStart : undefined}
+        onDragEnd={isAuthenticated ? onDragEnd : undefined}
         isDragTarget={isGoalkeeperDragTarget}
         draggedPlayerName={dragState?.player.name}
         isDragging={isDragging}
@@ -120,9 +122,9 @@ export function TeamDisplay({
             isDragging={isDragging}
             dragState={dragState}
             scores={scores}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-            onRemovePlayer={onRemovePlayer}
+            onDragStart={isAuthenticated ? onDragStart : undefined}
+            onDragEnd={isAuthenticated ? onDragEnd : undefined}
+            onRemovePlayer={isAuthenticated ? onRemovePlayer : undefined}
           />
         )
       }
@@ -136,31 +138,33 @@ export function TeamDisplay({
       data-team-container
       data-team={team}
       className="space-y-2"
-      onDragOver={(e) => onDragOver(e, team, players)}
-      onDragLeave={onDragLeave}
-      onDrop={(e) => onDrop(e, team)}
+      onDragOver={isAuthenticated ? (e) => onDragOver(e, team, players) : undefined}
+      onDragLeave={isAuthenticated ? onDragLeave : undefined}
+      onDrop={isAuthenticated ? (e) => onDrop(e, team) : undefined}
     >
       {renderTeamPlayers()}
       
       {/* Add Player Button */}
-      <button 
-        onClick={() => onAddPlayer(team, false)}
-        className="w-full px-4 py-2 border-2 border-dashed rounded-lg text-sm font-medium transition-all duration-300 hover:scale-[1.02]"
-        style={{
-          borderColor: isDarkMode ? '#4b5563' : '#d1d5db',
-          color: isDarkMode ? '#9ca3af' : '#6b7280'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = 'var(--accent-blue)'
-          e.currentTarget.style.color = 'var(--accent-blue)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = isDarkMode ? '#4b5563' : '#d1d5db'
-          e.currentTarget.style.color = isDarkMode ? '#9ca3af' : '#6b7280'
-        }}
-      >
-        + {matchStatus === 'planned' ? 'Add Players' : 'Add Player'}
-      </button>
+      {isAuthenticated && (
+        <button 
+          onClick={() => onAddPlayer(team, false)}
+          className="w-full px-4 py-2 border-2 border-dashed rounded-lg text-sm font-medium transition-all duration-300 hover:scale-[1.02]"
+          style={{
+            borderColor: isDarkMode ? '#4b5563' : '#d1d5db',
+            color: isDarkMode ? '#9ca3af' : '#6b7280'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'var(--accent-blue)'
+            e.currentTarget.style.color = 'var(--accent-blue)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = isDarkMode ? '#4b5563' : '#d1d5db'
+            e.currentTarget.style.color = isDarkMode ? '#9ca3af' : '#6b7280'
+          }}
+        >
+          + {matchStatus === 'planned' ? 'Add Players' : 'Add Player'}
+        </button>
+      )}
     </div>
   )
 } 

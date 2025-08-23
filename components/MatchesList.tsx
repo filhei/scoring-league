@@ -1,6 +1,7 @@
 'use client'
 
 import type { Match, ActiveGameData } from '../lib/types'
+import { useAuth } from '../lib/auth-context'
 
 interface MatchesListProps {
   activeGame: ActiveGameData | null
@@ -12,6 +13,9 @@ interface MatchesListProps {
 }
 
 export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, onCreateNewGame, isCreatingGame = false }: MatchesListProps) {
+  const { user, player } = useAuth()
+  const isAuthenticated = user && player
+
   // Filter games by status
   const plannedGames = allGames.filter(game => game.match_status === 'planned')
   const activeGames = allGames.filter(game => game.match_status === 'active' || game.match_status === 'paused')
@@ -26,7 +30,8 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
     activeGames: activeGames.length,
     activeGameId: activeGame?.match.id,
     gamesToShow: allGamesToShow.length,
-    gamesToShowIds: allGamesToShow.map(g => `Game ${g.gameCount || 'N/A'} (${g.match_status})`)
+    gamesToShowIds: allGamesToShow.map(g => `Game ${g.gameCount || 'N/A'} (${g.match_status})`),
+    isAuthenticated
   })
 
   if (allGamesToShow.length === 0) {
@@ -51,21 +56,23 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
             <p className={`text-lg mb-8 transition-colors duration-300 ${
               isDarkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              Create a new match to get started.
+              {isAuthenticated ? 'Create a new match to get started.' : 'No games have been created yet.'}
             </p>
-            <button
-              onClick={onCreateNewGame}
-              disabled={isCreatingGame}
-              className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 ${
-                isDarkMode
-                  ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white'
-                  : 'bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white'
-              } ${
-                isCreatingGame ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'
-              }`}
-            >
-              {isCreatingGame ? 'Creating Game...' : 'Create New Game'}
-            </button>
+            {isAuthenticated && (
+              <button
+                onClick={onCreateNewGame}
+                disabled={isCreatingGame}
+                className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-200 ${
+                  isDarkMode
+                    ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white'
+                    : 'bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white'
+                } ${
+                  isCreatingGame ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'
+                }`}
+              >
+                {isCreatingGame ? 'Creating Game...' : 'Create New Game'}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -85,19 +92,21 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
           }`}>
             All Games
           </h3>
-          <button
-            onClick={onCreateNewGame}
-            disabled={isCreatingGame}
-            className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              isDarkMode
-                ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white'
-            } ${
-              isCreatingGame ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
-            }`}
-          >
-            {isCreatingGame ? 'Creating...' : '+ New Game'}
-          </button>
+          {isAuthenticated && (
+            <button
+              onClick={onCreateNewGame}
+              disabled={isCreatingGame}
+              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                isDarkMode
+                  ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white'
+                  : 'bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white'
+              } ${
+                isCreatingGame ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+              }`}
+            >
+              {isCreatingGame ? 'Creating...' : '+ New Game'}
+            </button>
+          )}
         </div>
         <div className="space-y-3">
           {allGamesToShow.map((game) => {
@@ -105,17 +114,17 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
             const isPlanned = game.match_status === 'planned'
             
             return (
-              <button
+              <div
                 key={game.id}
-                onClick={() => {
-                  console.log(`MatchesList: Clicked on game ${game.gameCount || 'N/A'} (${game.match_status})`)
-                  onSelectGame(game)
-                }}
-                className={`w-full p-4 rounded-xl text-left transition-all duration-200 hover:scale-[1.02] ${
+                className={`w-full p-4 rounded-xl text-left transition-all duration-200 hover:scale-[1.02] cursor-pointer ${
                   isDarkMode
                     ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600'
                     : 'bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
                 }`}
+                onClick={() => {
+                  console.log(`MatchesList: Clicked on game ${game.gameCount || 'N/A'} (${game.match_status})`)
+                  onSelectGame(game)
+                }}
               >
                 <div className="flex justify-between items-center">
                   <div>
@@ -143,10 +152,23 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
                     {isActive ? 'Active' : 'Planned'}
                   </div>
                 </div>
-              </button>
+              </div>
             )
           })}
         </div>
+        {!isAuthenticated && (
+          <div className={`mt-6 p-4 rounded-lg text-center ${
+            isDarkMode 
+              ? 'bg-gray-700/50 border border-gray-600' 
+              : 'bg-gray-50 border border-gray-200'
+          }`}>
+            <p className={`text-sm transition-colors duration-300 ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Sign in to interact with games and create new matches.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

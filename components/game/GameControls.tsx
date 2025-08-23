@@ -18,6 +18,7 @@ interface GameControlsProps {
   onEndMatchAndCreateNew?: () => void
   onSwapSides: () => void
   onVestToggle: (team: 'A' | 'B') => void
+  isAuthenticated?: boolean
 }
 
 export function GameControls({
@@ -35,7 +36,8 @@ export function GameControls({
   onStartMatch,
   onEndMatchAndCreateNew,
   onSwapSides,
-  onVestToggle
+  onVestToggle,
+  isAuthenticated = true
 }: GameControlsProps) {
   const [leftTeamHovered, setLeftTeamHovered] = useState(false)
   const [rightTeamHovered, setRightTeamHovered] = useState(false)
@@ -68,7 +70,7 @@ export function GameControls({
         }`}>
           {timer?.formattedTime || '00:00'}
         </div>
-        {matchStatus !== 'planned' && timer && (
+        {matchStatus !== 'planned' && timer && isAuthenticated && (
           <div className="absolute left-1/2 ml-32 flex items-center space-x-2">
             <button
               onClick={onPauseToggle}
@@ -98,7 +100,7 @@ export function GameControls({
 
       {/* Score Row */}
       <div className="flex justify-center items-center space-x-16 mb-8">
-        {matchStatus !== 'planned' && (
+        {matchStatus !== 'planned' && isAuthenticated && (
           <button
             onClick={() => onScoreIncrement(leftTeam)}
             className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-300 hover:scale-110 text-white"
@@ -120,7 +122,7 @@ export function GameControls({
         }`}>
           {leftScore} - {rightScore}
         </div>
-        {matchStatus !== 'planned' && (
+        {matchStatus !== 'planned' && isAuthenticated && (
           <button
             onClick={() => onScoreIncrement(rightTeam)}
             className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-300 hover:scale-110 text-white"
@@ -141,7 +143,7 @@ export function GameControls({
 
       {/* Start/End Match Button */}
       <div className="flex justify-center mb-8">
-        {matchStatus === 'planned' ? (
+        {isAuthenticated && (matchStatus === 'planned' ? (
           <button
             onClick={onStartMatch}
             className="px-5 py-1.5 rounded-lg font-semibold transition-all duration-300 hover:scale-105 text-white"
@@ -173,7 +175,7 @@ export function GameControls({
           >
             End Match
           </button>
-        )}
+        ))}
       </div>
 
       {/* Teams Header */}

@@ -3,7 +3,6 @@
 import { createSafeActionClient } from 'next-safe-action'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { supabase } from '../lib/supabase'
 import { createServerSupabaseClient } from '../lib/supabase-server'
 import { 
   scoreSchema, 
@@ -26,9 +25,10 @@ export const addScore = actionClient
   .inputSchema(scoreSchema)
   .action(async ({ parsedInput: { matchId, team, scoringPlayerId, assistingPlayerId } }) => {
     try {
+      const supabaseServer = createServerSupabaseClient()
       const currentDuration = MatchService.calculateCurrentDuration({ id: matchId } as any)
       
-      const { data, error } = await supabase
+      const { data, error } = await supabaseServer
         .from('scores')
         .insert({
           match_id: matchId,
@@ -54,7 +54,8 @@ export const addPlayerToMatch = actionClient
   .inputSchema(playerSelectSchema)
   .action(async ({ parsedInput: { matchId, playerId, team, isGoalkeeper } }) => {
     try {
-      const { data, error } = await supabase
+      const supabaseServer = createServerSupabaseClient()
+      const { data, error } = await supabaseServer
         .from('match_players')
         .insert({
           match_id: matchId,
@@ -79,7 +80,8 @@ export const removePlayerFromMatch = actionClient
   .inputSchema(z.object({ matchId: z.string().uuid(), playerId: z.string().uuid() }))
   .action(async ({ parsedInput: { matchId, playerId } }) => {
     try {
-      const { error } = await supabase
+      const supabaseServer = createServerSupabaseClient()
+      const { error } = await supabaseServer
         .from('match_players')
         .delete()
         .eq('match_id', matchId)
@@ -99,7 +101,8 @@ export const updatePlayerTeam = actionClient
   .inputSchema(updatePlayerTeamSchema)
   .action(async ({ parsedInput: { matchId, playerId, newTeam } }) => {
     try {
-      const { data, error } = await supabase
+      const supabaseServer = createServerSupabaseClient()
+      const { data, error } = await supabaseServer
         .from('match_players')
         .update({ team: newTeam })
         .eq('match_id', matchId)
@@ -121,8 +124,9 @@ export const assignGoalkeeper = actionClient
   .inputSchema(assignGoalkeeperSchema)
   .action(async ({ parsedInput: { matchId, playerId, team } }) => {
     try {
+      const supabaseServer = createServerSupabaseClient()
       // First, remove any existing goalkeeper for this team
-      await supabase
+      await supabaseServer
         .from('match_players')
         .update({ is_goalkeeper: false })
         .eq('match_id', matchId)
@@ -130,7 +134,7 @@ export const assignGoalkeeper = actionClient
         .eq('is_goalkeeper', true)
 
       // Then assign the new goalkeeper
-      const { data, error } = await supabase
+      const { data, error } = await supabaseServer
         .from('match_players')
         .update({ 
           team: team,
@@ -155,20 +159,21 @@ export const controlMatch = actionClient
   .inputSchema(matchControlSchema)
   .action(async ({ parsedInput: { matchId, action, winnerTeam } }) => {
     try {
+      const supabaseServer = createServerSupabaseClient()
       let result = null
 
       switch (action) {
         case 'start':
-          result = await MatchService.startMatch(matchId)
+          result = await MatchService.startMatch(matchId, supabaseServer)
           break
         case 'pause':
-          result = await MatchService.pauseMatch(matchId)
+          result = await MatchService.pauseMatch(matchId, supabaseServer)
           break
         case 'resume':
-          result = await MatchService.resumeMatch(matchId)
+          result = await MatchService.resumeMatch(matchId, supabaseServer)
           break
         case 'end':
-          result = await MatchService.endMatch(matchId, winnerTeam)
+          result = await MatchService.endMatch(matchId, winnerTeam, supabaseServer)
           break
       }
 
@@ -186,7 +191,8 @@ export const removeGoalkeeper = actionClient
   .inputSchema(removeGoalkeeperSchema)
   .action(async ({ parsedInput: { matchId, playerId } }) => {
     try {
-      const { data, error } = await supabase
+      const supabaseServer = createServerSupabaseClient()
+      const { data, error } = await supabaseServer
         .from('match_players')
         .update({ is_goalkeeper: false })
         .eq('match_id', matchId)
@@ -209,8 +215,9 @@ export const addPlayerToField = actionClient
   .inputSchema(addPlayerToFieldSchema)
   .action(async ({ parsedInput: { matchId, playerId, team } }) => {
     try {
+      const supabaseServer = createServerSupabaseClient()
       // First check if player is already in the match
-      const { data: existingPlayer } = await supabase
+      const { data: existingPlayer } = await supabaseServer
         .from('match_players')
         .select('*')
         .eq('match_id', matchId)
@@ -219,7 +226,7 @@ export const addPlayerToField = actionClient
 
       if (existingPlayer) {
         // Player exists, just update their team and make them not a goalkeeper
-        const { data, error } = await supabase
+        const { data, error } = await supabaseServer
           .from('match_players')
           .update({ 
             team: team,
@@ -235,7 +242,7 @@ export const addPlayerToField = actionClient
         return { success: true, data }
       } else {
         // Player doesn't exist in match, add them
-        const { data, error } = await supabase
+        const { data, error } = await supabaseServer
           .from('match_players')
           .insert({
             match_id: matchId,
@@ -260,7 +267,8 @@ export const toggleVests = actionClient
   .inputSchema(vestToggleSchema)
   .action(async ({ parsedInput: { matchId, team } }) => {
     try {
-      const { data, error } = await supabase
+      const supabaseServer = createServerSupabaseClient()
+      const { data, error } = await supabaseServer
         .from('matches')
         .update({
           team_with_vests: team
@@ -390,15 +398,16 @@ export const deleteMatch = actionClient
   .inputSchema(z.object({ matchId: z.string().uuid() }))
   .action(async ({ parsedInput: { matchId } }) => {
     try {
+      const supabaseServer = createServerSupabaseClient()
       // Delete related data first (scores and match_players)
-      const { error: scoresError } = await supabase
+      const { error: scoresError } = await supabaseServer
         .from('scores')
         .delete()
         .eq('match_id', matchId)
 
       if (scoresError) throw handleSupabaseError(scoresError)
 
-      const { error: playersError } = await supabase
+      const { error: playersError } = await supabaseServer
         .from('match_players')
         .delete()
         .eq('match_id', matchId)
@@ -406,7 +415,7 @@ export const deleteMatch = actionClient
       if (playersError) throw handleSupabaseError(playersError)
 
       // Delete the match itself
-      const { error: matchError } = await supabase
+      const { error: matchError } = await supabaseServer
         .from('matches')
         .delete()
         .eq('id', matchId)
@@ -425,8 +434,9 @@ export const resetMatch = actionClient
   .inputSchema(z.object({ matchId: z.string().uuid() }))
   .action(async ({ parsedInput: { matchId } }) => {
     try {
+      const supabaseServer = createServerSupabaseClient()
       // Delete all scores for the match
-      const { error: scoresError } = await supabase
+      const { error: scoresError } = await supabaseServer
         .from('scores')
         .delete()
         .eq('match_id', matchId)
@@ -434,7 +444,7 @@ export const resetMatch = actionClient
       if (scoresError) throw handleSupabaseError(scoresError)
 
       // Reset the match start time to now and set to paused
-      const { error: matchError } = await supabase
+      const { error: matchError } = await supabaseServer
         .from('matches')
         .update({ 
           start_time: new Date().toISOString(),
