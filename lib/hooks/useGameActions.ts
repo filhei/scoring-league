@@ -546,17 +546,8 @@ export function useGameActions(
         // Check for goalkeeper unassignment
         if (currentGoalkeeper && !newPlayerIds.has(currentGoalkeeper.id)) {
           console.log(`Removing goalkeeper ${currentGoalkeeper.name} from team ${team}`)
-          const removeResult = await removeGoalkeeper({
-            matchId: gameState.currentGameContext.matchId,
-            playerId: currentGoalkeeper.id
-          })
           
-          if (removeResult.validationErrors || removeResult.serverError) {
-            showSnackbar('Failed to remove goalkeeper')
-            return
-          }
-          
-          // Update local state to remove goalkeeper
+          // Update local state immediately to remove goalkeeper
           gameState.setCurrentGameContext({
             type: 'planned',
             gameData: {
@@ -568,6 +559,47 @@ export function useGameActions(
             },
             matchId: gameState.currentGameContext.matchId
           })
+          
+          // Perform database operation asynchronously
+          removeGoalkeeper({
+            matchId: gameState.currentGameContext!.matchId,
+            playerId: currentGoalkeeper.id
+          }).then(removeResult => {
+            if (removeResult.validationErrors || removeResult.serverError) {
+              showSnackbar('Failed to remove goalkeeper')
+              // Revert local state on error
+              if (gameState.currentGameContext) {
+                gameState.setCurrentGameContext({
+                  type: 'planned',
+                  gameData: {
+                    ...gameState.currentGameContext.gameData,
+                    goalkeepers: {
+                      ...gameState.currentGameContext.gameData.goalkeepers,
+                      [team === 'A' ? 'teamA' : 'teamB']: currentGoalkeeper
+                    }
+                  },
+                  matchId: gameState.currentGameContext.matchId
+                })
+              }
+            }
+          }).catch(error => {
+            console.error('Error removing goalkeeper:', error)
+            showSnackbar('Failed to remove goalkeeper')
+            // Revert local state on error
+            if (gameState.currentGameContext) {
+              gameState.setCurrentGameContext({
+                type: 'planned',
+                gameData: {
+                  ...gameState.currentGameContext.gameData,
+                  goalkeepers: {
+                    ...gameState.currentGameContext.gameData.goalkeepers,
+                    [team === 'A' ? 'teamA' : 'teamB']: currentGoalkeeper
+                  }
+                },
+                matchId: gameState.currentGameContext.matchId
+              })
+            }
+          })
         }
         
         // Handle cross-team player movement
@@ -575,19 +607,7 @@ export function useGameActions(
         for (const player of playersFromOtherTeam) {
           console.log(`Moving player ${player.name} from other team to team ${team}`)
           
-          // Update team for player (they're already in the match, just need team update)
-          const updateResult = await updatePlayerTeam({
-            matchId: gameState.currentGameContext.matchId,
-            playerId: player.id,
-            newTeam: team
-          })
-          
-          if (updateResult.validationErrors || updateResult.serverError) {
-            showSnackbar(`Failed to move player ${player.name}`)
-            return
-          }
-          
-          // Update local state to remove from other team
+          // Update local state immediately to remove from other team
           if (team === 'A') {
             const newTeamB = gameState.localTeamB.filter(p => p.id !== player.id)
             gameState.setLocalTeamB(newTeamB)
@@ -611,6 +631,22 @@ export function useGameActions(
               matchId: gameState.currentGameContext.matchId
             })
           }
+          
+          // Update team for player in database asynchronously
+          updatePlayerTeam({
+            matchId: gameState.currentGameContext.matchId,
+            playerId: player.id,
+            newTeam: team
+          }).then(updateResult => {
+            if (updateResult.validationErrors || updateResult.serverError) {
+              showSnackbar(`Failed to move player ${player.name}`)
+              // Note: We could revert the state here, but since the target team update
+              // will handle the final state, we'll let that handle any inconsistencies
+            }
+          }).catch(error => {
+            console.error(`Error moving player ${player.name}:`, error)
+            showSnackbar(`Failed to move player ${player.name}`)
+          })
         }
         
         // Update the target team

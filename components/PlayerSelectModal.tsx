@@ -239,7 +239,7 @@ function MultiPlayerSelectModal({
                 {/* Player name */}
                 <div className={`font-medium transition-colors duration-300 ${
                   isSelected
-                    ? 'text-white'
+                    ? isDarkMode ? 'text-white' : 'text-gray-800'
                     : isDarkMode ? 'text-white' : 'text-gray-800'
                 }`}>
                   {player.name}
@@ -295,20 +295,15 @@ function MultiPlayerSelectModal({
             
             <button
               onClick={handleConfirm}
-              disabled={selectedPlayers.size === 0}
-              className="px-6 py-2 rounded-full font-medium transition-all duration-300 hover:scale-105 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 rounded-full font-medium transition-all duration-300 hover:scale-105 text-white"
               style={{
-                backgroundColor: selectedPlayers.size > 0 ? 'var(--accent-blue)' : '#6b7280'
+                backgroundColor: 'var(--accent-blue)'
               }}
               onMouseEnter={(e) => {
-                if (selectedPlayers.size > 0) {
-                  e.currentTarget.style.backgroundColor = 'var(--accent-blue-hover)'
-                }
+                e.currentTarget.style.backgroundColor = 'var(--accent-blue-hover)'
               }}
               onMouseLeave={(e) => {
-                if (selectedPlayers.size > 0) {
-                  e.currentTarget.style.backgroundColor = 'var(--accent-blue)'
-                }
+                e.currentTarget.style.backgroundColor = 'var(--accent-blue)'
               }}
             >
               OK
