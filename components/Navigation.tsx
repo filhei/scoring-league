@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { DarkModeToggle } from './DarkModeToggle'
+import { ProfileDropdown } from './ProfileDropdown'
 
 interface NavigationProps {
   isDarkMode: boolean
@@ -50,7 +51,10 @@ export function Navigation({ isDarkMode, onToggleDarkMode }: NavigationProps) {
             </Link>
           </nav>
         </div>
-        <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />
+        <div className="flex items-center space-x-3">
+          <DarkModeToggle isDarkMode={isDarkMode} onToggle={onToggleDarkMode} />
+          <ProfileDropdown />
+        </div>
       </div>
     </div>
   )
