@@ -1,7 +1,9 @@
 import type { Database } from '../supabase/database.types'
 
 // Re-export database types for convenience
-export type Match = Database['public']['Tables']['matches']['Row']
+export type Match = Database['public']['Tables']['matches']['Row'] & {
+  gameCount?: number // Optional game count for display purposes
+}
 export type Player = Database['public']['Tables']['players']['Row']
 export type MatchPlayer = Database['public']['Tables']['match_players']['Row']
 export type Score = Database['public']['Tables']['scores']['Row']
@@ -51,4 +53,5 @@ export interface SnackbarState {
 export interface PlayerSelectState {
   team: 'A' | 'B' | null
   isGoalkeeper: boolean
+  isMultiSelect?: boolean // New field for planned games
 } 

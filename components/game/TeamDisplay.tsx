@@ -19,6 +19,7 @@ interface TeamDisplayProps {
   onDragEnd: (e: React.DragEvent) => void
   onAddPlayer: (team: 'A' | 'B', isGoalkeeper?: boolean) => void
   onRemovePlayer: (player: Player) => void
+  matchStatus?: string // Add match status to determine if it's planned
 }
 
 export function TeamDisplay({
@@ -34,7 +35,8 @@ export function TeamDisplay({
   onDragStart,
   onDragEnd,
   onAddPlayer,
-  onRemovePlayer
+  onRemovePlayer,
+  matchStatus
 }: TeamDisplayProps) {
   const isDragging = !!dragState
 
@@ -157,7 +159,7 @@ export function TeamDisplay({
           e.currentTarget.style.color = isDarkMode ? '#9ca3af' : '#6b7280'
         }}
       >
-        + Add Player
+        + {matchStatus === 'planned' ? 'Add Players' : 'Add Player'}
       </button>
     </div>
   )

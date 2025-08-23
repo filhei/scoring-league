@@ -119,7 +119,7 @@ export function useGameState(): GameState {
     }
     
     if (activeGame) {
-      console.log(`ActiveGame effect: Updating context to game ${activeGame.match.id.slice(0, 8)}... (${activeGame.match.match_status})`)
+      console.log(`ActiveGame effect: Updating context to game ${activeGame.match.gameCount || 'N/A'}... (${activeGame.match.match_status})`)
       setCurrentGameContext({
         type: activeGame.match.match_status === 'active' || activeGame.match.match_status === 'paused' ? 'active' : 'planned',
         gameData: activeGame,

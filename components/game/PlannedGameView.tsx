@@ -58,7 +58,11 @@ export function PlannedGameView({
         availablePlayers={actions.availablePlayersForSelection}
         isDarkMode={isDarkMode}
         onPlayerSelect={actions.handlePlayerSelect}
+        onMultiPlayerSelect={actions.handleMultiPlayerSelect}
         onClose={actions.handleClosePlayerSelect}
+        currentTeamA={currentTeamData.teamA}
+        currentTeamB={currentTeamData.teamB}
+        goalkeepers={gameData.goalkeepers}
       />
 
       {/* Goal Dialog */}

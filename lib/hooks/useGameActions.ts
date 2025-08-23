@@ -37,6 +37,7 @@ export interface GameActions {
   handleVestToggle: (team: 'A' | 'B') => Promise<void>
   handleAddPlayer: (team: 'A' | 'B', isGoalkeeper?: boolean) => void
   handlePlayerSelect: (player: Player, team: 'A' | 'B') => Promise<void>
+  handleMultiPlayerSelect: (players: Player[], team: 'A' | 'B') => Promise<void>
   handleClosePlayerSelect: () => void
   handleSelectPlannedGame: (game: Match) => Promise<void>
   handleStartPlannedGame: () => Promise<void>
@@ -408,7 +409,12 @@ export function useGameActions(
   }
 
   const handleAddPlayer = (team: 'A' | 'B', isGoalkeeper: boolean = false) => {
-    setShowPlayerSelect({ team, isGoalkeeper })
+    // For planned games, use multi-selection mode
+    if (gameState.currentGameContext?.type === 'planned' && !isGoalkeeper) {
+      setShowPlayerSelect({ team, isGoalkeeper, isMultiSelect: true })
+    } else {
+      setShowPlayerSelect({ team, isGoalkeeper, isMultiSelect: false })
+    }
   }
 
   const handlePlayerSelect = async (player: Player, team: 'A' | 'B') => {
@@ -520,6 +526,170 @@ export function useGameActions(
     }
   }
 
+  const handleMultiPlayerSelect = async (players: Player[], team: 'A' | 'B') => {
+    if (!ensureCorrectMatch('Multi-player select')) return
+
+    console.log(`Multi-player select: Team ${team}, ${players.length} players selected:`, players.map(p => p.name))
+
+    try {
+      if (gameState.currentGameContext?.type === 'planned') {
+        // Get current state
+        const currentTeam = team === 'A' ? gameState.currentGameContext.gameData.teamA : gameState.currentGameContext.gameData.teamB
+        const currentGoalkeeper = team === 'A' ? gameState.currentGameContext.gameData.goalkeepers.teamA : gameState.currentGameContext.gameData.goalkeepers.teamB
+        const otherTeam = team === 'A' ? gameState.currentGameContext.gameData.teamB : gameState.currentGameContext.gameData.teamA
+        
+        // Create sets for comparison
+        const currentPlayerIds = new Set(currentTeam.map(p => p.id))
+        const newPlayerIds = new Set(players.map(p => p.id))
+        const otherTeamIds = new Set(otherTeam.map(p => p.id))
+        
+        // Check for goalkeeper unassignment
+        if (currentGoalkeeper && !newPlayerIds.has(currentGoalkeeper.id)) {
+          console.log(`Removing goalkeeper ${currentGoalkeeper.name} from team ${team}`)
+          const removeResult = await removeGoalkeeper({
+            matchId: gameState.currentGameContext.matchId,
+            playerId: currentGoalkeeper.id
+          })
+          
+          if (removeResult.validationErrors || removeResult.serverError) {
+            showSnackbar('Failed to remove goalkeeper')
+            return
+          }
+          
+          // Update local state to remove goalkeeper
+          gameState.setCurrentGameContext({
+            type: 'planned',
+            gameData: {
+              ...gameState.currentGameContext.gameData,
+              goalkeepers: {
+                ...gameState.currentGameContext.gameData.goalkeepers,
+                [team === 'A' ? 'teamA' : 'teamB']: null
+              }
+            },
+            matchId: gameState.currentGameContext.matchId
+          })
+        }
+        
+        // Handle cross-team player movement
+        const playersFromOtherTeam = players.filter(p => otherTeamIds.has(p.id))
+        for (const player of playersFromOtherTeam) {
+          console.log(`Moving player ${player.name} from other team to team ${team}`)
+          
+          // Update team for player (they're already in the match, just need team update)
+          const updateResult = await updatePlayerTeam({
+            matchId: gameState.currentGameContext.matchId,
+            playerId: player.id,
+            newTeam: team
+          })
+          
+          if (updateResult.validationErrors || updateResult.serverError) {
+            showSnackbar(`Failed to move player ${player.name}`)
+            return
+          }
+          
+          // Update local state to remove from other team
+          if (team === 'A') {
+            const newTeamB = gameState.localTeamB.filter(p => p.id !== player.id)
+            gameState.setLocalTeamB(newTeamB)
+            gameState.setCurrentGameContext({
+              type: 'planned',
+              gameData: {
+                ...gameState.currentGameContext.gameData,
+                teamB: newTeamB
+              },
+              matchId: gameState.currentGameContext.matchId
+            })
+          } else {
+            const newTeamA = gameState.localTeamA.filter(p => p.id !== player.id)
+            gameState.setLocalTeamA(newTeamA)
+            gameState.setCurrentGameContext({
+              type: 'planned',
+              gameData: {
+                ...gameState.currentGameContext.gameData,
+                teamA: newTeamA
+              },
+              matchId: gameState.currentGameContext.matchId
+            })
+          }
+        }
+        
+        // Update the target team
+        if (team === 'A') {
+          gameState.setLocalTeamA(players)
+          gameState.setCurrentGameContext({
+            type: 'planned',
+            gameData: {
+              ...gameState.currentGameContext.gameData,
+              teamA: players
+            },
+            matchId: gameState.currentGameContext.matchId
+          })
+        } else {
+          gameState.setLocalTeamB(players)
+          gameState.setCurrentGameContext({
+            type: 'planned',
+            gameData: {
+              ...gameState.currentGameContext.gameData,
+              teamB: players
+            },
+            matchId: gameState.currentGameContext.matchId
+          })
+        }
+        
+        // Handle database operations for the target team
+        // Remove players that are no longer in the team
+        for (const playerId of currentPlayerIds) {
+          if (!newPlayerIds.has(playerId)) {
+            console.log(`Removing player ${playerId} from team ${team}`)
+            await removePlayerFromMatch({
+              matchId: gameState.currentGameContext.matchId,
+              playerId
+            })
+          }
+        }
+        
+        // Add players that are newly added to the team (excluding those moved from other team)
+        const newlyAddedPlayers = players.filter(p => !currentPlayerIds.has(p.id) && !otherTeamIds.has(p.id))
+        for (const player of newlyAddedPlayers) {
+          console.log(`Adding player ${player.name} to team ${team}`)
+          const result = await addPlayerToMatch({
+            matchId: gameState.currentGameContext.matchId,
+            playerId: player.id,
+            team,
+            isGoalkeeper: false
+          })
+          
+          if (result.validationErrors || result.serverError) {
+            showSnackbar('Failed to add some players')
+            return
+          }
+        }
+        
+
+      }
+
+      setShowPlayerSelect({ team: null, isGoalkeeper: false })
+      
+      if (gameState.currentGameContext?.type !== 'planned') {
+        gameState.refreshGameData()
+      }
+    } catch (error) {
+      console.error('Error updating team players:', error)
+      showSnackbar('Failed to update team players')
+      
+      if (gameState.currentGameContext?.type === 'planned') {
+        const revertedGameData = await convertPlannedGameToActiveGameData(gameState.currentGameContext.gameData.match)
+        gameState.setCurrentGameContext({
+          type: 'planned',
+          gameData: revertedGameData,
+          matchId: gameState.currentGameContext.matchId
+        })
+        gameState.setLocalTeamA([...revertedGameData.teamA])
+        gameState.setLocalTeamB([...revertedGameData.teamB])
+      }
+    }
+  }
+
   const handleRemovePlayer = async (player: Player) => {
     if (!ensureCorrectMatch('Remove player')) return
 
@@ -598,18 +768,14 @@ export function useGameActions(
       showSnackbar('Failed to remove player')
       
       if (gameState.currentGameContext?.type === 'planned') {
-        try {
-          const revertedGameData = await convertPlannedGameToActiveGameData(gameState.currentGameContext.gameData.match)
-          gameState.setCurrentGameContext({
-            type: 'planned',
-            gameData: revertedGameData,
-            matchId: gameState.currentGameContext.matchId
-          })
-          gameState.setLocalTeamA([...revertedGameData.teamA])
-          gameState.setLocalTeamB([...revertedGameData.teamB])
-        } catch (revertError) {
-          console.error('Error reverting state:', revertError)
-        }
+        const revertedGameData = await convertPlannedGameToActiveGameData(gameState.currentGameContext.gameData.match)
+        gameState.setCurrentGameContext({
+          type: 'planned',
+          gameData: revertedGameData,
+          matchId: gameState.currentGameContext.matchId
+        })
+        gameState.setLocalTeamA([...revertedGameData.teamA])
+        gameState.setLocalTeamB([...revertedGameData.teamB])
       }
     }
   }
@@ -944,7 +1110,7 @@ export function useGameActions(
   const handleStartPlannedGame = async () => {
     if (!ensureCorrectMatch('Start planned game')) return
 
-    console.log(`Starting planned game ${gameState.currentGameContext!.matchId.slice(0, 8)}...`)
+    console.log(`Starting planned game ${gameState.currentGameContext!.gameData.match.gameCount || 'N/A'}...`)
 
     gameState.setIsStartingGame(true)
     gameState.setStartingGameId(gameState.currentGameContext!.matchId)
@@ -993,7 +1159,7 @@ export function useGameActions(
 
   const handleSelectGame = async (game: Match) => {
     try {
-      console.log(`Selecting game: ${game.id.slice(0, 8)}... (${game.match_status})`)
+      console.log(`Selecting game: ${game.gameCount || 'N/A'} (${game.match_status})`)
       gameState.setUserRequestedMatchesList(false)
       
       if (gameState.isEndingGame) {
@@ -1007,7 +1173,7 @@ export function useGameActions(
       
       const contextType = (game.match_status === 'active' || game.match_status === 'paused') ? 'active' : 'planned'
       
-      console.log(`Setting game context to ${contextType} for game ${game.id.slice(0, 8)}...`)
+      console.log(`Setting game context to ${contextType} for game ${game.gameCount || 'N/A'}...`)
       
       gameState.setCurrentGameContext({
         type: contextType,
@@ -1055,7 +1221,9 @@ export function useGameActions(
 
   // Get available players for selection
   const availablePlayersForSelection = gameState.currentGameContext 
-    ? getAvailablePlayersForSelection(gameState.availablePlayers, gameState.currentGameContext.gameData.teamA, gameState.currentGameContext.gameData.teamB, gameState.currentGameContext.gameData.goalkeepers)
+    ? (gameState.currentGameContext.type === 'planned' && showPlayerSelect.isMultiSelect)
+      ? gameState.availablePlayers // For planned games with multi-selection, show all players
+      : getAvailablePlayersForSelection(gameState.availablePlayers, gameState.currentGameContext.gameData.teamA, gameState.currentGameContext.gameData.teamB, gameState.currentGameContext.gameData.goalkeepers)
     : gameState.availablePlayers
 
   return {
@@ -1077,6 +1245,7 @@ export function useGameActions(
     handleVestToggle,
     handleAddPlayer,
     handlePlayerSelect,
+    handleMultiPlayerSelect,
     handleClosePlayerSelect,
     handleSelectPlannedGame,
     handleStartPlannedGame,

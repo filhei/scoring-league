@@ -49,8 +49,8 @@ export function ActiveGame({
 
   // Debug log to track game display
   React.useEffect(() => {
-    console.log(`ActiveGame: Displaying game ${activeGame.match.id.slice(0, 8)}... (${matchStatus}) with ${activeGame.teamA.length + activeGame.teamB.length} players`)
-  }, [activeGame.match.id, matchStatus, activeGame.teamA.length, activeGame.teamB.length])
+    console.log(`ActiveGame: Displaying game ${activeGame.match.gameCount || 'N/A'} (${matchStatus}) with ${activeGame.teamA.length + activeGame.teamB.length} players`)
+  }, [activeGame.match.gameCount, matchStatus, activeGame.teamA.length, activeGame.teamB.length])
 
   // Use the drag and drop hook
   const {
@@ -117,7 +117,7 @@ export function ActiveGame({
           }`}>
             {matchStatus === 'planned' ? 'Planned Game' : 'Active Game'}
             <span className="text-sm font-normal ml-2 opacity-60">
-              (ID: {activeGame.match.id.slice(0, 8)}...)
+              (Game {activeGame.match.gameCount || 'N/A'})
             </span>
           </h2>
           {onDeleteGame && (
@@ -164,6 +164,7 @@ export function ActiveGame({
             onDragEnd={handleDragEnd}
             onAddPlayer={onAddPlayer}
             onRemovePlayer={onRemovePlayer}
+            matchStatus={matchStatus}
           />
 
           {/* Right Team */}
@@ -181,6 +182,7 @@ export function ActiveGame({
             onDragEnd={handleDragEnd}
             onAddPlayer={onAddPlayer}
             onRemovePlayer={onRemovePlayer}
+            matchStatus={matchStatus}
           />
         </div>
       </div>

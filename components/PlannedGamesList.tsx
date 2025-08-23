@@ -39,7 +39,7 @@ export function PlannedGamesList({ plannedGames, isDarkMode, onSelectGame }: Pla
                   <div className={`font-semibold transition-colors duration-300 ${
                     isDarkMode ? 'text-white' : 'text-gray-900'
                   }`}>
-                    Game #{game.id.slice(0, 8)}
+                    Game {game.gameCount || 'N/A'}
                   </div>
                   <div className={`text-sm transition-colors duration-300 ${
                     isDarkMode ? 'text-gray-400' : 'text-gray-600'

@@ -28,6 +28,19 @@ async function fetchActiveGame(): Promise<ActiveGameData | null> {
 
   if (!match) return null
 
+  // Calculate game count by finding position in all matches (chronological order)
+  const { data: allMatches, error: countError } = await supabase
+    .from('matches')
+    .select('id, created_at')
+    .order('created_at', { ascending: true })
+
+  if (countError) throw countError
+
+  const gameCount = allMatches?.findIndex(m => m.id === match.id) + 1 || 1
+
+  // Add game count to match
+  const matchWithCount = { ...match, gameCount }
+
   // Get match players
   const { data: matchPlayers, error: playersError } = await supabase
     .from('match_players')
@@ -64,7 +77,7 @@ async function fetchActiveGame(): Promise<ActiveGameData | null> {
     }
 
     return {
-      match,
+      match: matchWithCount,
       teamA,
       teamB,
       scores: scores || [],
@@ -76,14 +89,36 @@ async function fetchActiveGame(): Promise<ActiveGameData | null> {
 }
 
 async function fetchAllGames(): Promise<Match[]> {
+  // First, get all matches to calculate the correct game count
+  const { data: allMatches, error: allMatchesError } = await supabase
+    .from('matches')
+    .select('id, created_at')
+    .order('created_at', { ascending: true })
+
+  if (allMatchesError) throw allMatchesError
+
+  // Create a map of match ID to game count
+  const gameCountMap = new Map<string, number>()
+  allMatches?.forEach((match, index) => {
+    gameCountMap.set(match.id, index + 1)
+  })
+
+  // Now get the filtered matches (planned, active, paused)
   const { data: matches, error } = await supabase
     .from('matches')
     .select('*')
     .in('match_status', ['planned', 'active', 'paused'])
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: true })
 
   if (error) throw error
-  return matches || []
+  
+  // Add game count to each match using the map
+  const matchesWithCount = (matches || []).map((match) => ({
+    ...match,
+    gameCount: gameCountMap.get(match.id) || 1
+  }))
+  
+  return matchesWithCount
 }
 
 async function fetchGameById(gameId: string): Promise<ActiveGameData | null> {
@@ -101,6 +136,19 @@ async function fetchGameById(gameId: string): Promise<ActiveGameData | null> {
 
   if (!match) return null
 
+  // Calculate game count by finding position in all matches (chronological order)
+  const { data: allMatches, error: countError } = await supabase
+    .from('matches')
+    .select('id, created_at')
+    .order('created_at', { ascending: true })
+
+  if (countError) throw countError
+
+  const gameCount = allMatches?.findIndex(m => m.id === match.id) + 1 || 1
+
+  // Add game count to match
+  const matchWithCount = { ...match, gameCount }
+
   // Get match players
   const { data: matchPlayers, error: playersError } = await supabase
     .from('match_players')
@@ -137,7 +185,7 @@ async function fetchGameById(gameId: string): Promise<ActiveGameData | null> {
     }
 
     return {
-      match,
+      match: matchWithCount,
       teamA,
       teamB,
       scores: scores || [],

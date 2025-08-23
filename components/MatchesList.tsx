@@ -16,8 +16,8 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
   const plannedGames = allGames.filter(game => game.match_status === 'planned')
   const activeGames = allGames.filter(game => game.match_status === 'active' || game.match_status === 'paused')
   
-  // Show all games (active and planned)
-  const allGamesToShow = [...activeGames, ...plannedGames]
+  // Show all games (active and planned) in reverse order (newest first) while keeping the count
+  const allGamesToShow = [...activeGames, ...plannedGames].reverse()
 
   // Debug logging
   console.log('MatchesList:', {
@@ -26,7 +26,7 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
     activeGames: activeGames.length,
     activeGameId: activeGame?.match.id,
     gamesToShow: allGamesToShow.length,
-    gamesToShowIds: allGamesToShow.map(g => `${g.id.slice(0, 8)}... (${g.match_status})`)
+    gamesToShowIds: allGamesToShow.map(g => `Game ${g.gameCount || 'N/A'} (${g.match_status})`)
   })
 
   if (allGamesToShow.length === 0) {
@@ -73,7 +73,7 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto p-6">
       <div className={`rounded-2xl p-6 transition-colors duration-300 ${
         isDarkMode
           ? 'bg-gray-800 border border-gray-700'
@@ -103,23 +103,18 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
           {allGamesToShow.map((game) => {
             const isActive = game.match_status === 'active' || game.match_status === 'paused'
             const isPlanned = game.match_status === 'planned'
-            const isCurrentActiveGame = activeGame && game.id === activeGame.match.id
             
             return (
               <button
                 key={game.id}
                 onClick={() => {
-                  console.log(`MatchesList: Clicked on game ${game.id.slice(0, 8)}... (${game.match_status})`)
+                  console.log(`MatchesList: Clicked on game ${game.gameCount || 'N/A'} (${game.match_status})`)
                   onSelectGame(game)
                 }}
                 className={`w-full p-4 rounded-xl text-left transition-all duration-200 hover:scale-[1.02] ${
-                  isCurrentActiveGame
-                    ? isDarkMode
-                      ? 'bg-blue-700 hover:bg-blue-600 border-2 border-blue-500'
-                      : 'bg-blue-50 hover:bg-blue-100 border-2 border-blue-500'
-                    : isDarkMode
-                      ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600'
-                      : 'bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
+                  isDarkMode
+                    ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600'
+                    : 'bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <div className="flex justify-between items-center">
@@ -127,7 +122,7 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
                     <div className={`font-semibold transition-colors duration-300 ${
                       isDarkMode ? 'text-white' : 'text-gray-900'
                     }`}>
-                      Game #{game.id.slice(0, 8)}
+                      Game {game.gameCount || 'N/A'}
                     </div>
                     <div className={`text-sm transition-colors duration-300 ${
                       isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -140,9 +135,7 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
                   </div>
                   <div className={`px-3 py-1 rounded-full text-xs font-medium ${
                     isActive
-                      ? isDarkMode
-                        ? 'bg-green-900 text-green-200'
-                        : 'bg-green-100 text-green-800'
+                      ? 'bg-[var(--color-goal)] text-white'
                       : isDarkMode
                         ? 'bg-gray-700 text-gray-300'
                         : 'bg-gray-100 text-gray-800'

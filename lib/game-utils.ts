@@ -13,7 +13,7 @@ export const getPlayerStats = (playerId: string, scores: Score[]): { goals: numb
 /**
  * Format player stats for display
  */
-export const formatPlayerStats = (stats: PlayerStats): string => {
+export const formatPlayerStats = (stats: { goals: number; assists: number }): string => {
   if (stats.goals === 0 && stats.assists === 0) return ''
   return `(${stats.goals} + ${stats.assists})`
 }
