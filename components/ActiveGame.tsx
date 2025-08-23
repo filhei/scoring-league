@@ -23,6 +23,7 @@ interface ActiveGameProps {
   onSwitchPlayerTeam: (player: Player, newTeam: 'A' | 'B', newIndex?: number) => void
   onVestToggle: (team: 'A' | 'B') => void
   onDeleteGame?: () => void
+  onResetGame?: () => void
 }
 
 export function ActiveGame({
@@ -43,7 +44,8 @@ export function ActiveGame({
   onRemovePlayer,
   onSwitchPlayerTeam,
   onVestToggle,
-  onDeleteGame
+  onDeleteGame,
+  onResetGame
 }: ActiveGameProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -120,10 +122,12 @@ export function ActiveGame({
               (Game {activeGame.match.gameCount || 'N/A'})
             </span>
           </h2>
-          {onDeleteGame && (
+          {(onDeleteGame || onResetGame) && (
             <GameSettingsDropdown
               isDarkMode={isDarkMode}
               onDeleteGame={onDeleteGame}
+              onResetGame={onResetGame}
+              matchStatus={matchStatus || activeGame.match.match_status}
             />
           )}
         </div>

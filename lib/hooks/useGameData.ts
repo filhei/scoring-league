@@ -233,10 +233,13 @@ export function useGameData(targetGameId?: string) {
   const refreshGameData = () => {
     if (targetGameId) {
       queryClient.invalidateQueries({ queryKey: ['game', targetGameId] })
+      queryClient.refetchQueries({ queryKey: ['game', targetGameId] })
     } else {
       queryClient.invalidateQueries({ queryKey: ['activeGame'] })
+      queryClient.refetchQueries({ queryKey: ['activeGame'] })
     }
     queryClient.invalidateQueries({ queryKey: ['allGames'] })
+    queryClient.refetchQueries({ queryKey: ['allGames'] })
   }
 
   return {

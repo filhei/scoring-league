@@ -12,7 +12,8 @@ import {
   toggleVests,
   controlMatch,
   createMatch,
-  deleteMatch
+  deleteMatch,
+  resetMatch
 } from '@/app/actions'
 import { getAvailablePlayersForSelection, convertPlannedGameToActiveGameData } from '../game-utils'
 import type { GoalDialogState, PlayerSelectState, Player, Match, ActiveGameData } from '../types'
@@ -33,6 +34,7 @@ export interface GameActions {
   handleEndMatch: () => Promise<void>
   handleEndMatchAndCreateNew: () => Promise<void>
   handleDeleteGame: () => Promise<void>
+  handleResetGame: () => Promise<void>
   handleSwapSides: () => void
   handleVestToggle: (team: 'A' | 'B') => Promise<void>
   handleAddPlayer: (team: 'A' | 'B', isGoalkeeper?: boolean) => void
@@ -330,6 +332,47 @@ export function useGameActions(
     } catch (error) {
       console.error('Error deleting game:', error)
       showSnackbar('Failed to delete game')
+    }
+  }
+
+  const handleResetGame = async () => {
+    if (!ensureCorrectMatch('Reset game')) return
+
+    try {
+      const result = await resetMatch({
+        matchId: gameState.currentGameContext!.matchId
+      })
+
+      if (result.validationErrors || result.serverError) {
+        showSnackbar('Failed to reset game')
+        return
+      }
+
+      showSnackbar('Game reset successfully')
+      
+      // Immediately update the current game context with reset match data
+      if (gameState.currentGameContext) {
+        const resetMatch = {
+          ...gameState.currentGameContext.gameData.match,
+          start_time: new Date().toISOString(),
+          match_status: 'paused'
+        }
+        
+        gameState.setCurrentGameContext({
+          ...gameState.currentGameContext,
+          gameData: {
+            ...gameState.currentGameContext.gameData,
+            match: resetMatch,
+            scores: [] // Clear scores
+          }
+        })
+      }
+      
+      // Force immediate refetch of game data to get updated timer
+      gameState.refreshGameData()
+    } catch (error) {
+      console.error('Error resetting game:', error)
+      showSnackbar('Failed to reset game')
     }
   }
 
@@ -1277,6 +1320,7 @@ export function useGameActions(
     handleEndMatch,
     handleEndMatchAndCreateNew,
     handleDeleteGame,
+    handleResetGame,
     handleSwapSides,
     handleVestToggle,
     handleAddPlayer,

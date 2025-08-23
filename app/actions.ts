@@ -394,3 +394,36 @@ export const deleteMatch = actionClient
       return { success: false, error: appError.message }
     }
   }) 
+
+export const resetMatch = actionClient
+  .inputSchema(z.object({ matchId: z.string().uuid() }))
+  .action(async ({ parsedInput: { matchId } }) => {
+    try {
+      // Delete all scores for the match
+      const { error: scoresError } = await supabase
+        .from('scores')
+        .delete()
+        .eq('match_id', matchId)
+
+      if (scoresError) throw handleSupabaseError(scoresError)
+
+      // Reset the match start time to now and set to paused
+      const { error: matchError } = await supabase
+        .from('matches')
+        .update({ 
+          start_time: new Date().toISOString(),
+          match_status: 'paused',
+          duration: null,
+          pause_duration: null
+        })
+        .eq('id', matchId)
+
+      if (matchError) throw handleSupabaseError(matchError)
+
+      revalidatePath('/')
+      return { success: true, data: { reset: true } }
+    } catch (error) {
+      const appError = error instanceof Error ? error : handleSupabaseError(error)
+      return { success: false, error: appError.message }
+    }
+  }) 

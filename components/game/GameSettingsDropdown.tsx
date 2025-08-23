@@ -2,12 +2,15 @@ import React, { useState, useRef, useEffect } from 'react'
 
 interface GameSettingsDropdownProps {
   isDarkMode: boolean
-  onDeleteGame: () => void
+  onDeleteGame?: () => void
+  onResetGame?: () => void
+  matchStatus?: string
 }
 
-export function GameSettingsDropdown({ isDarkMode, onDeleteGame }: GameSettingsDropdownProps) {
+export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, matchStatus }: GameSettingsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [showResetConfirmation, setShowResetConfirmation] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Close dropdown when clicking outside
@@ -34,6 +37,20 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame }: GameSettingsD
 
   const handleCancelDelete = () => {
     setShowDeleteConfirmation(false)
+  }
+
+  const handleResetClick = () => {
+    setIsOpen(false)
+    setShowResetConfirmation(true)
+  }
+
+  const handleConfirmReset = () => {
+    setShowResetConfirmation(false)
+    onResetGame()
+  }
+
+  const handleCancelReset = () => {
+    setShowResetConfirmation(false)
   }
 
   return (
@@ -70,20 +87,83 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame }: GameSettingsD
               : 'bg-white border-gray-200'
           }`}>
             <div className="py-1">
-              <button
-                onClick={handleDeleteClick}
-                className={`w-full px-4 py-2 text-left text-sm transition-colors duration-200 ${
-                  isDarkMode
-                    ? 'text-red-400 hover:bg-gray-700 hover:text-red-300'
-                    : 'text-red-600 hover:bg-gray-50 hover:text-red-700'
-                }`}
-              >
-                Delete Game
-              </button>
+              {onResetGame && matchStatus !== 'planned' && (
+                <button
+                  onClick={handleResetClick}
+                  className={`w-full px-4 py-2 text-left text-sm transition-colors duration-200 ${
+                    isDarkMode
+                      ? 'text-yellow-400 hover:bg-gray-700 hover:text-yellow-300'
+                      : 'text-yellow-600 hover:bg-gray-50 hover:text-yellow-700'
+                  }`}
+                >
+                  Reset Game
+                </button>
+              )}
+              {onDeleteGame && (
+                <button
+                  onClick={handleDeleteClick}
+                  className={`w-full px-4 py-2 text-left text-sm transition-colors duration-200 ${
+                    isDarkMode
+                      ? 'text-red-400 hover:bg-gray-700 hover:text-red-300'
+                      : 'text-red-600 hover:bg-gray-50 hover:text-red-700'
+                  }`}
+                >
+                  Delete Game
+                </button>
+              )}
             </div>
           </div>
         )}
       </div>
+
+      {/* Reset Confirmation Dialog */}
+      {showResetConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`rounded-2xl p-6 max-w-md w-full mx-4 ${
+            isDarkMode
+              ? 'bg-gray-800 border border-gray-700'
+              : 'bg-white border border-gray-200'
+          }`}>
+            <h3 className={`text-xl font-bold mb-4 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
+              Reset Game?
+            </h3>
+                         <p className={`mb-6 ${
+               isDarkMode ? 'text-gray-300' : 'text-gray-600'
+             }`}>
+               This will reset the timer to zero and remove all goals, but keep the teams. The game will be paused. This action cannot be undone.
+             </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={handleCancelReset}
+                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  isDarkMode
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmReset}
+                className="flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 text-white"
+                style={{
+                  backgroundColor: 'var(--accent-blue)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--accent-blue-hover)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--accent-blue)'
+                }}
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirmation && (

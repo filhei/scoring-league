@@ -128,18 +128,19 @@ export function GoalDialog({
           </div>
         </div>
 
-        {/* Separator */}
-        <div className={`border-t transition-colors duration-300 ${
-          isDarkMode ? 'border-gray-700' : 'border-gray-300'
-        }`}></div>
-
         {/* Player List */}
         <div className="flex-1 overflow-hidden min-h-0 mt-4">
           <div className="max-h-80 overflow-y-auto space-y-0 pr-1">
             {/* Scoring Team Players */}
             {goalDialog.team && (
               <>
-                {(goalDialog.team === 'A' ? activeGame.teamA : activeGame.teamB).map((player) => {
+                {/* Regular players for scoring team */}
+                {(goalDialog.team === 'A' ? activeGame.teamA : activeGame.teamB)
+                  .filter(player => {
+                    const scoringTeamGoalkeeper = goalDialog.team === 'A' ? activeGame.goalkeepers.teamA : activeGame.goalkeepers.teamB
+                    return !scoringTeamGoalkeeper || player.id !== scoringTeamGoalkeeper.id
+                  })
+                  .map((player) => {
                   const isScoring = goalDialog.scoringPlayer?.id === player.id
                   const isAssisting = goalDialog.assistingPlayer?.id === player.id
                   
@@ -186,13 +187,71 @@ export function GoalDialog({
                   )
                 })}
 
+                {/* Goalkeeper for scoring team */}
+                {(goalDialog.team === 'A' ? activeGame.goalkeepers.teamA : activeGame.goalkeepers.teamB) && (
+                  (() => {
+                    const goalkeeper = goalDialog.team === 'A' ? activeGame.goalkeepers.teamA : activeGame.goalkeepers.teamB
+                    if (!goalkeeper) return null
+                    
+                    const isScoring = goalDialog.scoringPlayer?.id === goalkeeper.id
+                    const isAssisting = goalDialog.assistingPlayer?.id === goalkeeper.id
+                    
+                    return (
+                      <button
+                        key={goalkeeper.id}
+                        onClick={() => onPlayerClick(goalkeeper)}
+                        className={`w-full px-2 py-1.5 text-left rounded-sm transition-[background-color] duration-150 box-border ${
+                          isScoring
+                            ? isDarkMode
+                              ? 'bg-gray-600'
+                              : 'bg-gray-300'
+                            : isAssisting
+                              ? isDarkMode
+                                ? 'bg-gray-700'
+                                : 'bg-gray-200'
+                              : isDarkMode
+                                ? 'bg-gray-900 hover:bg-gray-800'
+                                : 'bg-gray-50 hover:bg-gray-100'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center min-w-0">
+                          <span className={`font-medium transition-colors duration-300 truncate flex-1 ${
+                            isDarkMode ? 'text-white' : 'text-gray-900'
+                          }`}>
+                            {goalkeeper.name}
+                          </span>
+                          <div className="flex space-x-2 flex-shrink-0 ml-2">
+                            {isScoring && (
+                              <span className="text-sm px-2 py-1 rounded font-semibold transition-colors duration-300"
+                                    style={{ color: 'var(--goal-color)' }}>
+                                Mål
+                              </span>
+                            )}
+                            {isAssisting && (
+                              <span className="text-sm px-2 py-1 rounded transition-colors duration-300"
+                                    style={{ color: 'var(--assist-color)' }}>
+                                Assist
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })()
+                )}
+
                 {/* Separator */}
                 <div className={`my-4 border-t transition-colors duration-300 ${
                   isDarkMode ? 'border-gray-700' : 'border-gray-300'
                 }`}></div>
                 
-                {/* Opponent Team Players */}
-                {(goalDialog.team === 'A' ? activeGame.teamB : activeGame.teamA).map((player) => {
+                {/* Regular players for opponent team */}
+                {(goalDialog.team === 'A' ? activeGame.teamB : activeGame.teamA)
+                  .filter(player => {
+                    const opponentTeamGoalkeeper = goalDialog.team === 'A' ? activeGame.goalkeepers.teamB : activeGame.goalkeepers.teamA
+                    return !opponentTeamGoalkeeper || player.id !== opponentTeamGoalkeeper.id
+                  })
+                  .map((player) => {
                   const isScoring = goalDialog.scoringPlayer?.id === player.id
                   const isAssisting = goalDialog.assistingPlayer?.id === player.id
                   
@@ -238,6 +297,59 @@ export function GoalDialog({
                     </button>
                   )
                 })}
+
+                {/* Goalkeeper for opponent team */}
+                {(goalDialog.team === 'A' ? activeGame.goalkeepers.teamB : activeGame.goalkeepers.teamA) && (
+                  (() => {
+                    const goalkeeper = goalDialog.team === 'A' ? activeGame.goalkeepers.teamB : activeGame.goalkeepers.teamA
+                    if (!goalkeeper) return null
+                    
+                    const isScoring = goalDialog.scoringPlayer?.id === goalkeeper.id
+                    const isAssisting = goalDialog.assistingPlayer?.id === goalkeeper.id
+                    
+                    return (
+                      <button
+                        key={goalkeeper.id}
+                        onClick={() => onPlayerClick(goalkeeper)}
+                        className={`w-full px-2 py-1.5 text-left rounded-sm transition-[background-color] duration-150 box-border ${
+                          isScoring
+                            ? isDarkMode
+                              ? 'bg-gray-600'
+                              : 'bg-gray-300'
+                            : isAssisting
+                              ? isDarkMode
+                                ? 'bg-gray-700'
+                                : 'bg-gray-200'
+                              : isDarkMode
+                                ? 'bg-gray-900 hover:bg-gray-800'
+                                : 'bg-gray-50 hover:bg-gray-100'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center min-w-0">
+                          <span className={`font-medium transition-colors duration-300 truncate flex-1 ${
+                            isDarkMode ? 'text-white' : 'text-gray-900'
+                          }`}>
+                            {goalkeeper.name}
+                          </span>
+                          <div className="flex space-x-2 flex-shrink-0 ml-2">
+                            {isScoring && (
+                              <span className="text-sm px-2 py-1 rounded font-semibold transition-colors duration-300"
+                                    style={{ color: 'var(--goal-color)' }}>
+                                Mål
+                              </span>
+                            )}
+                            {isAssisting && (
+                              <span className="text-sm px-2 py-1 rounded transition-colors duration-300"
+                                    style={{ color: 'var(--assist-color)' }}>
+                                Assist
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })()
+                )}
               </>
             )}
           </div>

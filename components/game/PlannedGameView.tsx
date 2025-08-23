@@ -50,6 +50,7 @@ export function PlannedGameView({
         onSwitchPlayerTeam={actions.handleSwitchPlayerTeam}
         onVestToggle={actions.handleVestToggle}
         onDeleteGame={actions.handleDeleteGame}
+        onResetGame={actions.handleResetGame}
       />
 
       {/* Player Selection Modal */}
