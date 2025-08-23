@@ -24,13 +24,13 @@ CREATE POLICY "Users can manage their own positions" ON player_positions
   USING (
     player_id IN (
       SELECT id FROM players 
-      WHERE email = (SELECT email FROM auth.users WHERE id = auth.uid())
+      WHERE user_id = auth.uid()
     )
   )
   WITH CHECK (
     player_id IN (
       SELECT id FROM players 
-      WHERE email = (SELECT email FROM auth.users WHERE id = auth.uid())
+      WHERE user_id = auth.uid()
     )
   );
 

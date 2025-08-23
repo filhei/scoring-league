@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabase'
+import { useAuth } from '../auth-context'
 import type { ActiveGameData, Player, Match } from '../types'
 
 // Data fetching functions
@@ -198,12 +199,16 @@ async function fetchGameById(gameId: string): Promise<ActiveGameData | null> {
 
 export function useGameData(targetGameId?: string) {
   const queryClient = useQueryClient()
+  const { user, player, loading: authLoading } = useAuth()
 
   // Query for available players
   const { data: availablePlayers = [], isLoading: playersLoading } = useQuery({
     queryKey: ['availablePlayers'],
     queryFn: fetchAvailablePlayers,
     staleTime: 30 * 1000, // 30 seconds
+    retry: 3, // Retry failed requests up to 3 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    enabled: !authLoading, // Only fetch when auth is ready
   })
 
   // Query for active game - use targeted query if we have a specific game ID
@@ -216,6 +221,9 @@ export function useGameData(targetGameId?: string) {
     queryFn: targetGameId ? () => fetchGameById(targetGameId) : fetchActiveGame,
     refetchInterval: 5000, // Real-time updates every 5 seconds
     staleTime: 0, // Always consider stale for real-time data
+    retry: 3, // Retry failed requests up to 3 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    enabled: !authLoading, // Only fetch when auth is ready
   })
 
   // Query for all games
@@ -227,6 +235,9 @@ export function useGameData(targetGameId?: string) {
     queryFn: fetchAllGames,
     refetchInterval: 5000, // Real-time updates every 5 seconds
     staleTime: 0, // Always consider stale for real-time data
+    retry: 3, // Retry failed requests up to 3 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    enabled: !authLoading, // Only fetch when auth is ready
   })
 
   // Mutation for refreshing game data
@@ -246,7 +257,7 @@ export function useGameData(targetGameId?: string) {
     activeGame,
     availablePlayers,
     allGames,
-    loading: playersLoading || gameLoading || allGamesLoading,
+    loading: playersLoading || gameLoading || allGamesLoading || authLoading,
     // More granular loading states for better UX
     playersLoading,
     gameLoading,

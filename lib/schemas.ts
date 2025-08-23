@@ -54,4 +54,17 @@ export const createMatchSchema = z.object({
   teamBPlayerIds: z.array(z.string().uuid()).optional(),
   teamAGoalkeeperId: z.string().uuid().nullable().optional(),
   teamBGoalkeeperId: z.string().uuid().nullable().optional()
+})
+
+// Profile management schemas
+export const updateProfileSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
+  positions: z.array(z.object({
+    position: z.enum(['Målvakt', 'Back', 'Center', 'Forward']),
+    preference: z.enum(['primary', 'secondary']).nullable()
+  }))
+})
+
+export const deleteAccountSchema = z.object({
+  email: z.string().email('Invalid email address')
 }) 

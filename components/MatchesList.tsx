@@ -13,7 +13,7 @@ interface MatchesListProps {
 }
 
 export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, onCreateNewGame, isCreatingGame = false }: MatchesListProps) {
-  const { user, player } = useAuth()
+  const { user, player, loading: authLoading } = useAuth()
   const isAuthenticated = user && player
 
   // Filter games by status
@@ -31,8 +31,43 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
     activeGameId: activeGame?.match.id,
     gamesToShow: allGamesToShow.length,
     gamesToShowIds: allGamesToShow.map(g => `Game ${g.gameCount || 'N/A'} (${g.match_status})`),
-    isAuthenticated
+    isAuthenticated,
+    authLoading
   })
+
+  const handleGameSelect = (game: Match) => {
+    console.log(`MatchesList: Clicked on game ${game.gameCount || 'N/A'} (${game.match_status})`)
+    
+    // Add a small delay to ensure any pending state updates are complete
+    setTimeout(() => {
+      try {
+        onSelectGame(game)
+      } catch (error) {
+        console.error('Error selecting game:', error)
+      }
+    }, 0)
+  }
+
+  if (authLoading) {
+    return (
+      <div className="max-w-6xl mx-auto p-6">
+        <div className={`rounded-2xl p-8 transition-colors duration-300 ${
+          isDarkMode
+            ? 'bg-gray-800 border border-gray-700'
+            : 'bg-gray-50 border border-gray-200'
+        }`}>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className={`text-lg transition-colors duration-300 ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Loading...
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (allGamesToShow.length === 0) {
     return (
@@ -121,10 +156,7 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
                     ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600'
                     : 'bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
                 }`}
-                onClick={() => {
-                  console.log(`MatchesList: Clicked on game ${game.gameCount || 'N/A'} (${game.match_status})`)
-                  onSelectGame(game)
-                }}
+                onClick={() => handleGameSelect(game)}
               >
                 <div className="flex justify-between items-center">
                   <div>

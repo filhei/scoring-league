@@ -13,7 +13,9 @@ import {
   removeGoalkeeperSchema,
   addPlayerToFieldSchema,
   vestToggleSchema,
-  createMatchSchema
+  createMatchSchema,
+  updateProfileSchema,
+  deleteAccountSchema
 } from '../lib/schemas'
 import { handleSupabaseError } from '../lib/utils/errors'
 import { MatchService } from '../lib/match-service'
@@ -458,6 +460,252 @@ export const resetMatch = actionClient
 
       revalidatePath('/')
       return { success: true, data: { reset: true } }
+    } catch (error) {
+      const appError = error instanceof Error ? error : handleSupabaseError(error)
+      return { success: false, error: appError.message }
+    }
+  })
+
+// Profile management actions
+export const updateProfile = actionClient
+  .inputSchema(updateProfileSchema)
+  .action(async ({ parsedInput: { name, positions } }) => {
+    try {
+      console.log('updateProfile: ACTION STARTED')
+      console.log('updateProfile: Starting update with name:', name, 'positions:', positions)
+      const supabaseServer = createServerSupabaseClient()
+      
+      // Get current user
+      const { data: { user }, error: userError } = await supabaseServer.auth.getUser()
+      console.log('updateProfile: Auth result - user:', user?.email, 'error:', userError)
+      console.log('updateProfile: User object:', user)
+      if (userError || !user) throw new Error('User not authenticated')
+      console.log('updateProfile: User authenticated:', user.email)
+      
+      // Test if we can access the user's data
+      const { data: testPlayer, error: testError } = await supabaseServer
+        .from('players')
+        .select('id, name, email')
+        .eq('user_id', user.id)
+        .single()
+      
+      console.log('updateProfile: Test player query - data:', testPlayer, 'error:', testError)
+
+      // Update player name
+      console.log('updateProfile: Updating player name to:', name, 'for user_id:', user.id)
+      const { data: updateData, error: updateError } = await supabaseServer
+        .from('players')
+        .update({ name })
+        .eq('user_id', user.id)
+        .select()
+
+      if (updateError) {
+        console.error('updateProfile: Update error:', updateError)
+        console.error('updateProfile: Update error code:', updateError.code)
+        console.error('updateProfile: Update error message:', updateError.message)
+        console.error('updateProfile: Update error details:', updateError.details)
+        throw handleSupabaseError(updateError)
+      }
+      console.log('updateProfile: Name updated successfully, data:', updateData)
+
+      // Get player ID
+      const { data: player, error: playerError } = await supabaseServer
+        .from('players')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+
+      if (playerError) throw handleSupabaseError(playerError)
+      console.log('updateProfile: Got player ID:', player.id)
+
+      // Delete existing position preferences
+      console.log('updateProfile: Deleting existing positions for player ID:', player.id)
+      const { data: deleteData, error: deleteError } = await supabaseServer
+        .from('player_positions')
+        .delete()
+        .eq('player_id', player.id)
+        .select()
+
+      if (deleteError) {
+        console.error('updateProfile: Delete positions error:', deleteError)
+        throw handleSupabaseError(deleteError)
+      }
+      console.log('updateProfile: Existing positions deleted, count:', deleteData?.length || 0)
+
+      // Insert new position preferences (only for positions with actual preferences)
+      console.log('updateProfile: All positions received:', positions)
+      const positionsToInsert = positions
+        .filter((pos): pos is { position: 'Målvakt' | 'Back' | 'Center' | 'Forward'; preference: 'primary' | 'secondary' } => 
+          pos.preference === 'primary' || pos.preference === 'secondary'
+        )
+        .map(pos => ({
+          player_id: player.id,
+          position: pos.position,
+          preference: pos.preference
+        }))
+
+      console.log('updateProfile: Filtered positions to insert:', positionsToInsert)
+
+      if (positionsToInsert.length > 0) {
+        console.log('updateProfile: Inserting new positions:', positionsToInsert)
+        const { data: insertData, error: insertError } = await supabaseServer
+          .from('player_positions')
+          .insert(positionsToInsert)
+          .select()
+
+        if (insertError) {
+          console.error('updateProfile: Insert positions error:', insertError)
+          throw handleSupabaseError(insertError)
+        }
+        console.log('updateProfile: New positions inserted:', insertData?.length || 0)
+      } else {
+        console.log('updateProfile: No positions to insert (all preferences are null)')
+      }
+
+      revalidatePath('/profile')
+      revalidatePath('/')
+      console.log('updateProfile: Update completed successfully')
+      return { success: true, data: { updated: true } }
+    } catch (error) {
+      console.error('updateProfile: Error occurred:', error)
+      console.error('updateProfile: Error type:', typeof error)
+      console.error('updateProfile: Error instanceof Error:', error instanceof Error)
+      console.error('updateProfile: Error stack:', error instanceof Error ? error.stack : 'No stack')
+      console.error('updateProfile: Error message:', error instanceof Error ? error.message : 'No message')
+      const appError = error instanceof Error ? error : handleSupabaseError(error)
+      console.error('updateProfile: AppError:', appError)
+      return { success: false, error: appError.message }
+    }
+  })
+
+// Test action to debug auth issues
+export const testAuth = actionClient
+  .inputSchema(z.object({}))
+  .action(async () => {
+    try {
+      console.log('testAuth: Starting test')
+      const supabaseServer = createServerSupabaseClient()
+      
+      // Get current user
+      const { data: { user }, error: userError } = await supabaseServer.auth.getUser()
+      console.log('testAuth: Auth result - user:', user?.email, 'error:', userError)
+      
+      if (userError || !user) {
+        return { success: false, error: 'User not authenticated' }
+      }
+      
+      // Test if we can access the user's data
+      const { data: player, error: playerError } = await supabaseServer
+        .from('players')
+        .select('id, name, email')
+        .eq('user_id', user.id)
+        .single()
+      
+      console.log('testAuth: Player query - data:', player, 'error:', playerError)
+      
+      if (playerError) {
+        return { success: false, error: `Player query failed: ${playerError.message}` }
+      }
+      
+      return { success: true, data: { user: user.email, player } }
+    } catch (error) {
+      console.error('testAuth: Error:', error)
+      const appError = error instanceof Error ? error : handleSupabaseError(error)
+      return { success: false, error: appError.message }
+    }
+  })
+
+// Simple test action for profile update
+export const testProfileUpdate = actionClient
+  .inputSchema(z.object({ name: z.string() }))
+  .action(async ({ parsedInput: { name } }) => {
+    try {
+      console.log('testProfileUpdate: ACTION STARTED')
+      console.log('testProfileUpdate: Name:', name)
+      
+      const supabaseServer = createServerSupabaseClient()
+      
+      // Get current user
+      const { data: { user }, error: userError } = await supabaseServer.auth.getUser()
+      console.log('testProfileUpdate: Auth result - user:', user?.email, 'error:', userError)
+      console.log('testProfileUpdate: User ID:', user?.id)
+      console.log('testProfileUpdate: User email:', user?.email)
+      
+      if (userError || !user) {
+        return { success: false, error: 'User not authenticated' }
+      }
+      
+      // First, let's test if we can query the player data
+      const { data: playerData, error: playerError } = await supabaseServer
+        .from('players')
+        .select('id, name, email, user_id')
+        .eq('user_id', user.id)
+        .single()
+      
+      console.log('testProfileUpdate: Player query - data:', playerData, 'error:', playerError)
+      console.log('testProfileUpdate: Current user ID:', user.id)
+      console.log('testProfileUpdate: Player user_id:', playerData?.user_id)
+      
+      if (playerError) {
+        return { success: false, error: `Player query failed: ${playerError.message}` }
+      }
+      
+      // Just update the name
+      console.log('testProfileUpdate: Attempting to update name to:', name, 'for user_id:', user.id)
+      const { data: updateData, error: updateError } = await supabaseServer
+        .from('players')
+        .update({ name })
+        .eq('user_id', user.id)
+        .select()
+      
+      console.log('testProfileUpdate: Update result - data:', updateData, 'error:', updateError)
+      if (updateError) {
+        console.error('testProfileUpdate: Update error details:', {
+          code: updateError.code,
+          message: updateError.message,
+          details: updateError.details,
+          hint: updateError.hint
+        })
+      }
+      
+      if (updateError) {
+        return { success: false, error: `Update failed: ${updateError.message}` }
+      }
+      
+      return { success: true, data: updateData }
+    } catch (error) {
+      console.error('testProfileUpdate: Error:', error)
+      const appError = error instanceof Error ? error : handleSupabaseError(error)
+      return { success: false, error: appError.message }
+    }
+  })
+
+export const deleteAccount = actionClient
+  .inputSchema(deleteAccountSchema)
+  .action(async ({ parsedInput: { email } }) => {
+    try {
+      const supabaseServer = createServerSupabaseClient()
+      
+      // Get current user
+      const { data: { user }, error: userError } = await supabaseServer.auth.getUser()
+      if (userError || !user) throw new Error('User not authenticated')
+
+      // Verify email matches
+      if (user.email !== email) throw new Error('Email does not match your account')
+
+      // Soft delete the player account
+      const { error: updateError } = await supabaseServer
+        .from('players')
+        .update({ is_active: false })
+        .eq('user_id', user.id)
+
+      if (updateError) throw handleSupabaseError(updateError)
+
+      // Sign out the user
+      await supabaseServer.auth.signOut()
+
+      revalidatePath('/')
+      return { success: true, data: { deleted: true } }
     } catch (error) {
       const appError = error instanceof Error ? error : handleSupabaseError(error)
       return { success: false, error: appError.message }

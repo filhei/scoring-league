@@ -58,6 +58,7 @@ export interface GameState {
   playersLoading: boolean
   gameLoading: boolean
   allGamesLoading: boolean
+  error: Error | null
   refreshGameData: () => void
 }
 
@@ -85,6 +86,7 @@ export function useGameState(): GameState {
     playersLoading,
     gameLoading,
     allGamesLoading,
+    error: gameError,
     refreshGameData 
   } = useGameData(selectedGameId || currentGameContext?.matchId)
   
@@ -168,7 +170,7 @@ export function useGameState(): GameState {
         setShowMatchesList(true)
       }
     }
-  }, [activeGame, loading, hasInitialized])
+  }, [activeGame, loading, hasInitialized, gameError])
 
   // Update local state when currentGameContext changes
   useEffect(() => {
@@ -254,6 +256,7 @@ export function useGameState(): GameState {
     playersLoading,
     gameLoading,
     allGamesLoading,
+    error: gameError,
     refreshGameData
   }
 } 

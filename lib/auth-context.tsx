@@ -27,13 +27,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   // Fetch player data for authenticated user
-  const fetchPlayer = async (userEmail: string) => {
+  const fetchPlayer = async (userId: string) => {
     try {
-      console.log('Fetching player data for:', userEmail)
+      console.log('Fetching player data for user ID:', userId)
       const { data, error } = await supabase
         .from('players')
         .select('*')
-        .eq('email', userEmail)
+        .eq('user_id', userId)
         .eq('is_active', true)
         .single()
 
@@ -53,8 +53,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Refresh player data
   const refreshPlayer = async () => {
-    if (user?.email) {
-      await fetchPlayer(user.email)
+    if (user?.id) {
+      await fetchPlayer(user.id)
     }
   }
 
@@ -176,6 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const initializeAuth = async () => {
       try {
+        setLoading(true)
         // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession()
         
@@ -183,6 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error('Error getting initial session:', error)
           setSession(null)
           setUser(null)
+          setPlayer(null)
           setLoading(false)
           return
         }
@@ -190,11 +192,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Initial session:', session)
         setSession(session)
         setUser(session?.user ?? null)
-        setLoading(false)
 
         // Fetch player data when user signs in
-        if (session?.user?.email) {
-          await fetchPlayer(session.user.email)
+        if (session?.user?.id) {
+          await fetchPlayer(session.user.id)
         } else {
           setPlayer(null)
         }
@@ -203,6 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(null)
         setUser(null)
         setPlayer(null)
+      } finally {
         setLoading(false)
       }
     }
@@ -221,13 +223,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } : 'null')
       
       try {
+        setLoading(true)
         setSession(session)
         setUser(session?.user ?? null)
-        setLoading(false)
 
         // Fetch player data when user signs in
-        if (session?.user?.email) {
-          await fetchPlayer(session.user.email)
+        if (session?.user?.id) {
+          await fetchPlayer(session.user.id)
         } else {
           setPlayer(null)
         }
@@ -236,12 +238,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(null)
         setUser(null)
         setPlayer(null)
+      } finally {
         setLoading(false)
       }
     })
 
-    return () => subscription.unsubscribe()
-  }, [])
+    // Handle tab focus to refresh auth state
+    const handleFocus = async () => {
+      console.log('Tab focused, refreshing auth state')
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        if (!error && session?.user?.id && session.user.id !== user?.id) {
+          console.log('Session changed on focus, updating state')
+          setSession(session)
+          setUser(session.user)
+          await fetchPlayer(session.user.id)
+        }
+      } catch (error) {
+        console.error('Error refreshing auth state on focus:', error)
+      }
+    }
+
+    // Handle page visibility changes (more reliable than focus for tab switching)
+    const handleVisibilityChange = async () => {
+      if (!document.hidden) {
+        console.log('Page became visible, refreshing auth state')
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession()
+          if (!error && session?.user?.id && session.user.id !== user?.id) {
+            console.log('Session changed on visibility change, updating state')
+            setSession(session)
+            setUser(session.user)
+            await fetchPlayer(session.user.id)
+          }
+        } catch (error) {
+          console.error('Error refreshing auth state on visibility change:', error)
+        }
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      subscription.unsubscribe()
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [user?.id])
 
   const value: AuthContextType = {
     user,

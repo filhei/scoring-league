@@ -4,7 +4,8 @@ CREATE TABLE players (
   name TEXT NOT NULL,
   elo INTEGER DEFAULT 1500,
   is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  user_id UUID REFERENCES auth.users(id) UNIQUE
 );
 
 -- Enable RLS
@@ -23,17 +24,14 @@ CREATE POLICY "Authenticated can view active players" ON players
 -- Users can only update their own player record (name field only)
 CREATE POLICY "Users can update their own name" ON players
   FOR UPDATE TO authenticated
-  USING (email = (SELECT email FROM auth.users WHERE id = auth.uid()))
-  WITH CHECK (email = (SELECT email FROM auth.users WHERE id = auth.uid()));
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
 
 -- Users can soft delete their own account (set is_active = false)
 CREATE POLICY "Users can soft delete their own account" ON players
   FOR UPDATE TO authenticated
-  USING (email = (SELECT email FROM auth.users WHERE id = auth.uid()))
-  WITH CHECK (
-    email = (SELECT email FROM auth.users WHERE id = auth.uid()) 
-    AND is_active = false
-  );
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid() AND is_active = false);
 
 -- Only service role can create/delete players (admin operations)
 CREATE POLICY "Service role can manage all players" ON players

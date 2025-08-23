@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useGameState } from '../../lib/hooks/useGameState'
 import { useGameActions } from '../../lib/hooks/useGameActions'
 import { useSnackbar } from '../../lib/hooks/useSnackbar'
@@ -35,13 +36,45 @@ export function GameView({ initialActiveGame, availablePlayers, allGames }: Game
   // Game actions
   const actions = useGameActions(gameState, showSnackbar)
 
-  // Show loading state if auth is loading or we don't have any data to display
+  // Add a timeout fallback to prevent infinite loading
+  const [loadingTimeout, setLoadingTimeout] = useState(false)
+
+  // Show loading state if auth is loading or we're still loading essential data
   const shouldShowLoading = authLoading || 
                            (gameState.playersLoading && gameState.availablePlayers.length === 0) || 
-                           (gameState.gameLoading && !gameState.activeGame && !gameState.currentGameContext) ||
+                           (gameState.gameLoading && !gameState.hasInitialized) ||
                            (gameState.allGamesLoading && gameState.allGames.length === 0)
+
+  // Debug logging
+  useEffect(() => {
+    console.log('GameView loading state:', {
+      authLoading,
+      playersLoading: gameState.playersLoading,
+      gameLoading: gameState.gameLoading,
+      allGamesLoading: gameState.allGamesLoading,
+      hasInitialized: gameState.hasInitialized,
+      activeGame: !!gameState.activeGame,
+      availablePlayersCount: gameState.availablePlayers.length,
+      allGamesCount: gameState.allGames.length,
+      shouldShowLoading,
+      loadingTimeout
+    })
+  }, [authLoading, gameState.playersLoading, gameState.gameLoading, gameState.allGamesLoading, gameState.hasInitialized, gameState.activeGame, gameState.availablePlayers.length, gameState.allGames.length, shouldShowLoading, loadingTimeout])
   
-  if (shouldShowLoading) {
+  useEffect(() => {
+    if (shouldShowLoading && !loadingTimeout) {
+      const timeout = setTimeout(() => {
+        console.warn('Loading timeout reached, forcing display')
+        setLoadingTimeout(true)
+      }, 10000) // 10 second timeout
+      
+      return () => clearTimeout(timeout)
+    } else if (!shouldShowLoading) {
+      setLoadingTimeout(false)
+    }
+  }, [shouldShowLoading, loadingTimeout])
+  
+  if (shouldShowLoading && !loadingTimeout) {
     return <GameLoadingSkeleton />
   }
 
