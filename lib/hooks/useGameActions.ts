@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { 
   addScore, 
   addPlayerToMatch, 
@@ -62,6 +63,7 @@ export function useGameActions(
   gameState: GameState,
   showSnackbar: (message: string, duration?: number) => void
 ): GameActions {
+  const queryClient = useQueryClient()
   const [showPlayerSelect, setShowPlayerSelect] = useState<PlayerSelectState>({ 
     team: null, 
     isGoalkeeper: false 
@@ -1268,6 +1270,7 @@ export function useGameActions(
   }
 
   const handleCreateNewGame = async () => {
+    console.log('handleCreateNewGame: Starting game creation')
     gameState.setIsCreatingGame(true)
     try {
       if (gameState.isEndingGame) {
@@ -1275,7 +1278,16 @@ export function useGameActions(
         gameState.setIsEndingGame(false)
       }
       
-      const result = await createMatch({})
+      console.log('handleCreateNewGame: Calling createMatch action')
+      const result = await createMatch({
+        teamWithVests: null,
+        teamAPlayerIds: undefined,
+        teamBPlayerIds: undefined,
+        teamAGoalkeeperId: null,
+        teamBGoalkeeperId: null
+      })
+      
+      console.log('handleCreateNewGame: Result received:', result)
       
       if (result.validationErrors) {
         showSnackbar('Invalid input data', 4000)
@@ -1283,13 +1295,27 @@ export function useGameActions(
       }
 
       if (result.serverError) {
-        showSnackbar(result.serverError, 4000)
+        if (result.serverError.includes('Authentication required')) {
+          showSnackbar('Please sign in to create a new game', 4000)
+        } else {
+          showSnackbar(result.serverError, 4000)
+        }
         return
       }
 
       if (result.data) {
+        console.log('handleCreateNewGame: Game created successfully, invalidating cache')
         showSnackbar('New game created successfully!', 3000)
-        gameState.refreshGameData()
+        // Clear any current game context and show matches list
+        gameState.setCurrentGameContext(null)
+        gameState.setShowMatchesList(true)
+        gameState.setUserRequestedMatchesList(true)
+        // Invalidate and refetch all game-related queries
+        queryClient.invalidateQueries({ queryKey: ['allGames'] })
+        queryClient.invalidateQueries({ queryKey: ['activeGame'] })
+        queryClient.refetchQueries({ queryKey: ['allGames'] })
+        queryClient.refetchQueries({ queryKey: ['activeGame'] })
+        console.log('handleCreateNewGame: Cache invalidation completed')
       }
     } catch (error) {
       showSnackbar('Failed to create game', 4000)

@@ -1,7 +1,6 @@
 'use client'
 
 import { ReactNode } from 'react'
-import { Navigation } from '../Navigation'
 
 interface GameLayoutProps {
   children: ReactNode
@@ -26,8 +25,6 @@ export function GameLayout({
         color: 'var(--foreground)'
       }}
     >
-      <Navigation isDarkMode={isDarkMode} onToggleDarkMode={onToggleDarkMode} />
-      
       {showBackButton && onBackClick && (
         <div className="max-w-6xl mx-auto p-6 pb-0">
           <button

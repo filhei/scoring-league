@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { useAuth } from '../lib/auth-context'
 import { useDarkMode } from '../lib/hooks/useDarkMode'
 
 export function ProfileDropdown() {
   const { isDarkMode } = useDarkMode()
+  const { user, player, signOut } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -20,10 +22,25 @@ export function ProfileDropdown() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleSignOut = () => {
-    // TODO: Implement sign out logic
-    console.log('Sign out clicked')
+  const handleSignOut = async () => {
+    await signOut()
     setIsOpen(false)
+  }
+
+  // If not authenticated, show sign in button
+  if (!user) {
+    return (
+      <Link
+        href="/login"
+        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          isDarkMode 
+            ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+            : 'bg-blue-600 hover:bg-blue-700 text-white'
+        }`}
+      >
+        Sign In
+      </Link>
+    )
   }
 
   return (
@@ -56,6 +73,14 @@ export function ProfileDropdown() {
         <div className={`absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 z-50 ${
           isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
         }`}>
+          {player && (
+            <div className={`px-4 py-2 text-sm border-b ${
+              isDarkMode ? 'border-gray-700 text-gray-300' : 'border-gray-200 text-gray-700'
+            }`}>
+              <div className="font-medium">{player.name}</div>
+              <div className="text-xs opacity-75">{user.email}</div>
+            </div>
+          )}
           <Link
             href="/profile"
             onClick={() => setIsOpen(false)}

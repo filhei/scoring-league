@@ -1,9 +1,11 @@
+'use client'
+
 import { Suspense } from 'react'
-import { supabase } from '../lib/supabase'
 import { Navigation } from '../components/Navigation'
-import { NoActiveGame } from '../components/NoActiveGame'
 import { ActiveGameWrapper } from '../components/ActiveGameWrapper'
 import { GameLoadingSkeleton } from '../components/ui/loading-skeleton'
+import { useAuth } from '../lib/auth-context'
+import { useDarkMode } from '../lib/hooks/useDarkMode'
 import type { ActiveGameData, Player, Match } from '../lib/types'
 
 // PROMPT:
@@ -21,105 +23,43 @@ import type { ActiveGameData, Player, Match } from '../lib/types'
 
 // Are these instructions clear? Ask me to clarify if you need anything. Condense the information to maximum readability and be concise.
 
-// Server-side data fetching
-async function getAvailablePlayers(): Promise<Player[]> {
-  const { data: players, error } = await supabase
-    .from('players')
-    .select('*')
-    .eq('is_active', true)
+export default function Home() {
+  const { user, player, loading } = useAuth()
+  const { isDarkMode, toggleDarkMode } = useDarkMode()
 
-  if (error) {
-    console.error('Error fetching available players:', error)
-    return []
+  if (loading) {
+    return <GameLoadingSkeleton />
   }
-
-  return players || []
-}
-
-async function getActiveGame(): Promise<ActiveGameData | null> {
-  try {
-    // Get active or paused match
-    const { data: match, error: matchError } = await supabase
-      .from('matches')
-      .select('*')
-      .in('match_status', ['active', 'paused'])
-      .single()
-
-    if (matchError) {
-      if (matchError.code === 'PGRST116') return null // No active match
-      throw matchError
-    }
-
-    if (!match) return null
-
-    // Get match players
-    const { data: matchPlayers, error: playersError } = await supabase
-      .from('match_players')
-      .select(`
-        *,
-        players (*)
-      `)
-      .eq('match_id', match.id)
-
-    if (playersError) throw playersError
-
-    // Get scores
-    const { data: scores, error: scoresError } = await supabase
-      .from('scores')
-      .select('*')
-      .eq('match_id', match.id)
-
-    if (scoresError) throw scoresError
-
-    if (matchPlayers) {
-      const teamA = matchPlayers
-        .filter(mp => mp.team === 'A' && !mp.is_goalkeeper)
-        .map(mp => mp.players)
-        .filter(Boolean) as Player[]
-      
-      const teamB = matchPlayers
-        .filter(mp => mp.team === 'B' && !mp.is_goalkeeper)
-        .map(mp => mp.players)
-        .filter(Boolean) as Player[]
-
-      const goalkeepers = {
-        teamA: matchPlayers.find(mp => mp.team === 'A' && mp.is_goalkeeper)?.players || null,
-        teamB: matchPlayers.find(mp => mp.team === 'B' && mp.is_goalkeeper)?.players || null
-      }
-
-      return {
-        match,
-        teamA,
-        teamB,
-        scores: scores || [],
-        goalkeepers
-      }
-    }
-
-    return null
-  } catch (error) {
-    console.error('Error fetching active game:', error)
-    return null
-  }
-}
-
-// getAllGames function removed - now handled by React Query in useGameData hook
-
-export default async function Home() {
-  const [activeGame, availablePlayers] = await Promise.all([
-    getActiveGame(),
-    getAvailablePlayers()
-  ])
 
   return (
-    <div className="min-h-screen transition-colors duration-300">
-      <Suspense fallback={<GameLoadingSkeleton />}>
-        <ActiveGameWrapper 
-          initialActiveGame={activeGame}
-          availablePlayers={availablePlayers}
-          allGames={[]} // This will be replaced by React Query
-        />
-      </Suspense>
+    <div className={`min-h-screen transition-colors duration-300 ${
+      isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
+    }`}>
+      <Navigation isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} />
+      
+      {/* Auth Status Banner */}
+      {user && player && (
+        <div className={`px-6 py-2 text-sm ${
+          isDarkMode ? 'bg-blue-900/20 text-blue-300' : 'bg-blue-50 text-blue-700'
+        }`}>
+          Welcome back, {player.name}! 
+          {!user.email_confirmed_at && (
+            <span className="ml-2 text-yellow-600 dark:text-yellow-400">
+              (Please check your email to confirm your account)
+            </span>
+          )}
+        </div>
+      )}
+
+      <main className="max-w-6xl mx-auto px-6 py-8">
+        <Suspense fallback={<GameLoadingSkeleton />}>
+          <ActiveGameWrapper 
+            initialActiveGame={null}
+            availablePlayers={[]}
+            allGames={[]}
+          />
+        </Suspense>
+      </main>
     </div>
   )
 }

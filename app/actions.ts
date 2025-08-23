@@ -4,6 +4,7 @@ import { createSafeActionClient } from 'next-safe-action'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { supabase } from '../lib/supabase'
+import { createServerSupabaseClient } from '../lib/supabase-server'
 import { 
   scoreSchema, 
   playerSelectSchema, 
@@ -280,27 +281,49 @@ export const toggleVests = actionClient
 
 export const createMatch = actionClient
   .inputSchema(createMatchSchema)
-  .action(async ({ parsedInput: { teamWithVests, teamAPlayerIds, teamBPlayerIds, teamAGoalkeeperId, teamBGoalkeeperId } }) => {
+  .action(async ({ parsedInput }) => {
     try {
+      console.log('Creating match with params:', parsedInput)
+      
+      // Create server-side Supabase client
+      const supabaseServer = createServerSupabaseClient()
+      
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabaseServer.auth.getUser()
+      console.log('Auth check - user:', user?.email, 'error:', authError)
+      console.log('Auth check - user object:', user)
+      
+      if (authError) {
+        console.log('Auth error:', authError)
+        throw new Error('Authentication error: ' + authError.message)
+      }
+      
+      if (!user) {
+        console.log('User not authenticated, cannot create match')
+        throw new Error('Authentication required to create matches')
+      }
+      
       // Create the match first
-      const { data: match, error: matchError } = await supabase
+      const { data: match, error: matchError } = await supabaseServer
         .from('matches')
         .insert({
           match_status: 'planned',
-          team_with_vests: teamWithVests || null
+          team_with_vests: parsedInput.teamWithVests || null
         })
         .select()
         .single()
 
       if (matchError) throw handleSupabaseError(matchError)
+      
+      console.log('Match created successfully:', match)
 
       // If team data is provided, add players to the match
-      if (teamAPlayerIds || teamBPlayerIds || teamAGoalkeeperId || teamBGoalkeeperId) {
+      if (parsedInput.teamAPlayerIds || parsedInput.teamBPlayerIds || parsedInput.teamAGoalkeeperId || parsedInput.teamBGoalkeeperId) {
         const matchPlayersToInsert = []
 
         // Add Team A field players
-        if (teamAPlayerIds) {
-          teamAPlayerIds.forEach(playerId => {
+        if (parsedInput.teamAPlayerIds) {
+          parsedInput.teamAPlayerIds.forEach(playerId => {
             matchPlayersToInsert.push({
               match_id: match.id,
               player_id: playerId,
@@ -311,8 +334,8 @@ export const createMatch = actionClient
         }
 
         // Add Team B field players
-        if (teamBPlayerIds) {
-          teamBPlayerIds.forEach(playerId => {
+        if (parsedInput.teamBPlayerIds) {
+          parsedInput.teamBPlayerIds.forEach(playerId => {
             matchPlayersToInsert.push({
               match_id: match.id,
               player_id: playerId,
@@ -323,20 +346,20 @@ export const createMatch = actionClient
         }
 
         // Add Team A goalkeeper
-        if (teamAGoalkeeperId) {
+        if (parsedInput.teamAGoalkeeperId) {
           matchPlayersToInsert.push({
             match_id: match.id,
-            player_id: teamAGoalkeeperId,
+            player_id: parsedInput.teamAGoalkeeperId,
             team: 'A' as const,
             is_goalkeeper: true
           })
         }
 
         // Add Team B goalkeeper
-        if (teamBGoalkeeperId) {
+        if (parsedInput.teamBGoalkeeperId) {
           matchPlayersToInsert.push({
             match_id: match.id,
-            player_id: teamBGoalkeeperId,
+            player_id: parsedInput.teamBGoalkeeperId,
             team: 'B' as const,
             is_goalkeeper: true
           })
@@ -344,7 +367,7 @@ export const createMatch = actionClient
 
         // Bulk insert all players
         if (matchPlayersToInsert.length > 0) {
-          const { error: playersError } = await supabase
+          const { error: playersError } = await supabaseServer
             .from('match_players')
             .insert(matchPlayersToInsert)
 
@@ -353,9 +376,12 @@ export const createMatch = actionClient
       }
 
       revalidatePath('/')
+      console.log('Revalidating path and returning success')
       return { success: true, data: match }
     } catch (error) {
+      console.log('createMatch: Caught error:', error)
       const appError = error instanceof Error ? error : handleSupabaseError(error)
+      console.log('createMatch: AppError:', appError)
       return { success: false, error: appError.message }
     }
   }) 
