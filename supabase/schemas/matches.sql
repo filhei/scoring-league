@@ -9,3 +9,38 @@ CREATE TABLE matches (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   team_with_vests TEXT CHECK (team_with_vests IN ('A', 'B')) NULL
 );
+
+-- Enable RLS
+ALTER TABLE matches ENABLE ROW LEVEL SECURITY;
+
+-- Anonymous users can view all matches (read-only)
+CREATE POLICY "Anonymous can view all matches" ON matches
+  FOR SELECT TO anon
+  USING (true);
+
+-- Authenticated users can view all matches
+CREATE POLICY "Authenticated can view all matches" ON matches
+  FOR SELECT TO authenticated
+  USING (true);
+
+-- Authenticated users can create matches
+CREATE POLICY "Authenticated can create matches" ON matches
+  FOR INSERT TO authenticated
+  WITH CHECK (true);
+
+-- Authenticated users can update active, paused, and planned matches
+CREATE POLICY "Authenticated can update non-finished matches" ON matches
+  FOR UPDATE TO authenticated
+  USING (match_status IN ('active', 'paused', 'planned'))
+  WITH CHECK (match_status IN ('active', 'paused', 'planned'));
+
+-- Authenticated users can delete active, paused, and planned matches
+CREATE POLICY "Authenticated can delete non-finished matches" ON matches
+  FOR DELETE TO authenticated
+  USING (match_status IN ('active', 'paused', 'planned'));
+
+-- Only service role can manage finished matches
+CREATE POLICY "Service role can manage finished matches" ON matches
+  FOR ALL TO service_role
+  USING (true)
+  WITH CHECK (true);
