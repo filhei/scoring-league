@@ -29,7 +29,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch player data for authenticated user
   const fetchPlayer = async (userId: string) => {
     try {
-      console.log('Fetching player data for user ID:', userId)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Fetching player data for user ID:', userId)
+      }
       const { data, error } = await supabase
         .from('players')
         .select('*')
@@ -38,22 +40,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
 
       if (error) {
-        console.error('Error fetching player:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error fetching player:', error)
+        }
         setPlayer(null)
         return
       }
 
       // Check if player data is nullified (GDPR compliance)
       if (!data.name || !data.user_id) {
-        console.log('Player data is nullified (account deleted)')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Player data is nullified (account deleted)')
+        }
         setPlayer(null)
         return
       }
 
-      console.log('Player data fetched:', data)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Player data fetched:', data)
+      }
       setPlayer(data)
     } catch (error) {
-      console.error('Error fetching player:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching player:', error)
+      }
       setPlayer(null)
     }
   }
@@ -68,7 +78,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign in with magic link
   const signIn = async (email: string): Promise<{ error: string | null }> => {
     try {
-      console.log('Attempting sign in for:', email)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Attempting sign in for:', email)
+      }
       
       // Send magic link directly - let Supabase handle user validation
       const { error } = await supabase.auth.signInWithOtp({
@@ -80,7 +92,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
 
       if (error) {
-        console.error('Sign in error:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Sign in error:', error)
+        }
         // Check if it's a "user not found" error
         if (error.message.includes('User not found') || error.message.includes('Invalid login credentials')) {
           return { 
@@ -96,10 +110,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: error.message }
       }
 
-      console.log('Magic link sent successfully')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Magic link sent successfully')
+      }
       return { error: null }
     } catch (error) {
-      console.error('Sign in error:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Sign in error:', error)
+      }
       return { error: 'An unexpected error occurred. Please try again.' }
     }
   }
@@ -107,7 +125,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign in with one-time code
   const signInWithCode = async (email: string, code: string): Promise<{ error: string | null }> => {
     try {
-      console.log('Attempting sign in with code for:', email)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Attempting sign in with code for:', email)
+      }
       
       // Verify the one-time code first
       const { data, error } = await supabase.auth.verifyOtp({
@@ -117,7 +137,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
 
       if (error) {
-        console.error('Code verification error:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Code verification error:', error)
+        }
         // Check if it's a "user not found" error
         if (error.message.includes('User not found') || error.message.includes('Invalid login credentials')) {
           return { 
@@ -134,7 +156,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data.session) {
-        console.log('Code verification successful, session established')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Code verification successful, session established')
+        }
         
         // Now check if the authenticated user has a valid player account
         const { data: playerData, error: playerError } = await supabase
@@ -144,7 +168,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .single()
 
         if (playerError || !playerData) {
-          console.log('Player not found or error:', playerError)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Player not found or error:', playerError)
+          }
           // Sign out the user since they don't have a valid player account
           await supabase.auth.signOut()
           return { 
@@ -154,7 +180,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Check if player account is active (not nullified)
         if (!playerData.is_active || !playerData.name || !playerData.user_id) {
-          console.log('Player account deactivated or nullified')
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Player account deactivated or nullified')
+          }
           // Sign out the user since their account is deactivated
           await supabase.auth.signOut()
           return { 
@@ -164,11 +192,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         return { error: null }
       } else {
-        console.error('No session returned from code verification')
+        if (process.env.NODE_ENV === 'development') {
+          console.error('No session returned from code verification')
+        }
         return { error: 'Invalid or expired code. Please try again.' }
       }
     } catch (error) {
-      console.error('Sign in with code error:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Sign in with code error:', error)
+      }
       return { error: 'An unexpected error occurred. Please try again.' }
     }
   }
@@ -176,19 +208,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Sign out
   const signOut = async () => {
     try {
-      console.log('Signing out user')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Signing out user')
+      }
       await supabase.auth.signOut()
       setUser(null)
       setPlayer(null)
       setSession(null)
     } catch (error) {
-      console.error('Sign out error:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Sign out error:', error)
+      }
     }
   }
 
   // Initialize auth state
   useEffect(() => {
-    console.log('Initializing auth state')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Initializing auth state')
+    }
     
     const initializeAuth = async () => {
       try {
@@ -197,7 +235,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) {
-          console.error('Error getting initial session:', error)
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error getting initial session:', error)
+          }
           setSession(null)
           setUser(null)
           setPlayer(null)
@@ -205,7 +245,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
         
-        console.log('Initial session:', session)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Initial session:', session)
+        }
         setSession(session)
         setUser(session?.user ?? null)
 
@@ -216,7 +258,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setPlayer(null)
         }
       } catch (error) {
-        console.error('Error initializing auth state:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error initializing auth state:', error)
+        }
         setSession(null)
         setUser(null)
         setPlayer(null)
@@ -231,12 +275,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session?.user?.email)
-      console.log('Session data:', session ? {
-        user: session.user?.email,
-        expires_at: session.expires_at,
-        access_token: session.access_token ? 'present' : 'missing'
-      } : 'null')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Auth state change:', event, session?.user?.email)
+      }
       
       try {
         setLoading(true)
@@ -250,7 +291,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setPlayer(null)
         }
       } catch (error) {
-        console.error('Error handling auth state change:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error handling auth state change:', error)
+        }
         setSession(null)
         setUser(null)
         setPlayer(null)
@@ -261,34 +304,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Handle tab focus to refresh auth state
     const handleFocus = async () => {
-      console.log('Tab focused, refreshing auth state')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Tab focused, refreshing auth state')
+      }
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
         if (!error && session?.user?.id && session.user.id !== user?.id) {
-          console.log('Session changed on focus, updating state')
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Session changed on focus, updating state')
+          }
           setSession(session)
           setUser(session.user)
           await fetchPlayer(session.user.id)
         }
       } catch (error) {
-        console.error('Error refreshing auth state on focus:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error refreshing auth state on focus:', error)
+        }
       }
     }
 
     // Handle page visibility changes (more reliable than focus for tab switching)
     const handleVisibilityChange = async () => {
       if (!document.hidden) {
-        console.log('Page became visible, refreshing auth state')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Page became visible, refreshing auth state')
+        }
         try {
           const { data: { session }, error } = await supabase.auth.getSession()
           if (!error && session?.user?.id && session.user.id !== user?.id) {
-            console.log('Session changed on visibility change, updating state')
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Session changed on visibility change, updating state')
+            }
             setSession(session)
             setUser(session.user)
             await fetchPlayer(session.user.id)
           }
         } catch (error) {
-          console.error('Error refreshing auth state on visibility change:', error)
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error refreshing auth state on visibility change:', error)
+          }
         }
       }
     }
@@ -301,7 +356,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('focus', handleFocus)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [user?.id])
+  }, [])
 
   const value: AuthContextType = {
     user,

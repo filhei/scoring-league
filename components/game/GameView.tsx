@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useGameState } from '../../lib/hooks/useGameState'
 import { useGameActions } from '../../lib/hooks/useGameActions'
 import { useSnackbar } from '../../lib/hooks/useSnackbar'
@@ -45,8 +45,8 @@ export function GameView({ initialActiveGame, availablePlayers, allGames }: Game
                            (gameState.gameLoading && !gameState.hasInitialized) ||
                            (gameState.allGamesLoading && gameState.allGames.length === 0)
 
-  // Debug logging
-  useEffect(() => {
+  // Debug logging - only log when state actually changes
+  const debugLog = useCallback(() => {
     console.log('GameView loading state:', {
       authLoading,
       playersLoading: gameState.playersLoading,
@@ -60,6 +60,13 @@ export function GameView({ initialActiveGame, availablePlayers, allGames }: Game
       loadingTimeout
     })
   }, [authLoading, gameState.playersLoading, gameState.gameLoading, gameState.allGamesLoading, gameState.hasInitialized, gameState.activeGame, gameState.availablePlayers.length, gameState.allGames.length, shouldShowLoading, loadingTimeout])
+  
+  useEffect(() => {
+    // Only log in development and when there are significant changes
+    if (process.env.NODE_ENV === 'development') {
+      debugLog()
+    }
+  }, [debugLog])
   
   useEffect(() => {
     if (shouldShowLoading && !loadingTimeout) {

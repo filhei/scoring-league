@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useMatchTimer } from './useMatchTimer'
 import { useGameData } from './useGameData'
 import { convertPlannedGameToActiveGameData } from '../game-utils'
@@ -77,6 +77,18 @@ export function useGameState(): GameState {
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [isEndingGame, setIsEndingGame] = useState(false)
   
+  // Use refs to track previous values and prevent unnecessary updates
+  const prevActiveGameId = useRef<string | null>(null)
+  const prevActiveGameStatus = useRef<string | null>(null)
+  const lastRefreshTime = useRef<number>(0)
+  const stableMatchRef = useRef<Match | null>(null)
+  const currentGameContextRef = useRef<GameContext | null>(null)
+  
+  // Update the ref whenever context changes
+  useEffect(() => {
+    currentGameContextRef.current = currentGameContext
+  }, [currentGameContext])
+  
   // Use React Query for data fetching
   const { 
     activeGame, 
@@ -88,35 +100,88 @@ export function useGameState(): GameState {
     allGamesLoading,
     error: gameError,
     refreshGameData 
-  } = useGameData(selectedGameId || currentGameContext?.matchId)
+  } = useGameData()
   
-  // Timer hook
-  const timer = useMatchTimer(
-    currentGameContext?.type === 'active' ? currentGameContext.gameData.match : null, 
-    (updatedMatch) => {
-      if (isEndingGame) {
-        console.log('Timer callback: Skipping context update while ending game')
-        return
+  // Create a stable match reference for the timer
+  const stableMatch = useMemo(() => {
+    if (currentGameContext?.type !== 'active' || !currentGameContext?.gameData?.match) {
+      if (process.env.NODE_ENV === 'development' && stableMatchRef.current) {
+        console.log('Stable match: Clearing match reference')
       }
-      
-      if (currentGameContext?.type === 'active' && updatedMatch) {
-        setCurrentGameContext({
-          type: 'active',
-          gameData: {
-            ...currentGameContext.gameData,
-            match: updatedMatch
-          },
-          matchId: updatedMatch.id
+      stableMatchRef.current = null
+      return null
+    }
+    
+    const currentMatch = currentGameContext.gameData.match
+    const prevMatch = stableMatchRef.current
+    
+    // Only update if the match actually changed (different ID or status)
+    if (!prevMatch || 
+        prevMatch.id !== currentMatch.id || 
+        prevMatch.match_status !== currentMatch.match_status ||
+        prevMatch.start_time !== currentMatch.start_time) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Stable match: Updating match reference', { 
+          prevId: prevMatch?.id, 
+          currentId: currentMatch.id,
+          prevStatus: prevMatch?.match_status,
+          currentStatus: currentMatch.match_status
         })
       }
+      stableMatchRef.current = currentMatch
+    }
+    
+    return stableMatchRef.current
+  }, [currentGameContext?.type, currentGameContext?.gameData?.match?.id, currentGameContext?.gameData?.match?.match_status, currentGameContext?.gameData?.match?.start_time])
+  
+  // Stable callback for timer updates - prevents circular dependency
+  const handleMatchUpdate = useCallback((updatedMatch: Match) => {
+    if (isEndingGame) {
+      console.log('Timer callback: Skipping context update while ending game')
+      return
+    }
+    
+    // Prevent excessive refreshes - only refresh if enough time has passed
+    const now = Date.now()
+    if (now - lastRefreshTime.current < 1000) {
+      console.log('Timer callback: Skipping refresh - too soon since last refresh')
+      return
+    }
+    lastRefreshTime.current = now
+    
+    const currentContext = currentGameContextRef.current
+    if (currentContext?.type === 'active' && updatedMatch) {
+      setCurrentGameContext({
+        type: 'active',
+        gameData: {
+          ...currentContext.gameData,
+          match: updatedMatch
+        },
+        matchId: updatedMatch.id
+      })
+    }
+    
+    // Only refresh game data if the match status actually changed
+    if (updatedMatch.match_status !== prevActiveGameStatus.current) {
       refreshGameData()
     }
-  )
+  }, [isEndingGame, refreshGameData]) // Removed currentGameContext dependencies to prevent circular updates
+  
+  // Timer hook - use stable match reference
+  const timer = useMatchTimer(stableMatch, handleMatchUpdate)
 
-  // Update current game context when activeGame changes
+  // Update current game context when activeGame changes - with proper memoization
   useEffect(() => {
     if (isEndingGame) {
       console.log('ActiveGame effect: Skipping context update while ending game')
+      return
+    }
+    
+    const activeGameId = activeGame?.match.id
+    const activeGameStatus = activeGame?.match.match_status
+    
+    // Only update if the game actually changed
+    if (prevActiveGameId.current === activeGameId && prevActiveGameStatus.current === activeGameStatus) {
       return
     }
     
@@ -141,17 +206,24 @@ export function useGameState(): GameState {
         console.log('ActiveGame effect: Selected game loaded, clearing selectedGameId')
         setSelectedGameId(null)
       }
+      
+      // Update refs
+      prevActiveGameId.current = activeGameId || null
+      prevActiveGameStatus.current = activeGameStatus || null
     } else {
       if (!isStartingGame) {
         console.log('ActiveGame effect: No active game, clearing context')
         setCurrentGameContext(null)
         setLocalTeamA([])
         setLocalTeamB([])
+        prevActiveGameId.current = null
+        prevActiveGameStatus.current = null
+        stableMatchRef.current = null
       } else {
         console.log('ActiveGame effect: No active game from query, but starting game in progress, keeping context')
       }
     }
-  }, [activeGame, isStartingGame, startingGameId, selectedGameId, isEndingGame])
+  }, [activeGame?.match.id, activeGame?.match.match_status, isStartingGame, startingGameId, selectedGameId, isEndingGame])
 
   // Set initial state based on whether there's an active game
   useEffect(() => {
@@ -170,9 +242,9 @@ export function useGameState(): GameState {
         setShowMatchesList(true)
       }
     }
-  }, [activeGame, loading, hasInitialized, gameError])
+  }, [activeGame?.match.id, loading, hasInitialized, gameError])
 
-  // Update local state when currentGameContext changes
+  // Update local state when currentGameContext changes - only when match ID changes
   useEffect(() => {
     if (currentGameContext) {
       console.log(`Updating local state for game context: ${currentGameContext.type} (ID: ${currentGameContext.matchId})`)

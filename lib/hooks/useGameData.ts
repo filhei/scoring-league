@@ -199,7 +199,7 @@ async function fetchGameById(gameId: string): Promise<ActiveGameData | null> {
   return null
 }
 
-export function useGameData(targetGameId?: string) {
+export function useGameData() {
   const queryClient = useQueryClient()
   const { user, player, loading: authLoading } = useAuth()
 
@@ -213,30 +213,32 @@ export function useGameData(targetGameId?: string) {
     enabled: !authLoading, // Only fetch when auth is ready
   })
 
-  // Query for active game - use targeted query if we have a specific game ID
+  // Query for active game - always use the same query key to prevent cache invalidation
   const { 
     data: activeGame, 
     isLoading: gameLoading, 
     error: gameError 
   } = useQuery({
-    queryKey: targetGameId ? ['game', targetGameId] : ['activeGame'],
-    queryFn: targetGameId ? () => fetchGameById(targetGameId) : fetchActiveGame,
-    refetchInterval: 5000, // Real-time updates every 5 seconds
-    staleTime: 0, // Always consider stale for real-time data
+    queryKey: ['activeGame'],
+    queryFn: fetchActiveGame,
+    refetchInterval: 10000, // Reduced from 5s to 10s for active games
+    refetchIntervalInBackground: false, // Don't refetch when tab is not active
+    staleTime: 5000, // Consider data stale after 5 seconds
     retry: 3, // Retry failed requests up to 3 times
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
     enabled: !authLoading, // Only fetch when auth is ready
   })
 
-  // Query for all games
+  // Query for all games - less frequent updates
   const { 
     data: allGames = [], 
     isLoading: allGamesLoading 
   } = useQuery({
     queryKey: ['allGames'],
     queryFn: fetchAllGames,
-    refetchInterval: 5000, // Real-time updates every 5 seconds
-    staleTime: 0, // Always consider stale for real-time data
+    refetchInterval: 15000, // Reduced from 5s to 15s for all games
+    refetchIntervalInBackground: false, // Don't refetch when tab is not active
+    staleTime: 10000, // Consider data stale after 10 seconds
     retry: 3, // Retry failed requests up to 3 times
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
     enabled: !authLoading, // Only fetch when auth is ready
@@ -244,13 +246,8 @@ export function useGameData(targetGameId?: string) {
 
   // Mutation for refreshing game data
   const refreshGameData = () => {
-    if (targetGameId) {
-      queryClient.invalidateQueries({ queryKey: ['game', targetGameId] })
-      queryClient.refetchQueries({ queryKey: ['game', targetGameId] })
-    } else {
-      queryClient.invalidateQueries({ queryKey: ['activeGame'] })
-      queryClient.refetchQueries({ queryKey: ['activeGame'] })
-    }
+    queryClient.invalidateQueries({ queryKey: ['activeGame'] })
+    queryClient.refetchQueries({ queryKey: ['activeGame'] })
     queryClient.invalidateQueries({ queryKey: ['allGames'] })
     queryClient.refetchQueries({ queryKey: ['allGames'] })
   }

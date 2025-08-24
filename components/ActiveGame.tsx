@@ -51,11 +51,6 @@ export function ActiveGame({
 }: ActiveGameProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Debug log to track game display
-  React.useEffect(() => {
-    console.log(`ActiveGame: Displaying game ${activeGame.match.gameCount || 'N/A'} (${matchStatus}) with ${activeGame.teamA.length + activeGame.teamB.length} players`)
-  }, [activeGame.match.gameCount, matchStatus, activeGame.teamA.length, activeGame.teamB.length])
-
   // Use the drag and drop hook
   const {
     dragState,
