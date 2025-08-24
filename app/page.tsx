@@ -57,7 +57,7 @@ export default function Home() {
         <div className={`px-6 py-2 text-sm transition-opacity duration-500 ${
           isDarkMode ? 'bg-blue-900/20 text-blue-300' : 'bg-blue-50 text-blue-700'
         }`}>
-          Welcome back, {player.name}! 
+          Welcome back, {player.name || 'Unknown Player'}! 
           {!user.email_confirmed_at && (
             <span className="ml-2 text-yellow-600 dark:text-yellow-400">
               (Please check your email to confirm your account)

@@ -145,7 +145,10 @@ async function getScoreboardData(): Promise<PlayerStats[]> {
       if (b.points !== a.points) return b.points - a.points
       if (b.goals !== a.goals) return b.goals - a.goals
       if (b.wins !== a.wins) return b.wins - a.wins
-      return a.player.name.localeCompare(b.player.name)
+      // Handle null names by treating them as empty strings for sorting
+      const nameA = a.player.name || ''
+      const nameB = b.player.name || ''
+      return nameA.localeCompare(nameB)
     })
 
     // Add rank

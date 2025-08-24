@@ -73,7 +73,7 @@ export function PlayerSelectModal({
               <div className={`font-medium transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-800'
               }`}>
-                {player.name}
+                {player.name || 'Unknown Player'}
               </div>
             </button>
           ))}
@@ -157,7 +157,7 @@ function MultiPlayerSelectModal({
     // For planned games, we want to assign the selected players to the team
     // The selected players should replace the current team members
     const selectedPlayerObjects = availablePlayers.filter(p => selectedPlayers.has(p.id))
-    console.log(`MultiPlayerSelectModal: Confirming selection for team ${team}:`, selectedPlayerObjects.map(p => p.name))
+    console.log(`MultiPlayerSelectModal: Confirming selection for team ${team}:`, selectedPlayerObjects.map(p => p.name || 'Unknown Player'))
     
     // Note: The goalkeeper handling is done separately in the game actions
     // This function only handles field players, goalkeepers are managed through
@@ -182,7 +182,7 @@ function MultiPlayerSelectModal({
     
     if (aInOtherTeam && !bInOtherTeam) return 1
     if (!aInOtherTeam && bInOtherTeam) return -1
-    return a.name.localeCompare(b.name)
+    return (a.name || '').localeCompare(b.name || '')
   })
 
   return (
@@ -242,7 +242,7 @@ function MultiPlayerSelectModal({
                     ? isDarkMode ? 'text-white' : 'text-gray-800'
                     : isDarkMode ? 'text-white' : 'text-gray-800'
                 }`}>
-                  {player.name}
+                  {player.name || 'Unknown Player'}
                   {isInOtherTeam && (
                     <span className={`ml-2 text-xs px-2 py-1 rounded ${
                       isDarkMode

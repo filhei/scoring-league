@@ -13,9 +13,9 @@ interface PlayerTileProps {
   isDragging: boolean
   dragState: DragState | null
   scores: any[] // Using any[] for now, should be replaced with proper type
-  onDragStart: (e: React.DragEvent, player: Player) => void
-  onDragEnd: (e: React.DragEvent) => void
-  onRemovePlayer: (player: Player) => void
+  onDragStart?: (e: React.DragEvent, player: Player) => void
+  onDragEnd?: (e: React.DragEvent) => void
+  onRemovePlayer?: (player: Player) => void
 }
 
 export function PlayerTile({
@@ -42,7 +42,7 @@ export function PlayerTile({
     <div
       data-player-tile
       draggable={!isGoalkeeper} // Goalkeepers can't be dragged
-      onDragStart={(e) => !isGoalkeeper && onDragStart(e, player)}
+      onDragStart={(e) => !isGoalkeeper && onDragStart?.(e, player)}
       onDragEnd={onDragEnd}
       className={`group px-4 py-2 rounded-lg border transition-all duration-200 ${
         isDarkMode
@@ -54,7 +54,7 @@ export function PlayerTile({
         <span className={`font-medium ${
           isDarkMode ? 'text-white' : 'text-gray-800'
         }`}>
-          {player.name}
+          {player.name || 'Unknown Player'}
         </span>
         <div className="flex items-center gap-2">
           <span className={`text-sm ${
@@ -66,7 +66,7 @@ export function PlayerTile({
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                onRemovePlayer(player)
+                onRemovePlayer?.(player)
               }}
               className={getRemoveButtonStyles(isDarkMode, false)}
               title="remove from team"

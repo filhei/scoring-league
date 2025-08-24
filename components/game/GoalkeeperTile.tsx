@@ -8,8 +8,8 @@ interface GoalkeeperTileProps {
   team: 'A' | 'B'
   isDarkMode: boolean
   scores: any[] // Add scores parameter
-  onAddPlayer: (team: 'A' | 'B', isGoalkeeper?: boolean) => void
-  onRemovePlayer: (player: Player) => void
+  onAddPlayer?: (team: 'A' | 'B', isGoalkeeper?: boolean) => void
+  onRemovePlayer?: (player: Player) => void
   onDragOver?: (e: React.DragEvent) => void
   onDragLeave?: (e: React.DragEvent) => void
   onDrop?: (e: React.DragEvent) => void
@@ -62,7 +62,7 @@ export function GoalkeeperTile({
               ? 'bg-gray-700 border-gray-600'
               : 'bg-gray-100 border-gray-200'
       } ${goalkeeper && !isGoalkeeperBeingDragged ? 'cursor-grab active:cursor-grabbing' : ''}`}
-      onClick={() => !displayGoalkeeper && onAddPlayer(team, true)}
+      onClick={() => !displayGoalkeeper && onAddPlayer?.(team, true)}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
@@ -82,7 +82,7 @@ export function GoalkeeperTile({
               <span className={`font-medium transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-800'
               }`}>
-                {displayGoalkeeper.name}
+                {displayGoalkeeper.name || 'Unknown Player'}
               </span>
               <span className={`text-sm transition-colors duration-300 ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-600'
@@ -93,7 +93,7 @@ export function GoalkeeperTile({
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                onRemovePlayer(displayGoalkeeper)
+                onRemovePlayer?.(displayGoalkeeper)
               }}
               className={getRemoveButtonStyles(isDarkMode, true)}
               title="remove from team"

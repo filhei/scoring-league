@@ -49,7 +49,7 @@ export function TeamDisplay({
     }
 
     const placeholderKey = index === -1 ? `goalkeeper-placeholder-${team}` : `drop-placeholder-${team}-${index}`
-    const placeholderText = index === -1 ? `Make ${dragState.player.name} goalkeeper` : `Drop ${dragState.player.name} here`
+    const placeholderText = index === -1 ? `Make ${dragState.player.name || 'Unknown Player'} goalkeeper` : `Drop ${dragState.player.name || 'Unknown Player'} here`
 
     return (
       <div
@@ -90,7 +90,7 @@ export function TeamDisplay({
         onDragStart={isAuthenticated ? onDragStart : undefined}
         onDragEnd={isAuthenticated ? onDragEnd : undefined}
         isDragTarget={isGoalkeeperDragTarget}
-        draggedPlayerName={dragState?.player.name}
+        draggedPlayerName={dragState?.player.name || 'Unknown Player'}
         isDragging={isDragging}
         dragState={dragState}
       />

@@ -66,8 +66,8 @@ export function useMatchTimer(match: Match | null, onMatchUpdate?: (match: Match
     setCurrentDuration(duration)
     
     // Update refs
-    prevMatchId.current = matchId
-    prevMatchStatus.current = matchStatus
+    prevMatchId.current = matchId || null
+    prevMatchStatus.current = matchStatus || null
   }, [match?.id, match?.match_status])
 
   // Timer interval for active matches

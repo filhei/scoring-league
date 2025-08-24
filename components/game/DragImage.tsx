@@ -32,7 +32,7 @@ export function DragImage({ isVisible, player, position, isDarkMode, scores }: D
         <span className={`font-medium ${
           isDarkMode ? 'text-white' : 'text-gray-800'
         }`}>
-          {player.name}
+          {player.name || 'Unknown Player'}
         </span>
         <span className={`text-sm ml-4 ${
           isDarkMode ? 'text-gray-400' : 'text-gray-500'

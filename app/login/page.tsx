@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useAuth } from '../../lib/auth-context'
 import { useDarkMode } from '../../lib/hooks/useDarkMode'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-
-export default function LoginPage() {
+function LoginForm() {
   const { signIn, signInWithCode, user } = useAuth()
   const { isDarkMode } = useDarkMode()
   const searchParams = useSearchParams()
@@ -194,28 +193,28 @@ export default function LoginPage() {
               </div>
             )}
 
-                         <button
-               type="submit"
-               disabled={loading || !email}
-               className={`w-full py-2 px-4 rounded-md font-medium transition-colors ${
-                 loading || !email
-                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                   : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
-               }`}
-             >
-               {loading ? 'Sending...' : 'Send Email'}
-             </button>
-             
-             <div className="text-center">
-               <Link 
-                 href="/"
-                 className={`text-sm hover:underline ${
-                   isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'
-                 }`}
-               >
-                 ← Back to Home
-               </Link>
-             </div>
+            <button
+              type="submit"
+              disabled={loading || !email}
+              className={`w-full py-2 px-4 rounded-md font-medium transition-colors ${
+                loading || !email
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+              }`}
+            >
+              {loading ? 'Sending...' : 'Send Email'}
+            </button>
+            
+            <div className="text-center">
+              <Link 
+                href="/"
+                className={`text-sm hover:underline ${
+                  isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'
+                }`}
+              >
+                ← Back to Home
+              </Link>
+            </div>
           </form>
         )}
 
@@ -325,9 +324,36 @@ export default function LoginPage() {
             </form>
           </div>
         )}
-
-
       </div>
     </div>
+  )
+}
+
+function LoginPageFallback() {
+  const { isDarkMode } = useDarkMode()
+  
+  return (
+    <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
+      isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
+    }`}>
+      <div className={`max-w-md w-full mx-4 p-8 rounded-lg shadow-lg ${
+        isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
+      }`}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            Loading login form...
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginForm />
+    </Suspense>
   )
 }
