@@ -32,7 +32,7 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, ma
 
   const handleConfirmDelete = () => {
     setShowDeleteConfirmation(false)
-    onDeleteGame()
+    onDeleteGame?.()
   }
 
   const handleCancelDelete = () => {
@@ -46,7 +46,7 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, ma
 
   const handleConfirmReset = () => {
     setShowResetConfirmation(false)
-    onResetGame()
+    onResetGame?.()
   }
 
   const handleCancelReset = () => {

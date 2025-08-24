@@ -59,7 +59,7 @@ export function ScoreboardTable({ scoreboardData }: ScoreboardTableProps) {
                 {player.rank}
               </td>
               <td className="px-4 py-3 text-sm text-gray-900 dark:text-white font-medium">
-                {player.player.name}
+                {player.player.name || 'Unknown Player'}
               </td>
               <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white">
                 {player.gamesPlayed}
