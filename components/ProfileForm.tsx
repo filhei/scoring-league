@@ -15,7 +15,7 @@ interface PositionPreference {
 
 export function ProfileForm() {
   const { isDarkMode } = useDarkMode()
-  const { user, refreshPlayer } = useAuth()
+  const { user, refreshPlayer, signOut } = useAuth()
   const router = useRouter()
   const { profileData, loading, error, refetch } = useProfileData()
   
@@ -117,24 +117,30 @@ export function ProfileForm() {
     setIsSubmitting(true)
     setSubmitError(null)
 
-          try {
-        const result = await deleteAccount({ email: deleteEmail })
-        
-        if (!result.data?.success) {
-          const errorMessage = result.data?.error || result.serverError || 
-            (result.validationErrors && typeof result.validationErrors === 'object' && 
-             Object.values(result.validationErrors).flat().find(err => typeof err === 'string')) || 
-            'Failed to delete account'
-          setSubmitError(errorMessage as string)
-        } else {
-          // Redirect to home page after successful deletion
-          router.push('/')
-        }
-      } catch (err) {
-        setSubmitError('An unexpected error occurred')
-      } finally {
-        setIsSubmitting(false)
+    try {
+      const result = await deleteAccount({ email: deleteEmail })
+      
+      if (!result.data?.success) {
+        const errorMessage = result.data?.error || result.serverError || 
+          (result.validationErrors && typeof result.validationErrors === 'object' && 
+           Object.values(result.validationErrors).flat().find(err => typeof err === 'string')) || 
+          'Failed to delete account'
+        setSubmitError(errorMessage as string)
+      } else {
+        // Account deletion successful - close dialog and redirect to main page
+        setShowDeleteDialog(false)
+        setDeleteEmail('')
+        setSubmitError(null)
+        // Sign out first
+        await signOut()
+        // Force navigation to main page to show anonymous state
+        window.location.href = '/'
       }
+    } catch (err) {
+      setSubmitError('An unexpected error occurred')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const resetForm = () => {

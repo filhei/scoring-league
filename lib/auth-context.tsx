@@ -43,6 +43,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
+      // Check if player data is nullified (GDPR compliance)
+      if (!data.name || !data.user_id) {
+        console.log('Player data is nullified (account deleted)')
+        setPlayer(null)
+        return
+      }
+
       console.log('Player data fetched:', data)
       setPlayer(data)
     } catch (error) {
@@ -62,38 +69,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string): Promise<{ error: string | null }> => {
     try {
       console.log('Attempting sign in for:', email)
-      // First check if the email exists in the players table
-      const { data: playerData, error: playerError } = await supabase
-        .from('players')
-        .select('id, email, is_active')
-        .eq('email', email)
-        .single()
-
-      if (playerError || !playerData) {
-        console.log('Player not found or error:', playerError)
-        return { 
-          error: 'This email is not registered. Please contact the admin to set up your account.' 
-        }
-      }
-
-      if (!playerData.is_active) {
-        console.log('Player account deactivated')
-        return { 
-          error: 'Your account has been deactivated. Please contact the admin.' 
-        }
-      }
-
-      console.log('Player found, sending magic link')
-      // Send magic link
+      
+      // Send magic link directly - let Supabase handle user validation
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          shouldCreateUser: false
         }
       })
 
       if (error) {
         console.error('Sign in error:', error)
+        // Check if it's a "user not found" error
+        if (error.message.includes('User not found') || error.message.includes('Invalid login credentials')) {
+          return { 
+            error: 'This email is not registered. Please contact the admin to set up your account.' 
+          }
+        }
+        // Check if it's a "signups not allowed" error (user doesn't exist)
+        if (error.message.includes('Signups not allowed for otp')) {
+          return { 
+            error: 'This email is not registered. Please contact the admin to set up your account.' 
+          }
+        }
         return { error: error.message }
       }
 
@@ -110,29 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('Attempting sign in with code for:', email)
       
-      // First check if the email exists in the players table
-      const { data: playerData, error: playerError } = await supabase
-        .from('players')
-        .select('id, email, is_active')
-        .eq('email', email)
-        .single()
-
-      if (playerError || !playerData) {
-        console.log('Player not found or error:', playerError)
-        return { 
-          error: 'This email is not registered. Please contact the admin to set up your account.' 
-        }
-      }
-
-      if (!playerData.is_active) {
-        console.log('Player account deactivated')
-        return { 
-          error: 'Your account has been deactivated. Please contact the admin.' 
-        }
-      }
-
-      console.log('Player found, verifying code')
-      // Verify the one-time code
+      // Verify the one-time code first
       const { data, error } = await supabase.auth.verifyOtp({
         email,
         token: code,
@@ -141,11 +118,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Code verification error:', error)
+        // Check if it's a "user not found" error
+        if (error.message.includes('User not found') || error.message.includes('Invalid login credentials')) {
+          return { 
+            error: 'This email is not registered. Please contact the admin to set up your account.' 
+          }
+        }
+        // Check if it's a "signups not allowed" error (user doesn't exist)
+        if (error.message.includes('Signups not allowed for otp')) {
+          return { 
+            error: 'This email is not registered. Please contact the admin to set up your account.' 
+          }
+        }
         return { error: error.message }
       }
 
       if (data.session) {
         console.log('Code verification successful, session established')
+        
+        // Now check if the authenticated user has a valid player account
+        const { data: playerData, error: playerError } = await supabase
+          .from('players')
+          .select('id, name, is_active, user_id')
+          .eq('user_id', data.session.user.id)
+          .single()
+
+        if (playerError || !playerData) {
+          console.log('Player not found or error:', playerError)
+          // Sign out the user since they don't have a valid player account
+          await supabase.auth.signOut()
+          return { 
+            error: 'This email is not registered. Please contact the admin to set up your account.' 
+          }
+        }
+
+        // Check if player account is active (not nullified)
+        if (!playerData.is_active || !playerData.name || !playerData.user_id) {
+          console.log('Player account deactivated or nullified')
+          // Sign out the user since their account is deactivated
+          await supabase.auth.signOut()
+          return { 
+            error: 'Your account has been deactivated. Please contact the admin.' 
+          }
+        }
+
         return { error: null }
       } else {
         console.error('No session returned from code verification')

@@ -9,6 +9,8 @@ async function fetchAvailablePlayers(): Promise<Player[]> {
     .from('players')
     .select('*')
     .eq('is_active', true)
+    .not('name', 'is', null) // Ensure name is not nullified
+    .not('user_id', 'is', null) // Ensure user_id is not nullified
 
   if (error) throw error
   return players || []

@@ -485,7 +485,7 @@ export const updateProfile = actionClient
       // Test if we can access the user's data
       const { data: testPlayer, error: testError } = await supabaseServer
         .from('players')
-        .select('id, name, email')
+        .select('id, name')
         .eq('user_id', user.id)
         .single()
       
@@ -638,7 +638,7 @@ export const testProfileUpdate = actionClient
       // First, let's test if we can query the player data
       const { data: playerData, error: playerError } = await supabaseServer
         .from('players')
-        .select('id, name, email, user_id')
+        .select('id, name, user_id')
         .eq('user_id', user.id)
         .single()
       
@@ -693,21 +693,54 @@ export const deleteAccount = actionClient
       // Verify email matches
       if (user.email !== email) throw new Error('Email does not match your account')
 
-      // Soft delete the player account
+      // Get player data before nullification for verification
+      const { data: playerBefore, error: playerError } = await supabaseServer
+        .from('players')
+        .select('id, name, elo, is_active, created_at, user_id')
+        .eq('user_id', user.id)
+        .single()
+
+      if (playerError) throw handleSupabaseError(playerError)
+
+      // Nullify the player account (GDPR compliance - set all fields except id to null)
       const { error: updateError } = await supabaseServer
         .from('players')
-        .update({ is_active: false })
+        .update({ 
+          name: null,
+          elo: null,
+          is_active: null,
+          created_at: null,
+          user_id: null
+        })
         .eq('user_id', user.id)
 
       if (updateError) throw handleSupabaseError(updateError)
 
-      // Sign out the user
-      await supabaseServer.auth.signOut()
+      // Verify nullification was successful
+      const { data: playerAfter, error: verifyError } = await supabaseServer
+        .from('players')
+        .select('id, name, elo, is_active, created_at, user_id')
+        .eq('id', playerBefore.id)
+        .single()
 
+      if (verifyError) throw handleSupabaseError(verifyError)
+
+      // Verify all fields except id are null
+      if (playerAfter.name !== null || playerAfter.elo !== null || 
+          playerAfter.is_active !== null || playerAfter.created_at !== null || 
+          playerAfter.user_id !== null) {
+        throw new Error('Account nullification failed - some fields were not nullified')
+      }
+
+      // Don't sign out on server side - let client handle it for better UX
       revalidatePath('/')
-      return { success: true, data: { deleted: true } }
+      return { success: true, data: { deleted: true, playerId: playerBefore.id } }
     } catch (error) {
       const appError = error instanceof Error ? error : handleSupabaseError(error)
       return { success: false, error: appError.message }
     }
-  }) 
+  })
+
+
+
+ 

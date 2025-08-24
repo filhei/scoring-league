@@ -38,12 +38,19 @@ export function useProfileData() {
       // Fetch player data
       const { data: playerData, error: playerError } = await supabase
         .from('players')
-        .select('id, name')
+        .select('id, name, user_id')
         .eq('user_id', user.id)
         .eq('is_active', true)
+        .not('name', 'is', null) // Ensure name is not nullified
+        .not('user_id', 'is', null) // Ensure user_id is not nullified
         .single()
 
       if (playerError) throw playerError
+
+      // Check if player data is nullified (GDPR compliance)
+      if (!playerData.name || !playerData.user_id) {
+        throw new Error('Player account has been deactivated')
+      }
 
       console.log('Player data fetched:', playerData)
       

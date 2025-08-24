@@ -6,6 +6,7 @@ import { useDarkMode } from '../../lib/hooks/useDarkMode'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+
 export default function LoginPage() {
   const { signIn, signInWithCode, user } = useAuth()
   const { isDarkMode } = useDarkMode()
@@ -49,6 +50,16 @@ export default function LoginPage() {
         type: 'error', 
         text: 'Authentication timed out. Please try signing in again.' 
       })
+    } else if (error === 'no_player_account') {
+      setMessage({ 
+        type: 'error', 
+        text: 'This email is not linked to a player account. Please contact the admin.' 
+      })
+    } else if (error === 'account_deactivated') {
+      setMessage({ 
+        type: 'error', 
+        text: 'Your player account has been deactivated. Please contact the admin.' 
+      })
     }
   }, [searchParams])
 
@@ -60,7 +71,24 @@ export default function LoginPage() {
     const { error } = await signIn(email)
 
     if (error) {
-      setMessage({ type: 'error', text: error })
+      // Provide more specific error messages based on the error type
+      let errorMessage = error
+      
+      if (error.includes('not registered')) {
+        errorMessage = 'This email is not registered. Please contact the admin to set up your account.'
+      } else if (error.includes('not linked')) {
+        errorMessage = 'This email is not linked to an active player account. Please contact the admin.'
+      } else if (error.includes('deactivated')) {
+        errorMessage = 'Your player account has been deactivated. Please contact the admin.'
+      } else if (error.includes('Invalid login credentials') || error.includes('User not found')) {
+        errorMessage = 'This email is not registered. Please contact the admin to set up your account.'
+      } else if (error.includes('Email not confirmed')) {
+        errorMessage = 'Please check your email and click the confirmation link before signing in.'
+      } else if (error.includes('Too many requests')) {
+        errorMessage = 'Too many sign-in attempts. Please wait a few minutes before trying again.'
+      }
+      
+      setMessage({ type: 'error', text: errorMessage })
     } else {
       setEmailSent(true)
     }
@@ -76,7 +104,24 @@ export default function LoginPage() {
     const { error } = await signInWithCode(email, code)
 
     if (error) {
-      setMessage({ type: 'error', text: error })
+      // Provide more specific error messages based on the error type
+      let errorMessage = error
+      
+      if (error.includes('not registered')) {
+        errorMessage = 'This email is not registered. Please contact the admin to set up your account.'
+      } else if (error.includes('not linked')) {
+        errorMessage = 'This email is not linked to an active player account. Please contact the admin.'
+      } else if (error.includes('deactivated')) {
+        errorMessage = 'Your player account has been deactivated. Please contact the admin.'
+      } else if (error.includes('Invalid login credentials') || error.includes('User not found')) {
+        errorMessage = 'This email is not registered. Please contact the admin to set up your account.'
+      } else if (error.includes('Invalid or expired code')) {
+        errorMessage = 'Invalid or expired code. Please try again or request a new code.'
+      } else if (error.includes('Email not confirmed')) {
+        errorMessage = 'Please check your email and click the confirmation link before signing in.'
+      }
+      
+      setMessage({ type: 'error', text: errorMessage })
       // Clear the code field on error for better UX
       setCode('')
     } else {
@@ -149,17 +194,28 @@ export default function LoginPage() {
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading || !email}
-              className={`w-full py-2 px-4 rounded-md font-medium transition-colors ${
-                loading || !email
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
-              }`}
-            >
-              {loading ? 'Sending...' : 'Send Email'}
-            </button>
+                         <button
+               type="submit"
+               disabled={loading || !email}
+               className={`w-full py-2 px-4 rounded-md font-medium transition-colors ${
+                 loading || !email
+                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                   : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+               }`}
+             >
+               {loading ? 'Sending...' : 'Send Email'}
+             </button>
+             
+             <div className="text-center">
+               <Link 
+                 href="/"
+                 className={`text-sm hover:underline ${
+                   isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'
+                 }`}
+               >
+                 ← Back to Home
+               </Link>
+             </div>
           </form>
         )}
 
@@ -213,7 +269,7 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <div className="space-y-3">
+              <div className="space-y-6">
                 <button
                   type="submit"
                   disabled={loading || !code || code.length !== 6}
@@ -226,63 +282,51 @@ export default function LoginPage() {
                   {loading ? 'Signing in...' : 'Sign In with Code'}
                 </button>
                 
-                <div className="flex space-x-3">
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-                      isDarkMode 
-                        ? 'bg-gray-600 text-gray-300 hover:bg-gray-500' 
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    Back to Email
-                  </button>
+                <div className="grid grid-cols-3 items-center">
+                  <div className="flex justify-start">
+                    <Link 
+                      href="/"
+                      className={`text-sm hover:underline ${
+                        isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'
+                      }`}
+                    >
+                      ← Back to Home
+                    </Link>
+                  </div>
                   
-                  <button
-                    type="button"
-                    onClick={handleEmailSubmit}
-                    disabled={loading}
-                    className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-                      loading
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : isDarkMode 
-                          ? 'bg-blue-800 text-blue-300 hover:bg-blue-700' 
-                          : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                    }`}
-                  >
-                    Resend Email
-                  </button>
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={resetForm}
+                      className={`text-sm hover:underline ${
+                        isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'
+                      }`}
+                    >
+                      Back to Email
+                    </button>
+                  </div>
+                  
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleEmailSubmit}
+                      disabled={loading}
+                      className={`text-sm hover:underline ${
+                        loading
+                          ? 'text-gray-500 cursor-not-allowed'
+                          : isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'
+                      }`}
+                    >
+                      Resend Email
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>
           </div>
         )}
 
-        <div className="mt-6 text-center">
-          <Link 
-            href="/"
-            className={`text-sm hover:underline ${
-              isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'
-            }`}
-          >
-            ← Back to Home
-          </Link>
-        </div>
 
-        {/* How it works section - only show before email is sent */}
-        {!emailSent && (
-          <div className={`mt-8 p-4 rounded-md text-sm ${
-            isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
-          }`}>
-            <p className="mb-2 font-medium">How it works:</p>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>Enter your registered email address</li>
-              <li>Check your email for a magic link and one-time code</li>
-              <li>Either click the link or enter the code to sign in</li>
-            </ol>
-          </div>
-        )}
       </div>
     </div>
   )

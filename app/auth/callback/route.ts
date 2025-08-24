@@ -55,6 +55,30 @@ export async function GET(request: NextRequest) {
       const { data: { session: verifySession } } = await supabase.auth.getSession()
       if (verifySession) {
         console.log('Session verification successful')
+        
+        // Additional validation: Check if the authenticated user has a valid player account
+        const { data: player, error: playerError } = await supabase
+          .from('players')
+          .select('id, name, is_active, user_id')
+          .eq('user_id', data.session.user.id)
+          .single()
+
+        if (playerError || !player) {
+          console.error('Player not found for authenticated user:', data.session.user.email)
+          // Sign out the user and redirect with error
+          await supabase.auth.signOut()
+          return NextResponse.redirect(`${requestUrl.origin}/login?error=no_player_account`)
+        }
+
+        // Check if player account is active and not nullified
+        if (!player.is_active || !player.name || !player.user_id) {
+          console.error('Player account deactivated or nullified for user:', data.session.user.email)
+          // Sign out the user and redirect with error
+          await supabase.auth.signOut()
+          return NextResponse.redirect(`${requestUrl.origin}/login?error=account_deactivated`)
+        }
+
+        console.log('Player account validation successful for user:', data.session.user.email)
       } else {
         console.warn('Session verification failed - session not found after exchange')
       }

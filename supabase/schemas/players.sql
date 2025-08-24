@@ -1,7 +1,6 @@
 CREATE TABLE players (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
-  name TEXT NOT NULL,
+  name TEXT,
   elo INTEGER DEFAULT 1500,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -11,27 +10,45 @@ CREATE TABLE players (
 -- Enable RLS
 ALTER TABLE players ENABLE ROW LEVEL SECURITY;
 
--- Anonymous users can only view active players (names only)
-CREATE POLICY "Anonymous can view active player names" ON players
+-- Anonymous users can view all players (including inactive for historical data)
+CREATE POLICY "Anonymous can view all players" ON players
   FOR SELECT TO anon
-  USING (is_active = true);
+  USING (true);
 
--- Authenticated users can view all active players
-CREATE POLICY "Authenticated can view active players" ON players
+-- Authenticated users can view all players (including inactive for historical data)
+CREATE POLICY "Authenticated can view all players" ON players
   FOR SELECT TO authenticated
-  USING (is_active = true);
+  USING (true);
 
--- Users can only update their own player record (name field only)
-CREATE POLICY "Users can update their own name" ON players
+-- Users can update their own player record (name, elo, is_active only)
+-- Explicitly prevents id, created_at, and user_id changes
+CREATE POLICY "Users can update their own record" ON players
   FOR UPDATE TO authenticated
   USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
+  WITH CHECK (
+    -- Prevent changing id (must remain the same)
+    id = (SELECT id FROM players WHERE user_id = auth.uid()) AND
+    -- Prevent changing created_at (must remain the same)
+    created_at = (SELECT created_at FROM players WHERE user_id = auth.uid()) AND
+    -- Prevent changing user_id (handled by separate nullification policy)
+    user_id = auth.uid()
+  );
 
--- Users can soft delete their own account (set is_active = false)
-CREATE POLICY "Users can soft delete their own account" ON players
+-- Users can nullify their own account
+-- This allows setting everything except id to null
+CREATE POLICY "Users can nullify their own account" ON players
   FOR UPDATE TO authenticated
   USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid() AND is_active = false);
+  WITH CHECK (
+    -- Prevent changing id (must remain the same)
+    id = (SELECT id FROM players WHERE user_id = auth.uid()) AND
+    -- Allow setting rest to null only
+    (name IS NULL) AND
+    (elo IS NULL) AND
+    (is_active IS NULL) AND
+    (created_at IS NULL) AND
+    (user_id IS NULL)
+  );
 
 -- Only service role can create/delete players (admin operations)
 CREATE POLICY "Service role can manage all players" ON players
