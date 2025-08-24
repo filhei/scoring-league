@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { Navigation } from '../components/Navigation'
 import { ActiveGameWrapper } from '../components/ActiveGameWrapper'
 import { GameLoadingSkeleton } from '../components/ui/loading-skeleton'
@@ -26,6 +26,21 @@ import type { ActiveGameData, Player, Match } from '../lib/types'
 export default function Home() {
   const { user, player, loading } = useAuth()
   const { isDarkMode, toggleDarkMode } = useDarkMode()
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false)
+
+  // Hide welcome banner after 3 seconds when user logs in
+  useEffect(() => {
+    if (user && player) {
+      setShowWelcomeBanner(true)
+      const timer = setTimeout(() => {
+        setShowWelcomeBanner(false)
+      }, 3000)
+      
+      return () => clearTimeout(timer)
+    } else {
+      setShowWelcomeBanner(false)
+    }
+  }, [user, player])
 
   if (loading) {
     return <GameLoadingSkeleton />
@@ -38,8 +53,8 @@ export default function Home() {
       <Navigation isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} />
       
       {/* Auth Status Banner */}
-      {user && player && (
-        <div className={`px-6 py-2 text-sm ${
+      {user && player && showWelcomeBanner && (
+        <div className={`px-6 py-2 text-sm transition-opacity duration-500 ${
           isDarkMode ? 'bg-blue-900/20 text-blue-300' : 'bg-blue-50 text-blue-700'
         }`}>
           Welcome back, {player.name}! 
