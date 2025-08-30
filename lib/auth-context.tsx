@@ -92,7 +92,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
           shouldCreateUser: false
         }
       })
@@ -233,20 +232,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const debouncedAuthUpdate = (newSession: Session | null, newUser: User | null) => {
     // Don't process auth updates if tab is not visible (prevents unnecessary operations)
     if (!isTabVisibleRef.current && isInitializedRef.current) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Skipping auth update - tab not visible')
-      }
       return
     }
 
     const now = Date.now()
     const timeSinceLastChange = now - lastAuthChangeRef.current
     
-    // If this is a rapid change (less than 1000ms), debounce it more aggressively
-    if (timeSinceLastChange < 1000 && isInitializedRef.current) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Debouncing rapid auth state change (1000ms cooldown)')
-      }
+    // Reduce debouncing timeout for better magic link detection
+    if (timeSinceLastChange < 500 && isInitializedRef.current) {
       return
     }
     
@@ -256,11 +249,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userChanged = userRef.current?.id !== newUser?.id
     const sessionChanged = sessionRef.current?.access_token !== newSession?.access_token
     
-    if (userChanged || sessionChanged) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Auth state change:', { userChanged, sessionChanged, userId: newUser?.id })
-      }
-      
+    if (userChanged || sessionChanged || (!userRef.current && newUser)) {
       setSession(newSession)
       setUser(newUser)
       userRef.current = newUser
@@ -272,44 +261,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setPlayer(null)
       }
-    } else {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Skipping auth update - no actual change detected')
-      }
     }
   }
 
   // Initialize auth state - simplified to remove unnecessary checks
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Initializing auth state')
-    }
-    
     const initializeAuth = async () => {
       try {
         setLoading(true)
+        
+        // Force session refresh to detect magic link authentication
+        await supabase.auth.refreshSession()
+        
         // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) {
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Error getting initial session:', error)
-          }
+          console.error('Error getting initial session:', error)
           debouncedAuthUpdate(null, null)
           setLoading(false)
           return
         }
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Initial session:', session)
-        }
-        
         debouncedAuthUpdate(session, session?.user ?? null)
         isInitializedRef.current = true
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error initializing auth state:', error)
-        }
+        console.error('Error initializing auth state:', error)
         debouncedAuthUpdate(null, null)
       } finally {
         setLoading(false)
@@ -322,36 +299,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Auth state change event:', event, session?.user?.email)
-      }
-      
       try {
         setLoading(true)
         debouncedAuthUpdate(session, session?.user ?? null)
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error handling auth state change:', error)
-        }
+        console.error('Error handling auth state change:', error)
         debouncedAuthUpdate(null, null)
       } finally {
         setLoading(false)
       }
     })
 
+    // Periodic session check to catch magic link authentication
+    const sessionCheckInterval = setInterval(async () => {
+      if (!isInitializedRef.current) return
+      
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        if (!error && session && !userRef.current) {
+          debouncedAuthUpdate(session, session.user)
+        }
+      } catch (error) {
+        console.error('Error in periodic session check:', error)
+      }
+    }, 2000) // Check every 2 seconds
+
+    // Additional session check on page focus to catch magic link auth
+    const handlePageFocus = async () => {
+      if (!isInitializedRef.current) return
+      
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        if (!error && session && !userRef.current) {
+          debouncedAuthUpdate(session, session.user)
+        }
+      } catch (error) {
+        console.error('Error in page focus session check:', error)
+      }
+    }
+
     // Track tab visibility to prevent unnecessary operations
     const handleVisibilityChange = () => {
       isTabVisibleRef.current = !document.hidden
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Tab visibility changed:', isTabVisibleRef.current)
+      
+      // Check for session changes when tab becomes visible
+      if (!document.hidden) {
+        handlePageFocus()
       }
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handlePageFocus)
 
     return () => {
       subscription.unsubscribe()
+      clearInterval(sessionCheckInterval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handlePageFocus)
     }
   }, []) // Removed user?.id dependency to prevent cascading updates
 
