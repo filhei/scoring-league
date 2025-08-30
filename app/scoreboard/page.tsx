@@ -1,10 +1,12 @@
-import { Suspense } from 'react'
+'use client'
+
+import { Suspense, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { ScoreboardWrapper } from '../../components/ScoreboardWrapper'
 import { GameLoadingSkeleton } from '../../components/ui/loading-skeleton'
 import type { PlayerStats } from '../../lib/types'
 
-// Server-side data fetching for scoreboard
+// Client-side data fetching for scoreboard
 async function getScoreboardData(): Promise<PlayerStats[]> {
   try {
     // Get all finished matches
@@ -163,8 +165,28 @@ async function getScoreboardData(): Promise<PlayerStats[]> {
   }
 }
 
-export default async function ScoreboardPage() {
-  const scoreboardData = await getScoreboardData()
+export default function ScoreboardPage() {
+  const [scoreboardData, setScoreboardData] = useState<PlayerStats[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchScoreboardData = async () => {
+      try {
+        const data = await getScoreboardData()
+        setScoreboardData(data)
+      } catch (error) {
+        console.error('Error fetching scoreboard data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchScoreboardData()
+  }, [])
+
+  if (loading) {
+    return <GameLoadingSkeleton />
+  }
 
   return (
     <div className="min-h-screen transition-colors duration-300">

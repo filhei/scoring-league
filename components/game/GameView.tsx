@@ -36,50 +36,73 @@ export function GameView({ initialActiveGame, availablePlayers, allGames }: Game
   // Game actions
   const actions = useGameActions(gameState, showSnackbar)
 
-  // Add a timeout fallback to prevent infinite loading
+  // Add a timeout fallback to prevent infinite loading - reduced timeout
   const [loadingTimeout, setLoadingTimeout] = useState(false)
+  const [isTabVisible, setIsTabVisible] = useState(true)
 
-  // Show loading state if auth is loading or we're still loading essential data
+  // Track tab visibility
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsTabVisible(!document.hidden)
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
+
+  // Simplified loading logic - only show loading for essential data
   const shouldShowLoading = authLoading || 
-                           (gameState.playersLoading && gameState.availablePlayers.length === 0) || 
-                           (gameState.gameLoading && !gameState.hasInitialized) ||
-                           (gameState.allGamesLoading && gameState.allGames.length === 0)
+                           (!gameState.hasInitialized && (gameState.gameLoading || gameState.playersLoading))
 
   // Debug logging - only log when state actually changes
   const debugLog = useCallback(() => {
-    console.log('GameView loading state:', {
-      authLoading,
-      playersLoading: gameState.playersLoading,
-      gameLoading: gameState.gameLoading,
-      allGamesLoading: gameState.allGamesLoading,
-      hasInitialized: gameState.hasInitialized,
-      activeGame: !!gameState.activeGame,
-      availablePlayersCount: gameState.availablePlayers.length,
-      allGamesCount: gameState.allGames.length,
-      shouldShowLoading,
-      loadingTimeout
-    })
-  }, [authLoading, gameState.playersLoading, gameState.gameLoading, gameState.allGamesLoading, gameState.hasInitialized, gameState.activeGame, gameState.availablePlayers.length, gameState.allGames.length, shouldShowLoading, loadingTimeout])
+    if (process.env.NODE_ENV === 'development') {
+      console.log('GameView loading state:', {
+        authLoading,
+        playersLoading: gameState.playersLoading,
+        gameLoading: gameState.gameLoading,
+        allGamesLoading: gameState.allGamesLoading,
+        hasInitialized: gameState.hasInitialized,
+        activeGame: !!gameState.activeGame,
+        availablePlayersCount: gameState.availablePlayers.length,
+        allGamesCount: gameState.allGames.length,
+        shouldShowLoading,
+        loadingTimeout,
+        isTabVisible
+      })
+    }
+  }, [authLoading, gameState.playersLoading, gameState.gameLoading, gameState.allGamesLoading, gameState.hasInitialized, gameState.activeGame, gameState.availablePlayers.length, gameState.allGames.length, shouldShowLoading, loadingTimeout, isTabVisible])
   
   useEffect(() => {
-    // Only log in development and when there are significant changes
-    if (process.env.NODE_ENV === 'development') {
-      debugLog()
-    }
+    debugLog()
   }, [debugLog])
   
   useEffect(() => {
+    // Don't start timeout if tab is not visible
+    if (!isTabVisible) {
+      return
+    }
+
     if (shouldShowLoading && !loadingTimeout) {
       const timeout = setTimeout(() => {
         console.warn('Loading timeout reached, forcing display')
         setLoadingTimeout(true)
-      }, 10000) // 10 second timeout
+      }, 3000) // Further reduced to 3 second timeout
       
       return () => clearTimeout(timeout)
     } else if (!shouldShowLoading) {
       setLoadingTimeout(false)
     }
-  }, [shouldShowLoading, loadingTimeout])
+  }, [shouldShowLoading, loadingTimeout, isTabVisible])
+  
+  // Force display if tab becomes visible and we're still loading
+  useEffect(() => {
+    if (isTabVisible && shouldShowLoading && loadingTimeout) {
+      setLoadingTimeout(false)
+    }
+  }, [isTabVisible, shouldShowLoading, loadingTimeout])
   
   if (shouldShowLoading && !loadingTimeout) {
     return <GameLoadingSkeleton />

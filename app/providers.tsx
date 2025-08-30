@@ -8,11 +8,18 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 5 * 1000, // 5 seconds
-        refetchOnWindowFocus: false,
-        retry: 3, // Retry failed requests up to 3 times
-        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
-        gcTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: 5 * 60 * 1000, // Increased to 5 minutes to reduce unnecessary refetches
+        refetchOnWindowFocus: false, // Keep this false to prevent focus-triggered refetches
+        refetchOnReconnect: false, // Disable refetch on reconnect to prevent unnecessary calls
+        refetchOnMount: false, // Don't refetch on mount if data is fresh
+        retry: 0, // No retries to prevent infinite loops
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000), // Shorter exponential backoff
+        gcTime: 30 * 60 * 1000, // Increased to 30 minutes for better caching
+        networkMode: 'online', // Only retry when online
+      },
+      mutations: {
+        retry: 0, // No retries for mutations
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
       },
     },
   }))

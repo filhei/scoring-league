@@ -203,17 +203,17 @@ export function useGameData() {
   const queryClient = useQueryClient()
   const { user, player, loading: authLoading } = useAuth()
 
-  // Query for available players
+  // Query for available players - very infrequent updates
   const { data: availablePlayers = [], isLoading: playersLoading } = useQuery({
     queryKey: ['availablePlayers'],
     queryFn: fetchAvailablePlayers,
-    staleTime: 30 * 1000, // 30 seconds
-    retry: 3, // Retry failed requests up to 3 times
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
-    enabled: !authLoading, // Only fetch when auth is ready
+    staleTime: 5 * 60 * 1000, // 5 minutes - players rarely change
+    retry: 1,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    enabled: !authLoading,
   })
 
-  // Query for active game - always use the same query key to prevent cache invalidation
+  // Query for active game - very conservative refetch intervals
   const { 
     data: activeGame, 
     isLoading: gameLoading, 
@@ -221,27 +221,27 @@ export function useGameData() {
   } = useQuery({
     queryKey: ['activeGame'],
     queryFn: fetchActiveGame,
-    refetchInterval: 10000, // Reduced from 5s to 10s for active games
+    refetchInterval: false, // Disable automatic refetching entirely
     refetchIntervalInBackground: false, // Don't refetch when tab is not active
-    staleTime: 5000, // Consider data stale after 5 seconds
-    retry: 3, // Retry failed requests up to 3 times
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
-    enabled: !authLoading, // Only fetch when auth is ready
+    staleTime: 60 * 1000, // 1 minute
+    retry: 0, // No retries
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
+    enabled: !authLoading,
   })
 
-  // Query for all games - less frequent updates
+  // Query for all games - very infrequent updates
   const { 
     data: allGames = [], 
     isLoading: allGamesLoading 
   } = useQuery({
     queryKey: ['allGames'],
     queryFn: fetchAllGames,
-    refetchInterval: 15000, // Reduced from 5s to 15s for all games
-    refetchIntervalInBackground: false, // Don't refetch when tab is not active
-    staleTime: 10000, // Consider data stale after 10 seconds
-    retry: 3, // Retry failed requests up to 3 times
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
-    enabled: !authLoading, // Only fetch when auth is ready
+    refetchInterval: false, // Disable automatic refetching entirely
+    refetchIntervalInBackground: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 0, // No retries
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
+    enabled: !authLoading,
   })
 
   // Mutation for refreshing game data

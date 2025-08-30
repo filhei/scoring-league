@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import type { Database } from '../supabase/database.types'
@@ -25,6 +25,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [player, setPlayer] = useState<Player | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  
+  // Use refs to track state and prevent unnecessary updates
+  const userRef = useRef<User | null>(null)
+  const sessionRef = useRef<Session | null>(null)
+  const isInitializedRef = useRef(false)
+  const lastAuthChangeRef = useRef<number>(0)
+  const isTabVisibleRef = useRef(true)
 
   // Fetch player data for authenticated user
   const fetchPlayer = async (userId: string) => {
@@ -82,7 +89,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Attempting sign in for:', email)
       }
       
-      // Send magic link directly - let Supabase handle user validation
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
@@ -129,7 +135,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Attempting sign in with code for:', email)
       }
       
-      // Verify the one-time code first
       const { data, error } = await supabase.auth.verifyOtp({
         email,
         token: code,
@@ -215,6 +220,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null)
       setPlayer(null)
       setSession(null)
+      userRef.current = null
+      sessionRef.current = null
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Sign out error:', error)
@@ -222,7 +229,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Initialize auth state
+  // Debounced auth state update
+  const debouncedAuthUpdate = (newSession: Session | null, newUser: User | null) => {
+    // Don't process auth updates if tab is not visible (prevents unnecessary operations)
+    if (!isTabVisibleRef.current && isInitializedRef.current) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Skipping auth update - tab not visible')
+      }
+      return
+    }
+
+    const now = Date.now()
+    const timeSinceLastChange = now - lastAuthChangeRef.current
+    
+    // If this is a rapid change (less than 1000ms), debounce it more aggressively
+    if (timeSinceLastChange < 1000 && isInitializedRef.current) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Debouncing rapid auth state change (1000ms cooldown)')
+      }
+      return
+    }
+    
+    lastAuthChangeRef.current = now
+    
+    // Only update if the user/session actually changed
+    const userChanged = userRef.current?.id !== newUser?.id
+    const sessionChanged = sessionRef.current?.access_token !== newSession?.access_token
+    
+    if (userChanged || sessionChanged) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Auth state change:', { userChanged, sessionChanged, userId: newUser?.id })
+      }
+      
+      setSession(newSession)
+      setUser(newUser)
+      userRef.current = newUser
+      sessionRef.current = newSession
+
+      // Fetch player data when user signs in
+      if (newUser?.id) {
+        fetchPlayer(newUser.id)
+      } else {
+        setPlayer(null)
+      }
+    } else {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Skipping auth update - no actual change detected')
+      }
+    }
+  }
+
+  // Initialize auth state - simplified to remove unnecessary checks
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       console.log('Initializing auth state')
@@ -238,9 +295,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (process.env.NODE_ENV === 'development') {
             console.error('Error getting initial session:', error)
           }
-          setSession(null)
-          setUser(null)
-          setPlayer(null)
+          debouncedAuthUpdate(null, null)
           setLoading(false)
           return
         }
@@ -248,22 +303,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (process.env.NODE_ENV === 'development') {
           console.log('Initial session:', session)
         }
-        setSession(session)
-        setUser(session?.user ?? null)
-
-        // Fetch player data when user signs in
-        if (session?.user?.id) {
-          await fetchPlayer(session.user.id)
-        } else {
-          setPlayer(null)
-        }
+        
+        debouncedAuthUpdate(session, session?.user ?? null)
+        isInitializedRef.current = true
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
           console.error('Error initializing auth state:', error)
         }
-        setSession(null)
-        setUser(null)
-        setPlayer(null)
+        debouncedAuthUpdate(null, null)
       } finally {
         setLoading(false)
       }
@@ -271,92 +318,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initializeAuth()
 
-    // Listen for auth changes
+    // Listen for auth changes - with debouncing
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (process.env.NODE_ENV === 'development') {
-        console.log('Auth state change:', event, session?.user?.email)
+        console.log('Auth state change event:', event, session?.user?.email)
       }
       
       try {
         setLoading(true)
-        setSession(session)
-        setUser(session?.user ?? null)
-
-        // Fetch player data when user signs in
-        if (session?.user?.id) {
-          await fetchPlayer(session.user.id)
-        } else {
-          setPlayer(null)
-        }
+        debouncedAuthUpdate(session, session?.user ?? null)
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
           console.error('Error handling auth state change:', error)
         }
-        setSession(null)
-        setUser(null)
-        setPlayer(null)
+        debouncedAuthUpdate(null, null)
       } finally {
         setLoading(false)
       }
     })
 
-    // Handle tab focus to refresh auth state
-    const handleFocus = async () => {
+    // Track tab visibility to prevent unnecessary operations
+    const handleVisibilityChange = () => {
+      isTabVisibleRef.current = !document.hidden
       if (process.env.NODE_ENV === 'development') {
-        console.log('Tab focused, refreshing auth state')
-      }
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession()
-        if (!error && session?.user?.id && session.user.id !== user?.id) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Session changed on focus, updating state')
-          }
-          setSession(session)
-          setUser(session.user)
-          await fetchPlayer(session.user.id)
-        }
-      } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error refreshing auth state on focus:', error)
-        }
+        console.log('Tab visibility changed:', isTabVisibleRef.current)
       }
     }
 
-    // Handle page visibility changes (more reliable than focus for tab switching)
-    const handleVisibilityChange = async () => {
-      if (!document.hidden) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Page became visible, refreshing auth state')
-        }
-        try {
-          const { data: { session }, error } = await supabase.auth.getSession()
-          if (!error && session?.user?.id && session.user.id !== user?.id) {
-            if (process.env.NODE_ENV === 'development') {
-              console.log('Session changed on visibility change, updating state')
-            }
-            setSession(session)
-            setUser(session.user)
-            await fetchPlayer(session.user.id)
-          }
-        } catch (error) {
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Error refreshing auth state on visibility change:', error)
-          }
-        }
-      }
-    }
-
-    window.addEventListener('focus', handleFocus)
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
       subscription.unsubscribe()
-      window.removeEventListener('focus', handleFocus)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [])
+  }, []) // Removed user?.id dependency to prevent cascading updates
 
   const value: AuthContextType = {
     user,

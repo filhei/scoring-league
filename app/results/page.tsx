@@ -1,10 +1,12 @@
-import { Suspense } from 'react'
+'use client'
+
+import { Suspense, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { ResultsWrapper } from '../../components/ResultsWrapper'
 import { GameLoadingSkeleton } from '../../components/ui/loading-skeleton'
 import type { PastGameData } from '../../lib/types'
 
-// Server-side data fetching for past games
+// Client-side data fetching for past games
 async function getPastGames(): Promise<PastGameData[]> {
   try {
     // Get finished matches
@@ -81,8 +83,28 @@ async function getPastGames(): Promise<PastGameData[]> {
   }
 }
 
-export default async function ResultsPage() {
-  const pastGames = await getPastGames()
+export default function ResultsPage() {
+  const [pastGames, setPastGames] = useState<PastGameData[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchPastGames = async () => {
+      try {
+        const games = await getPastGames()
+        setPastGames(games)
+      } catch (error) {
+        console.error('Error fetching past games:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPastGames()
+  }, [])
+
+  if (loading) {
+    return <GameLoadingSkeleton />
+  }
 
   return (
     <div className="min-h-screen transition-colors duration-300">
