@@ -27,7 +27,7 @@ export const addScore = actionClient
   .inputSchema(scoreSchema)
   .action(async ({ parsedInput: { matchId, team, scoringPlayerId, assistingPlayerId } }) => {
     try {
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       const currentDuration = MatchService.calculateCurrentDuration({ id: matchId } as any)
       
       const { data, error } = await supabaseServer
@@ -56,7 +56,7 @@ export const addPlayerToMatch = actionClient
   .inputSchema(playerSelectSchema)
   .action(async ({ parsedInput: { matchId, playerId, team, isGoalkeeper } }) => {
     try {
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       const { data, error } = await supabaseServer
         .from('match_players')
         .insert({
@@ -82,7 +82,7 @@ export const removePlayerFromMatch = actionClient
   .inputSchema(z.object({ matchId: z.string().uuid(), playerId: z.string().uuid() }))
   .action(async ({ parsedInput: { matchId, playerId } }) => {
     try {
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       const { error } = await supabaseServer
         .from('match_players')
         .delete()
@@ -103,7 +103,7 @@ export const updatePlayerTeam = actionClient
   .inputSchema(updatePlayerTeamSchema)
   .action(async ({ parsedInput: { matchId, playerId, newTeam } }) => {
     try {
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       const { data, error } = await supabaseServer
         .from('match_players')
         .update({ team: newTeam })
@@ -126,7 +126,7 @@ export const assignGoalkeeper = actionClient
   .inputSchema(assignGoalkeeperSchema)
   .action(async ({ parsedInput: { matchId, playerId, team } }) => {
     try {
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       // First, remove any existing goalkeeper for this team
       await supabaseServer
         .from('match_players')
@@ -161,7 +161,7 @@ export const controlMatch = actionClient
   .inputSchema(matchControlSchema)
   .action(async ({ parsedInput: { matchId, action, winnerTeam } }) => {
     try {
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       let result = null
 
       switch (action) {
@@ -193,7 +193,7 @@ export const removeGoalkeeper = actionClient
   .inputSchema(removeGoalkeeperSchema)
   .action(async ({ parsedInput: { matchId, playerId } }) => {
     try {
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       const { data, error } = await supabaseServer
         .from('match_players')
         .update({ is_goalkeeper: false })
@@ -217,7 +217,7 @@ export const addPlayerToField = actionClient
   .inputSchema(addPlayerToFieldSchema)
   .action(async ({ parsedInput: { matchId, playerId, team } }) => {
     try {
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       // First check if player is already in the match
       const { data: existingPlayer } = await supabaseServer
         .from('match_players')
@@ -269,7 +269,7 @@ export const toggleVests = actionClient
   .inputSchema(vestToggleSchema)
   .action(async ({ parsedInput: { matchId, team } }) => {
     try {
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       const { data, error } = await supabaseServer
         .from('matches')
         .update({
@@ -296,7 +296,7 @@ export const createMatch = actionClient
       console.log('Creating match with params:', parsedInput)
       
       // Create server-side Supabase client
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       
       // Check if user is authenticated
       const { data: { user }, error: authError } = await supabaseServer.auth.getUser()
@@ -400,7 +400,7 @@ export const deleteMatch = actionClient
   .inputSchema(z.object({ matchId: z.string().uuid() }))
   .action(async ({ parsedInput: { matchId } }) => {
     try {
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       // Delete related data first (scores and match_players)
       const { error: scoresError } = await supabaseServer
         .from('scores')
@@ -436,7 +436,7 @@ export const resetMatch = actionClient
   .inputSchema(z.object({ matchId: z.string().uuid() }))
   .action(async ({ parsedInput: { matchId } }) => {
     try {
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       // Delete all scores for the match
       const { error: scoresError } = await supabaseServer
         .from('scores')
@@ -473,7 +473,7 @@ export const updateProfile = actionClient
     try {
       console.log('updateProfile: ACTION STARTED')
       console.log('updateProfile: Starting update with name:', name, 'positions:', positions)
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       
       // Get current user
       const { data: { user }, error: userError } = await supabaseServer.auth.getUser()
@@ -584,7 +584,7 @@ export const testAuth = actionClient
   .action(async () => {
     try {
       console.log('testAuth: Starting test')
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       
       // Get current user
       const { data: { user }, error: userError } = await supabaseServer.auth.getUser()
@@ -623,7 +623,7 @@ export const testProfileUpdate = actionClient
       console.log('testProfileUpdate: ACTION STARTED')
       console.log('testProfileUpdate: Name:', name)
       
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       
       // Get current user
       const { data: { user }, error: userError } = await supabaseServer.auth.getUser()
@@ -684,7 +684,7 @@ export const deleteAccount = actionClient
   .inputSchema(deleteAccountSchema)
   .action(async ({ parsedInput: { email } }) => {
     try {
-      const supabaseServer = createServerSupabaseClient()
+      const supabaseServer = await createServerSupabaseClient()
       
       // Get current user
       const { data: { user }, error: userError } = await supabaseServer.auth.getUser()
