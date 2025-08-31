@@ -2,74 +2,109 @@ import type { PastGameData } from '../lib/types'
 
 interface PastGameCardProps {
   game: PastGameData
+  isDarkMode?: boolean
 }
 
-export function PastGameCard({ game }: PastGameCardProps) {
+export function PastGameCard({ game, isDarkMode = false }: PastGameCardProps) {
   const { match, teamA, teamB, goalkeepers, scores, teamWithVests } = game
   
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    }) + ' - ' + date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  const getTeamIcon = (team: 'A' | 'B') => {
-    return team === 'A' ? '🔵' : '🔴'
+  const formatDuration = (startTime: string, endTime: string | null) => {
+    if (!endTime) return 'In Progress'
+    
+    const start = new Date(startTime)
+    const end = new Date(endTime)
+    const durationMs = end.getTime() - start.getTime()
+    const durationMinutes = Math.floor(durationMs / (1000 * 60))
+    
+    const hours = Math.floor(durationMinutes / 60)
+    const minutes = durationMinutes % 60
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`
+    }
+    return `${minutes}m`
   }
 
   const getVestIcon = (team: 'A' | 'B') => {
-    return teamWithVests === team ? '🟡' : null
+    return teamWithVests === team ? '🦺' : null
   }
 
+  const getTeamDisplayName = (team: 'A' | 'B') => {
+    const goalkeeper = team === 'A' ? goalkeepers.teamA : goalkeepers.teamB
+    return goalkeeper?.name || `Lag ${team}`
+  }
+
+  const isWinner = (team: 'A' | 'B') => {
+    const teamScore = team === 'A' ? scores.teamA : scores.teamB
+    const otherScore = team === 'A' ? scores.teamB : scores.teamA
+    return teamScore > otherScore
+  }
+
+  const isDraw = scores.teamA === scores.teamB
+
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex justify-between items-center">
-        {/* Teams and Scores Column */}
+    <div className={`sm:border sm:rounded-lg p-4 sm:p-6 sm:shadow-sm hover:sm:shadow-md transition-shadow ${
+      isDarkMode
+        ? 'sm:bg-gray-800 sm:border-gray-700'
+        : 'sm:bg-gray-50 sm:border-gray-200'
+    }`}>
+      <div className="flex min-h-[120px]">
+        {/* Teams Column */}
         <div className="flex-1 space-y-3">
           {/* Team A Row */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <span className="text-2xl">{getTeamIcon('A')}</span>
-              <div className="flex items-center space-x-2">
-                <span className="font-medium text-gray-900 dark:text-white">
-                  {goalkeepers.teamA?.name || 'No goalkeeper'}
-                </span>
-                {getVestIcon('A') && (
-                  <span className="text-lg">{getVestIcon('A')}</span>
-                )}
-              </div>
+          <div className={`flex items-center justify-between p-2 rounded ${
+            !isDraw && isWinner('A') 
+              ? isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+              : ''
+          }`}>
+            <div className="flex items-center space-x-2">
+              <span className="w-6 text-center">
+                {getVestIcon('A') || ' '}
+              </span>
+              <span className={`font-medium ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                {getTeamDisplayName('A')}
+              </span>
             </div>
-            <span className="text-2xl font-bold text-gray-900 dark:text-white">{scores.teamA}</span>
+            <span className={`text-2xl font-bold ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>{scores.teamA}</span>
           </div>
 
           {/* Team B Row */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <span className="text-2xl">{getTeamIcon('B')}</span>
-              <div className="flex items-center space-x-2">
-                <span className="font-medium text-gray-900 dark:text-white">
-                  {goalkeepers.teamB?.name || 'No goalkeeper'}
-                </span>
-                {getVestIcon('B') && (
-                  <span className="text-lg">{getVestIcon('B')}</span>
-                )}
-              </div>
+          <div className={`flex items-center justify-between p-2 rounded ${
+            !isDraw && isWinner('B') 
+              ? isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+              : ''
+          }`}>
+            <div className="flex items-center space-x-2">
+              <span className="w-6 text-center">
+                {getVestIcon('B') || ' '}
+              </span>
+              <span className={`font-medium ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                {getTeamDisplayName('B')}
+              </span>
             </div>
-            <span className="text-2xl font-bold text-gray-900 dark:text-white">{scores.teamB}</span>
+            <span className={`text-2xl font-bold ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>{scores.teamB}</span>
           </div>
         </div>
 
-        {/* Date and Time Column - Vertically Centered */}
-        <div className="flex items-center ml-6 pl-6 border-l border-gray-200 dark:border-gray-700">
+                  {/* Duration Column with Full Height Divider */}
+        <div className="relative flex items-center justify-center ml-6 pl-6 w-24">
+          {/* Full height divider */}
+          <div className={`absolute left-0 top-0 bottom-0 w-px ${
+            isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
+          }`}></div>
           <div className="text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-              {formatDateTime(match.start_time)}
+            <p className={`text-sm font-medium ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              {formatDuration(match.start_time, match.end_time)}
             </p>
           </div>
         </div>

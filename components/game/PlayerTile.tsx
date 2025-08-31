@@ -44,20 +44,20 @@ export function PlayerTile({
       draggable={!isGoalkeeper} // Goalkeepers can't be dragged
       onDragStart={(e) => !isGoalkeeper && onDragStart?.(e, player)}
       onDragEnd={onDragEnd}
-      className={`group px-4 py-2 rounded-lg border transition-all duration-200 ${
+      className={`group px-3 md:px-4 py-3 md:py-2 rounded-lg border transition-all duration-200 ${
         isDarkMode
           ? 'bg-gray-700 border-gray-600 hover:bg-gray-600'
           : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
       } ${!isGoalkeeper ? 'cursor-grab active:cursor-grabbing' : ''}`}
     >
-      <div className="flex justify-between items-center">
-        <span className={`font-medium ${
+      <div className="flex justify-between items-start md:items-center gap-2">
+        <span className={`font-medium text-sm md:text-base break-words flex-1 ${
           isDarkMode ? 'text-white' : 'text-gray-800'
         }`}>
           {player.name || 'Unknown Player'}
         </span>
-        <div className="flex items-center gap-2">
-          <span className={`text-sm ${
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className={`text-xs md:text-sm ${
             isDarkMode ? 'text-gray-400' : 'text-gray-500'
           }`}>
             {formatPlayerStats(getPlayerStats(player.id, scores))}
@@ -68,7 +68,7 @@ export function PlayerTile({
                 e.stopPropagation()
                 onRemovePlayer?.(player)
               }}
-              className={getRemoveButtonStyles(isDarkMode, false)}
+              className={`${getRemoveButtonStyles(isDarkMode, false)} w-6 h-6 md:w-5 md:h-5 text-sm md:text-xs flex items-center justify-center`}
               title="remove from team"
             >
               −

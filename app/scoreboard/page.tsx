@@ -139,7 +139,7 @@ async function getScoreboardData(): Promise<PlayerStats[]> {
       losses: stats.losses,
       goals: stats.goals,
       assists: stats.assists,
-      points: stats.goals * 3 + stats.assists * 1 // 3 points per goal, 1 point per assist
+      points: stats.goals + stats.assists // 1 point per goal, 1 point per assist
     }))
 
     // Sort by ranking criteria: points (desc), goals (desc), wins (desc), name (asc)

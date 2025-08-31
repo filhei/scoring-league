@@ -1,35 +1,35 @@
-# Scoring League
+# Poängliga
 
-A football match scoring and player management system built with Next.js and Supabase.
+Ett fotbollsmatcher poängsystem och spelarhantering byggt med Next.js och Supabase.
 
-## Features
+## Funktioner
 
-### Active Game Management
-- **Real-time Game Timer**: Shows elapsed time in MM:SS format from match start
-- **Live Score Tracking**: Click + buttons to increment scores for Team A and Team B
-- **Match Controls**: Pause/resume timer, end match, and swap team sides
-- **Team Management**: Add/remove players from teams with goalkeeper designation
+### Aktiv Matchhantering
+- **Realtids Matchtimer**: Visar förfluten tid i MM:SS format från matchstart
+- **Live Poängspårning**: Klicka + knappar för att öka poäng för Lag A och Lag B
+- **Matchkontroller**: Pausa/återuppta timer, avsluta match och byt lagsidor
+- **Laghantering**: Lägg till/ta bort spelare från lag med målvaktsdesignation
 
-### Player Management
-- **Goalkeeper Selection**: Click on empty goalkeeper slots to assign players
-- **Team Assignment**: Add players to teams with visual feedback
-- **Player Removal**: Remove players from teams with ✕ buttons
-- **Available Players**: Modal selection from active players not in current match
+### Spelarhantering
+- **Målvaktsval**: Klicka på tomma målvaktsslott för att tilldela spelare
+- **Lagtilldelning**: Lägg till spelare i lag med visuell feedback
+- **Spelarborttagning**: Ta bort spelare från lag med ✕ knappar
+- **Tillgängliga Spelare**: Modalt val från aktiva spelare som inte är i nuvarande match
 
-### UI Features
-- **Responsive Design**: Works on desktop and mobile devices
-- **Visual Team Distinction**: Blue for Team A, Red for Team B
-- **Interactive Elements**: Hover effects and smooth transitions
-- **Swedish Localization**: UI text in Swedish ("Målvakt", "Avsluta Match", etc.)
+### UI-funktioner
+- **Responsiv Design**: Fungerar på desktop och mobila enheter
+- **Visuell Lagdistinktion**: Blå för Lag A, Röd för Lag B
+- **Interaktiva Element**: Hover-effekter och smidiga övergångar
+- **Svensk Lokalisering**: UI-text på svenska ("Målvakt", "Avsluta Match", etc.)
 
-## Database Schema
+## Databasschema
 
-The application uses the following Supabase tables:
+Applikationen använder följande Supabase-tabeller:
 
-- **matches**: Match information (start_time, end_time, status, winner_team)
-- **players**: Player profiles (name, email, elo, is_active)
-- **match_players**: Junction table linking players to matches with team assignment
-- **scores**: Individual score records with timestamps and player attribution
+- **matches**: Matchinformation (start_time, end_time, status, winner_team)
+- **players**: Spelarprofiler (name, email, elo, is_active)
+- **match_players**: Kopplingstabell som länkar spelare till matcher med lagtilldelning
+- **scores**: Individuella poängposter med tidsstämplar och spelartilldelning
 
 ## Setup
 

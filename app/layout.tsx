@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Scoring League",
-  description: "Football match scoring and player management system",
+  title: "Poängliga",
+  description: "Fotbollsmatcher poängsystem och spelarhantering",
 };
 
 export default function RootLayout({

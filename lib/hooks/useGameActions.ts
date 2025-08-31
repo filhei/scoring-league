@@ -550,20 +550,19 @@ export function useGameActions(
       const currentTeamWithVests = gameState.currentGameContext!.gameData.match.team_with_vests as 'A' | 'B' | null
       const newTeamWithVests = currentTeamWithVests === team ? null : team
       
-      if (gameState.currentGameContext?.type === 'planned') {
-        const updatedPlannedGame = {
-          ...gameState.currentGameContext.gameData,
-          match: {
-            ...gameState.currentGameContext.gameData.match,
-            team_with_vests: newTeamWithVests
-          }
+      // Update local state immediately for both planned and active games
+      const updatedGameData = {
+        ...gameState.currentGameContext!.gameData,
+        match: {
+          ...gameState.currentGameContext!.gameData.match,
+          team_with_vests: newTeamWithVests
         }
-        gameState.setCurrentGameContext({
-          type: 'planned',
-          gameData: updatedPlannedGame,
-          matchId: gameState.currentGameContext.matchId
-        })
       }
+      
+      gameState.setCurrentGameContext({
+        ...gameState.currentGameContext!,
+        gameData: updatedGameData
+      })
       
       const result = await toggleVests({
         matchId: gameState.currentGameContext!.matchId,
@@ -572,25 +571,33 @@ export function useGameActions(
       
       if (result.validationErrors) {
         showSnackbar('Invalid input data')
-        if (gameState.currentGameContext?.type === 'planned') {
-          gameState.setCurrentGameContext({
-            type: 'planned',
-            gameData: gameState.currentGameContext.gameData,
-            matchId: gameState.currentGameContext.matchId
-          })
-        }
+        // Revert local state on error
+        gameState.setCurrentGameContext({
+          ...gameState.currentGameContext!,
+          gameData: {
+            ...gameState.currentGameContext!.gameData,
+            match: {
+              ...gameState.currentGameContext!.gameData.match,
+              team_with_vests: currentTeamWithVests
+            }
+          }
+        })
         return
       }
 
       if (result.serverError) {
         showSnackbar(result.serverError)
-        if (gameState.currentGameContext?.type === 'planned') {
-          gameState.setCurrentGameContext({
-            type: 'planned',
-            gameData: gameState.currentGameContext.gameData,
-            matchId: gameState.currentGameContext.matchId
-          })
-        }
+        // Revert local state on error
+        gameState.setCurrentGameContext({
+          ...gameState.currentGameContext!,
+          gameData: {
+            ...gameState.currentGameContext!.gameData,
+            match: {
+              ...gameState.currentGameContext!.gameData.match,
+              team_with_vests: currentTeamWithVests
+            }
+          }
+        })
         return
       }
 
@@ -598,17 +605,25 @@ export function useGameActions(
         if (gameState.currentGameContext?.type === 'planned') {
           console.log('Vest toggle successful - keeping local state')
         } else {
+          // For active games, refresh to sync with server
           gameState.refreshGameData()
         }
       }
     } catch (error) {
       console.error('Error toggling vests:', error)
       showSnackbar('Failed to update vests')
-      if (gameState.currentGameContext?.type === 'planned') {
+      // Revert local state on error
+      if (gameState.currentGameContext) {
+        const currentTeamWithVests = gameState.currentGameContext.gameData.match.team_with_vests as 'A' | 'B' | null
         gameState.setCurrentGameContext({
-          type: 'planned',
-          gameData: gameState.currentGameContext.gameData,
-          matchId: gameState.currentGameContext.matchId
+          ...gameState.currentGameContext,
+          gameData: {
+            ...gameState.currentGameContext.gameData,
+            match: {
+              ...gameState.currentGameContext.gameData.match,
+              team_with_vests: currentTeamWithVests
+            }
+          }
         })
       }
     }

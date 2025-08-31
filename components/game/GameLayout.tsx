@@ -26,7 +26,7 @@ export function GameLayout({
       }}
     >
       {showBackButton && onBackClick && (
-        <div className="max-w-6xl mx-auto p-6 pb-0">
+        <div className="sm:max-w-6xl sm:mx-auto sm:p-6 sm:pb-0 p-4">
           <button
             onClick={onBackClick}
             className={`mb-4 px-4 py-2 rounded-lg transition-all duration-200 hover:scale-105 ${

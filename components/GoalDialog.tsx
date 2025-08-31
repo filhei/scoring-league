@@ -222,7 +222,7 @@ export function GoalDialog({
                           <span className={`font-medium transition-colors duration-300 truncate flex-1 ${
                             isDarkMode ? 'text-white' : 'text-gray-900'
                           }`}>
-                            {goalkeeper.name || 'Unknown Player'}
+                            {goalkeeper.name || 'Okänd Spelare'}
                           </span>
                           <div className="flex space-x-2 flex-shrink-0 ml-2">
                             {isScoring && (
@@ -333,7 +333,7 @@ export function GoalDialog({
                           <span className={`font-medium transition-colors duration-300 truncate flex-1 ${
                             isDarkMode ? 'text-white' : 'text-gray-900'
                           }`}>
-                            {goalkeeper.name || 'Unknown Player'}
+                            {goalkeeper.name || 'Okänd Spelare'}
                           </span>
                           <div className="flex space-x-2 flex-shrink-0 ml-2">
                             {isScoring && (

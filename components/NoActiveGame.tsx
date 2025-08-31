@@ -69,11 +69,11 @@ export function NoActiveGame({ isDarkMode, onCreateNewGame }: NoActiveGameProps)
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className={`rounded-2xl p-8 transition-colors duration-300 ${
+    <div className="sm:max-w-6xl sm:mx-auto sm:p-6 p-4">
+      <div className={`sm:rounded-2xl p-4 sm:p-8 transition-colors duration-300 ${
         isDarkMode
-          ? 'bg-gray-800 border border-gray-700'
-          : 'bg-gray-50 border border-gray-200'
+          ? 'sm:bg-gray-800 sm:border sm:border-gray-700'
+          : 'sm:bg-gray-50 sm:border sm:border-gray-200'
       }`}>
         <div className="text-center">
           <div className={`text-6xl mb-6 transition-colors duration-300 ${
@@ -84,14 +84,14 @@ export function NoActiveGame({ isDarkMode, onCreateNewGame }: NoActiveGameProps)
           <h2 className={`text-3xl font-bold mb-4 transition-colors duration-300 ${
             isDarkMode ? 'text-white' : 'text-gray-900'
           }`}>
-            No Active Game
+            Ingen Aktiv Match
           </h2>
           <p className={`text-lg mb-8 transition-colors duration-300 ${
             isDarkMode ? 'text-gray-400' : 'text-gray-600'
           }`}>
             {isAuthenticated 
-              ? 'Start a new match to see the game status here.' 
-              : 'Sign in to create and manage games, or browse existing games.'
+              ? 'Starta en ny match för att se matchstatus här.' 
+              : 'Logga in för att skapa och hantera matcher, eller bläddra bland befintliga matcher.'
             }
           </p>
           {isAuthenticated ? (
@@ -106,7 +106,7 @@ export function NoActiveGame({ isDarkMode, onCreateNewGame }: NoActiveGameProps)
                 isPending ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'
               }`}
             >
-              {isPending ? 'Creating Game...' : 'Create New Game'}
+              {isPending ? 'Skapar Match...' : 'Skapa Ny Match'}
             </button>
           ) : (
             <Link
@@ -117,7 +117,7 @@ export function NoActiveGame({ isDarkMode, onCreateNewGame }: NoActiveGameProps)
                   : 'bg-blue-500 hover:bg-blue-600 text-white'
               } hover:scale-105 active:scale-95`}
             >
-              Sign In to Create Games
+              Logga In för att Skapa Matcher
             </Link>
           )}
         </div>

@@ -59,7 +59,7 @@ export function PastGamesList({ pastGames, isDarkMode = false }: PastGamesListPr
             {/* Games for this date */}
             <div className="space-y-4">
               {group.games.map((game) => (
-                <PastGameCard key={game.match.id} game={game} />
+                <PastGameCard key={game.match.id} game={game} isDarkMode={isDarkMode} />
               ))}
             </div>
           </div>
