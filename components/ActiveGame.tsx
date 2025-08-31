@@ -25,6 +25,7 @@ interface ActiveGameProps {
   onDeleteGame?: () => void
   onResetGame?: () => void
   isAuthenticated?: boolean
+  isPauseToggleBusy?: boolean
 }
 
 export function ActiveGame({
@@ -47,7 +48,8 @@ export function ActiveGame({
   onVestToggle,
   onDeleteGame,
   onResetGame,
-  isAuthenticated = true
+  isAuthenticated = true,
+  isPauseToggleBusy = false
 }: ActiveGameProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -158,6 +160,7 @@ export function ActiveGame({
           onSwapSides={onSwapSides}
           onVestToggle={onVestToggle}
           isAuthenticated={isAuthenticated}
+          isPauseToggleBusy={isPauseToggleBusy}
         />
 
         {/* Teams Display */}

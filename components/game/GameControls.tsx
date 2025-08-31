@@ -19,6 +19,7 @@ interface GameControlsProps {
   onSwapSides: () => void
   onVestToggle: (team: 'A' | 'B') => void
   isAuthenticated?: boolean
+  isPauseToggleBusy?: boolean
 }
 
 export function GameControls({
@@ -37,7 +38,8 @@ export function GameControls({
   onEndMatchAndCreateNew,
   onSwapSides,
   onVestToggle,
-  isAuthenticated = true
+  isAuthenticated = true,
+  isPauseToggleBusy = false
 }: GameControlsProps) {
   const [leftTeamHovered, setLeftTeamHovered] = useState(false)
   const [rightTeamHovered, setRightTeamHovered] = useState(false)
@@ -74,7 +76,12 @@ export function GameControls({
           <div className="absolute left-1/2 ml-32 flex items-center space-x-2">
             <button
               onClick={onPauseToggle}
-              className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 hover:scale-110 ${
+              disabled={timer.isTimerBusy || isPauseToggleBusy}
+              className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-300 ${
+                timer.isTimerBusy || isPauseToggleBusy
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'hover:scale-110'
+              } ${
                 isDarkMode
                   ? 'border-gray-600 hover:border-gray-500 text-white hover:bg-gray-800'
                   : 'border-gray-300 hover:border-gray-400 text-gray-800 hover:bg-gray-50'
@@ -92,7 +99,7 @@ export function GameControls({
             <span className={`text-xs font-medium transition-colors duration-300 ${
               isDarkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              {timer.isPaused ? 'Resume' : 'Pause'}
+              {timer.isTimerBusy || isPauseToggleBusy ? 'Updating...' : (timer.isPaused ? 'Resume' : 'Pause')}
             </span>
           </div>
         )}

@@ -50,28 +50,31 @@ export function GoalDialog({
               {/* Goal Tile */}
               <div className="flex items-center gap-2">
                 <div className="w-10">
-                  {goalDialog.scoringPlayer && (
-                    <span 
-                      className="text-xs font-medium transition-colors duration-300"
-                      style={{
-                        color: 'var(--goal-color)'
-                      }}
-                    >
-                      Mål:
-                    </span>
-                  )}
+                  <span 
+                    className={`text-xs font-medium transition-colors duration-300 ${
+                      goalDialog.scoringPlayer 
+                        ? 'text-green-500' 
+                        : isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                    }`}
+                  >
+                    Mål:
+                  </span>
                 </div>
-                {goalDialog.scoringPlayer ? (
-                  <div className="flex-1 flex items-center justify-between px-2 py-1.5 rounded-md border transition-colors duration-300"
-                       style={{
-                         backgroundColor: isDarkMode ? 'rgba(34, 197, 94, 0.2)' : 'rgba(22, 163, 74, 0.1)',
-                         borderColor: 'var(--goal-color)'
-                       }}>
-                    <span className={`text-sm font-medium truncate transition-colors duration-300 ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>
-                      {goalDialog.scoringPlayer.name || 'Unknown Player'}
-                    </span>
+                <div className="flex-1 flex items-center justify-between px-2 py-1.5 rounded-md border transition-colors duration-300"
+                     style={{
+                       backgroundColor: goalDialog.scoringPlayer 
+                         ? (isDarkMode ? 'rgba(34, 197, 94, 0.2)' : 'rgba(22, 163, 74, 0.1)')
+                         : (isDarkMode ? 'rgba(75, 85, 99, 0.1)' : 'rgba(156, 163, 175, 0.1)'),
+                       borderColor: goalDialog.scoringPlayer ? 'var(--goal-color)' : (isDarkMode ? '#4B5563' : '#9CA3AF')
+                     }}>
+                  <span className={`text-sm font-medium truncate transition-colors duration-300 ${
+                    goalDialog.scoringPlayer
+                      ? (isDarkMode ? 'text-white' : 'text-gray-900')
+                      : (isDarkMode ? 'text-gray-500' : 'text-gray-400')
+                  }`}>
+                    {goalDialog.scoringPlayer ? (goalDialog.scoringPlayer.name || 'Unknown Player') : 'Ingen vald'}
+                  </span>
+                  {goalDialog.scoringPlayer && (
                     <button
                       onClick={() => onRemoveSelectedPlayer('scoring')}
                       className={`ml-1 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 flex-shrink-0 hover:scale-110 ${
@@ -82,33 +85,36 @@ export function GoalDialog({
                     >
                       <span className="text-sm font-bold">×</span>
                     </button>
-                  </div>
-                ) : (
-                  <div className="flex-1 h-8"></div>
-                )}
+                  )}
+                </div>
               </div>
               
               {/* Assist Tile */}
               <div className="flex items-center gap-2">
                 <div className="w-10">
-                  {goalDialog.assistingPlayer && (
-                    <span className="text-xs font-medium transition-colors duration-300"
-                          style={{ color: 'var(--assist-color)' }}>
-                      Assist:
-                    </span>
-                  )}
+                  <span className={`text-xs font-medium transition-colors duration-300 ${
+                    goalDialog.assistingPlayer 
+                      ? 'text-blue-500' 
+                      : isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                  }`}>
+                    Assist:
+                  </span>
                 </div>
-                {goalDialog.assistingPlayer ? (
-                  <div className="flex-1 flex items-center justify-between px-2 py-1.5 rounded-md border transition-colors duration-300"
-                       style={{
-                         backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(37, 99, 235, 0.1)',
-                         borderColor: 'var(--assist-color)'
-                       }}>
-                    <span className={`text-sm font-medium truncate transition-colors duration-300 ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>
-                      {goalDialog.assistingPlayer.name || 'Unknown Player'}
-                    </span>
+                <div className="flex-1 flex items-center justify-between px-2 py-1.5 rounded-md border transition-colors duration-300"
+                     style={{
+                       backgroundColor: goalDialog.assistingPlayer 
+                         ? (isDarkMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(37, 99, 235, 0.1)')
+                         : (isDarkMode ? 'rgba(75, 85, 99, 0.1)' : 'rgba(156, 163, 175, 0.1)'),
+                       borderColor: goalDialog.assistingPlayer ? 'var(--assist-color)' : (isDarkMode ? '#4B5563' : '#9CA3AF')
+                     }}>
+                  <span className={`text-sm font-medium truncate transition-colors duration-300 ${
+                    goalDialog.assistingPlayer
+                      ? (isDarkMode ? 'text-white' : 'text-gray-900')
+                      : (isDarkMode ? 'text-gray-500' : 'text-gray-400')
+                  }`}>
+                    {goalDialog.assistingPlayer ? (goalDialog.assistingPlayer.name || 'Unknown Player') : 'Ingen vald'}
+                  </span>
+                  {goalDialog.assistingPlayer && (
                     <button
                       onClick={() => onRemoveSelectedPlayer('assisting')}
                       className={`ml-1 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 flex-shrink-0 hover:scale-110 ${
@@ -119,10 +125,8 @@ export function GoalDialog({
                     >
                       <span className="text-sm font-bold">×</span>
                     </button>
-                  </div>
-                ) : (
-                  <div className="flex-1 h-8"></div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </div>

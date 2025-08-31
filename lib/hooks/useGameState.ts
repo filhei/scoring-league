@@ -241,13 +241,8 @@ export function useGameState(): GameState {
   const getCurrentTeamData = () => {
     if (!currentGameData) return { teamA: [], teamB: [] }
     
-    if (currentGameContext) {
-      return {
-        teamA: localTeamA,
-        teamB: localTeamB
-      }
-    }
-    
+    // Always use the current game context data for both active and planned games
+    // This ensures optimistic updates work correctly
     return {
       teamA: currentGameData.teamA,
       teamB: currentGameData.teamB
