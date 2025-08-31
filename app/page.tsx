@@ -48,25 +48,25 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
-      isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
+      isDarkMode ? 'sm:bg-gray-900 text-white' : 'sm:bg-gray-50 text-gray-900'
     }`}>
       <Navigation isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} />
       
       {/* Auth Status Banner */}
       {user && player && showWelcomeBanner && (
-        <div className={`px-6 py-2 text-sm transition-opacity duration-500 ${
+        <div className={`px-4 py-2 text-sm transition-opacity duration-500 sm:px-6 ${
           isDarkMode ? 'bg-blue-900/20 text-blue-300' : 'bg-blue-50 text-blue-700'
         }`}>
-          Welcome back, {player.name || 'Unknown Player'}! 
+          Välkommen tillbaka, {player.name || 'Okänd Spelare'}! 
           {!user.email_confirmed_at && (
             <span className="ml-2 text-yellow-600 dark:text-yellow-400">
-              (Please check your email to confirm your account)
+              (Kontrollera din e-post för att bekräfta ditt konto)
             </span>
           )}
         </div>
       )}
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="sm:max-w-6xl sm:mx-auto sm:px-6 sm:py-8">
         <Suspense fallback={<GameLoadingSkeleton />}>
           <ActiveGameWrapper 
             initialActiveGame={null}

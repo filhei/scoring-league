@@ -12,11 +12,11 @@ export function PlannedGamesList({ plannedGames, isDarkMode, onSelectGame }: Pla
   if (plannedGames.length === 0) return null
 
   return (
-    <div className="max-w-6xl mx-auto p-6 mb-6">
-      <div className={`rounded-2xl p-6 transition-colors duration-300 ${
+    <div className="sm:max-w-6xl sm:mx-auto sm:p-6 p-4 mb-6">
+      <div className={`sm:rounded-2xl p-4 sm:p-6 transition-colors duration-300 ${
         isDarkMode
-          ? 'bg-gray-800 border border-gray-700'
-          : 'bg-gray-50 border border-gray-200'
+          ? 'sm:bg-gray-800 sm:border sm:border-gray-700'
+          : 'sm:bg-gray-50 sm:border sm:border-gray-200'
       }`}>
         <h3 className={`text-xl font-bold mb-4 transition-colors duration-300 ${
           isDarkMode ? 'text-white' : 'text-gray-900'
@@ -28,10 +28,10 @@ export function PlannedGamesList({ plannedGames, isDarkMode, onSelectGame }: Pla
             <button
               key={game.id}
               onClick={() => onSelectGame(game)}
-              className={`w-full p-4 rounded-xl text-left transition-all duration-200 hover:scale-[1.02] ${
+              className={`w-full p-4 sm:rounded-xl text-left transition-all duration-200 hover:scale-[1.02] ${
                 isDarkMode
-                  ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600'
-                  : 'bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
+                  ? 'sm:bg-gray-700 hover:sm:bg-gray-600 sm:border sm:border-gray-600'
+                  : 'sm:bg-white hover:sm:bg-gray-50 sm:border sm:border-gray-200 hover:sm:border-gray-300'
               }`}
             >
               <div className="flex justify-between items-center">

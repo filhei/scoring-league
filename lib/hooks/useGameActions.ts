@@ -61,11 +61,15 @@ export interface GameActions {
   
   // Authentication status
   isAuthenticated: boolean
+  
+  // State
+  isPauseToggleBusy: boolean
 }
 
 export function useGameActions(
   gameState: GameState,
-  showSnackbar: (message: string, duration?: number) => void
+  showSnackbar: (message: string, duration?: number) => void,
+  timer?: ReturnType<typeof import('./useMatchTimer').useMatchTimer>
 ): GameActions {
   const queryClient = useQueryClient()
   const { user, player } = useAuth()
@@ -81,6 +85,7 @@ export function useGameActions(
     scoringPlayer: null,
     assistingPlayer: null
   })
+  const [isPauseToggleBusy, setIsPauseToggleBusy] = useState(false)
 
   // Helper function to ensure we're operating on the correct match
   const ensureCorrectMatch = (operation: string): boolean => {
@@ -188,6 +193,32 @@ export function useGameActions(
     if (!ensureCorrectMatch('Goal dialog submit')) return
     if (!goalDialog.team) return
 
+    // Create optimistic score update
+    const optimisticScore = {
+      id: `temp-${Date.now()}`,
+      match_id: gameState.currentGameContext!.matchId,
+      team: goalDialog.team,
+      score_time: `${timer?.currentDuration || 0} seconds`,
+      scoring_player_id: goalDialog.scoringPlayer?.id || null,
+      assisting_player_id: goalDialog.assistingPlayer?.id || null
+    }
+
+    // Optimistically update the local state
+    if (gameState.currentGameContext) {
+      const updatedGameData = {
+        ...gameState.currentGameContext.gameData,
+        scores: [...gameState.currentGameContext.gameData.scores, optimisticScore]
+      }
+      
+      gameState.setCurrentGameContext({
+        ...gameState.currentGameContext,
+        gameData: updatedGameData
+      })
+    }
+
+    // Close the dialog immediately for better UX
+    setGoalDialog({ isOpen: false, team: null, scoringPlayer: null, assistingPlayer: null })
+
     try {
       const result = await addScore({
         matchId: gameState.currentGameContext!.matchId,
@@ -198,31 +229,54 @@ export function useGameActions(
 
       if (result.validationErrors) {
         showSnackbar('Invalid input data')
+        // Revert optimistic update
+        if (gameState.currentGameContext) {
+          const revertedGameData = {
+            ...gameState.currentGameContext.gameData,
+            scores: gameState.currentGameContext.gameData.scores.filter(s => s.id !== optimisticScore.id)
+          }
+          gameState.setCurrentGameContext({
+            ...gameState.currentGameContext,
+            gameData: revertedGameData
+          })
+        }
         return
       }
 
       if (result.serverError) {
         showSnackbar(result.serverError)
+        // Revert optimistic update
+        if (gameState.currentGameContext) {
+          const revertedGameData = {
+            ...gameState.currentGameContext.gameData,
+            scores: gameState.currentGameContext.gameData.scores.filter(s => s.id !== optimisticScore.id)
+          }
+          gameState.setCurrentGameContext({
+            ...gameState.currentGameContext,
+            gameData: revertedGameData
+          })
+        }
         return
       }
 
       if (result.data) {
-        setGoalDialog({ isOpen: false, team: null, scoringPlayer: null, assistingPlayer: null })
-        
-        if (gameState.currentGameContext?.type === 'planned') {
-          const updatedGameData = await convertPlannedGameToActiveGameData(gameState.currentGameContext.gameData.match)
-          gameState.setCurrentGameContext({
-            type: 'planned',
-            gameData: updatedGameData,
-            matchId: updatedGameData.match.id
-          })
-        } else {
-          gameState.refreshGameData()
-        }
+        // Refresh the game data to get the updated scores from the server
+        gameState.refreshGameData()
       }
     } catch (error) {
       console.error('Error adding score:', error)
       showSnackbar('Failed to add score')
+      // Revert optimistic update
+      if (gameState.currentGameContext) {
+        const revertedGameData = {
+          ...gameState.currentGameContext.gameData,
+          scores: gameState.currentGameContext.gameData.scores.filter(s => s.id !== optimisticScore.id)
+        }
+        gameState.setCurrentGameContext({
+          ...gameState.currentGameContext,
+          gameData: revertedGameData
+        })
+      }
     }
   }
 
@@ -241,45 +295,70 @@ export function useGameActions(
     if (!requireAuth('pause/resume match')) return
     if (!ensureCorrectMatch('pause/resume match')) return
 
+    // Check if we're already busy to prevent rapid clicking
+    if (isPauseToggleBusy || timer?.isTimerBusy) {
+      console.log('useGameActions.handlePauseToggle: Already busy, skipping request')
+      return
+    }
+
+    // Set busy state immediately to prevent double clicks
+    setIsPauseToggleBusy(true)
+    console.log('useGameActions.handlePauseToggle: Set busy state, starting operation')
+
     try {
-      const action = gameState.timer.isPaused ? 'resume' : 'pause'
-      const newStatus = gameState.timer.isPaused ? 'active' : 'paused'
-      
-      // Update local state immediately for better UX
-      if (gameState.currentGameContext) {
-        const updatedMatch = {
-          ...gameState.currentGameContext.gameData.match,
-          match_status: newStatus
+      // Use timer functions if available, otherwise fall back to server action
+      if (timer) {
+        console.log('useGameActions.handlePauseToggle: Using timer functions')
+        if (timer.isPaused) {
+          await timer.resumeMatch()
+        } else {
+          await timer.pauseMatch()
         }
-        
-        gameState.setCurrentGameContext({
-          ...gameState.currentGameContext,
-          gameData: {
-            ...gameState.currentGameContext.gameData,
-            match: updatedMatch
-          }
-        })
-      }
-
-      // Call server action in background
-      const result = await controlMatch({
-        matchId: gameState.currentGameContext!.matchId,
-        action
-      })
-
-      if (result.validationErrors || result.serverError) {
-        console.error('Database update failed:', result.validationErrors || result.serverError)
-        showSnackbar('Warning: Game state may not be saved')
-        // Revert local state on error
-        gameState.refreshGameData()
       } else {
-        console.log('Database update successful')
+        console.log('useGameActions.handlePauseToggle: Using server action fallback')
+        const action = gameState.timer.isPaused ? 'resume' : 'pause'
+        const newStatus = gameState.timer.isPaused ? 'active' : 'paused'
+        
+        // Update local state immediately for better UX
+        if (gameState.currentGameContext) {
+          const updatedMatch = {
+            ...gameState.currentGameContext.gameData.match,
+            match_status: newStatus
+          }
+          
+          gameState.setCurrentGameContext({
+            ...gameState.currentGameContext,
+            gameData: {
+              ...gameState.currentGameContext.gameData,
+              match: updatedMatch
+            }
+          })
+        }
+
+        // Call server action in background
+        const result = await controlMatch({
+          matchId: gameState.currentGameContext!.matchId,
+          action
+        })
+
+        if (result.validationErrors || result.serverError) {
+          console.error('Database update failed:', result.validationErrors || result.serverError)
+          showSnackbar('Warning: Game state may not be saved')
+          // Revert local state on error
+          gameState.refreshGameData()
+        } else {
+          console.log('Database update successful')
+        }
       }
     } catch (error) {
       console.error('Error toggling pause:', error)
       showSnackbar('Warning: Game state may not be saved')
       // Revert local state on error
       gameState.refreshGameData()
+    } finally {
+      // Always clear busy state when done
+      setIsPauseToggleBusy(false)
+      console.log('useGameActions.handlePauseToggle: Cleared busy state')
     }
   }
 
@@ -471,20 +550,19 @@ export function useGameActions(
       const currentTeamWithVests = gameState.currentGameContext!.gameData.match.team_with_vests as 'A' | 'B' | null
       const newTeamWithVests = currentTeamWithVests === team ? null : team
       
-      if (gameState.currentGameContext?.type === 'planned') {
-        const updatedPlannedGame = {
-          ...gameState.currentGameContext.gameData,
-          match: {
-            ...gameState.currentGameContext.gameData.match,
-            team_with_vests: newTeamWithVests
-          }
+      // Update local state immediately for both planned and active games
+      const updatedGameData = {
+        ...gameState.currentGameContext!.gameData,
+        match: {
+          ...gameState.currentGameContext!.gameData.match,
+          team_with_vests: newTeamWithVests
         }
-        gameState.setCurrentGameContext({
-          type: 'planned',
-          gameData: updatedPlannedGame,
-          matchId: gameState.currentGameContext.matchId
-        })
       }
+      
+      gameState.setCurrentGameContext({
+        ...gameState.currentGameContext!,
+        gameData: updatedGameData
+      })
       
       const result = await toggleVests({
         matchId: gameState.currentGameContext!.matchId,
@@ -493,25 +571,33 @@ export function useGameActions(
       
       if (result.validationErrors) {
         showSnackbar('Invalid input data')
-        if (gameState.currentGameContext?.type === 'planned') {
-          gameState.setCurrentGameContext({
-            type: 'planned',
-            gameData: gameState.currentGameContext.gameData,
-            matchId: gameState.currentGameContext.matchId
-          })
-        }
+        // Revert local state on error
+        gameState.setCurrentGameContext({
+          ...gameState.currentGameContext!,
+          gameData: {
+            ...gameState.currentGameContext!.gameData,
+            match: {
+              ...gameState.currentGameContext!.gameData.match,
+              team_with_vests: currentTeamWithVests
+            }
+          }
+        })
         return
       }
 
       if (result.serverError) {
         showSnackbar(result.serverError)
-        if (gameState.currentGameContext?.type === 'planned') {
-          gameState.setCurrentGameContext({
-            type: 'planned',
-            gameData: gameState.currentGameContext.gameData,
-            matchId: gameState.currentGameContext.matchId
-          })
-        }
+        // Revert local state on error
+        gameState.setCurrentGameContext({
+          ...gameState.currentGameContext!,
+          gameData: {
+            ...gameState.currentGameContext!.gameData,
+            match: {
+              ...gameState.currentGameContext!.gameData.match,
+              team_with_vests: currentTeamWithVests
+            }
+          }
+        })
         return
       }
 
@@ -519,33 +605,44 @@ export function useGameActions(
         if (gameState.currentGameContext?.type === 'planned') {
           console.log('Vest toggle successful - keeping local state')
         } else {
+          // For active games, refresh to sync with server
           gameState.refreshGameData()
         }
       }
     } catch (error) {
       console.error('Error toggling vests:', error)
       showSnackbar('Failed to update vests')
-      if (gameState.currentGameContext?.type === 'planned') {
+      // Revert local state on error
+      if (gameState.currentGameContext) {
+        const currentTeamWithVests = gameState.currentGameContext.gameData.match.team_with_vests as 'A' | 'B' | null
         gameState.setCurrentGameContext({
-          type: 'planned',
-          gameData: gameState.currentGameContext.gameData,
-          matchId: gameState.currentGameContext.matchId
+          ...gameState.currentGameContext,
+          gameData: {
+            ...gameState.currentGameContext.gameData,
+            match: {
+              ...gameState.currentGameContext.gameData.match,
+              team_with_vests: currentTeamWithVests
+            }
+          }
         })
       }
     }
   }
 
-  const handleAddPlayer = (team: 'A' | 'B', isGoalkeeper: boolean = false) => {
+  const handleAddPlayer = (team: 'A' | 'B', isGoalkeeper?: boolean) => {
     // For planned games, use multi-selection mode
     if (gameState.currentGameContext?.type === 'planned' && !isGoalkeeper) {
-      setShowPlayerSelect({ team, isGoalkeeper, isMultiSelect: true })
+      setShowPlayerSelect({ team, isGoalkeeper: false, isMultiSelect: true })
     } else {
-      setShowPlayerSelect({ team, isGoalkeeper, isMultiSelect: false })
+      setShowPlayerSelect({ team, isGoalkeeper: isGoalkeeper || false, isMultiSelect: false })
     }
   }
 
   const handlePlayerSelect = async (player: Player, team: 'A' | 'B') => {
     if (!ensureCorrectMatch('Add player')) return
+
+    // Store original state for potential rollback
+    const originalGameData = gameState.currentGameContext?.gameData
 
     try {
       if (gameState.currentGameContext?.type === 'planned') {
@@ -586,6 +683,29 @@ export function useGameActions(
             })
           }
         }
+      } else {
+        // Optimistic update for active games
+        if (gameState.currentGameContext) {
+          let updatedGameData = { ...gameState.currentGameContext.gameData }
+          
+          if (showPlayerSelect.isGoalkeeper) {
+            updatedGameData.goalkeepers = {
+              ...updatedGameData.goalkeepers,
+              [team === 'A' ? 'teamA' : 'teamB']: player
+            }
+          } else {
+            if (team === 'A') {
+              updatedGameData.teamA = [...updatedGameData.teamA, player]
+            } else {
+              updatedGameData.teamB = [...updatedGameData.teamB, player]
+            }
+          }
+          
+          gameState.setCurrentGameContext({
+            ...gameState.currentGameContext,
+            gameData: updatedGameData
+          })
+        }
       }
 
       const result = await addPlayerToMatch({
@@ -597,30 +717,32 @@ export function useGameActions(
 
       if (result.validationErrors) {
         showSnackbar('Invalid input data')
-        if (gameState.currentGameContext?.type === 'planned') {
-          const revertedGameData = await convertPlannedGameToActiveGameData(gameState.currentGameContext.gameData.match)
+        // Revert optimistic update
+        if (originalGameData && gameState.currentGameContext) {
           gameState.setCurrentGameContext({
-            type: 'planned',
-            gameData: revertedGameData,
-            matchId: gameState.currentGameContext.matchId
+            ...gameState.currentGameContext,
+            gameData: originalGameData
           })
-          gameState.setLocalTeamA([...revertedGameData.teamA])
-          gameState.setLocalTeamB([...revertedGameData.teamB])
+          if (gameState.currentGameContext?.type === 'planned') {
+            gameState.setLocalTeamA([...originalGameData.teamA])
+            gameState.setLocalTeamB([...originalGameData.teamB])
+          }
         }
         return
       }
 
       if (result.serverError) {
         showSnackbar(result.serverError)
-        if (gameState.currentGameContext?.type === 'planned') {
-          const revertedGameData = await convertPlannedGameToActiveGameData(gameState.currentGameContext.gameData.match)
+        // Revert optimistic update
+        if (originalGameData && gameState.currentGameContext) {
           gameState.setCurrentGameContext({
-            type: 'planned',
-            gameData: revertedGameData,
-            matchId: gameState.currentGameContext.matchId
+            ...gameState.currentGameContext,
+            gameData: originalGameData
           })
-          gameState.setLocalTeamA([...revertedGameData.teamA])
-          gameState.setLocalTeamB([...revertedGameData.teamB])
+          if (gameState.currentGameContext?.type === 'planned') {
+            gameState.setLocalTeamA([...originalGameData.teamA])
+            gameState.setLocalTeamB([...originalGameData.teamB])
+          }
         }
         return
       }
@@ -628,6 +750,7 @@ export function useGameActions(
       if (result.data) {
         setShowPlayerSelect({ team: null, isGoalkeeper: false })
         
+        // Success - keep the optimistic update for planned games, refresh for active games
         if (gameState.currentGameContext?.type !== 'planned') {
           gameState.refreshGameData()
         }
@@ -636,18 +759,15 @@ export function useGameActions(
       console.error('Error adding player:', error)
       showSnackbar('Failed to add player')
       
-      if (gameState.currentGameContext?.type === 'planned') {
-        try {
-          const revertedGameData = await convertPlannedGameToActiveGameData(gameState.currentGameContext.gameData.match)
-          gameState.setCurrentGameContext({
-            type: 'planned',
-            gameData: revertedGameData,
-            matchId: gameState.currentGameContext.matchId
-          })
-          gameState.setLocalTeamA([...revertedGameData.teamA])
-          gameState.setLocalTeamB([...revertedGameData.teamB])
-        } catch (revertError) {
-          console.error('Error reverting state:', revertError)
+      // Revert optimistic update
+      if (originalGameData && gameState.currentGameContext) {
+        gameState.setCurrentGameContext({
+          ...gameState.currentGameContext,
+          gameData: originalGameData
+        })
+        if (gameState.currentGameContext?.type === 'planned') {
+          gameState.setLocalTeamA([...originalGameData.teamA])
+          gameState.setLocalTeamB([...originalGameData.teamB])
         }
       }
     }
@@ -856,6 +976,9 @@ export function useGameActions(
   const handleRemovePlayer = async (player: Player) => {
     if (!ensureCorrectMatch('Remove player')) return
 
+    // Store original state for potential rollback
+    const originalGameData = gameState.currentGameContext?.gameData
+
     try {
       if (gameState.currentGameContext?.type === 'planned') {
         const playerInTeamA = gameState.localTeamA.find(p => p.id === player.id)
@@ -884,6 +1007,35 @@ export function useGameActions(
             matchId: gameState.currentGameContext.matchId
           })
         }
+      } else {
+        // Optimistic update for active games
+        if (gameState.currentGameContext) {
+          const isGoalkeeperA = gameState.currentGameContext.gameData.goalkeepers.teamA?.id === player.id
+          const isGoalkeeperB = gameState.currentGameContext.gameData.goalkeepers.teamB?.id === player.id
+          
+          let updatedGameData = { ...gameState.currentGameContext.gameData }
+          
+          if (isGoalkeeperA) {
+            updatedGameData.goalkeepers = {
+              ...updatedGameData.goalkeepers,
+              teamA: null
+            }
+          } else if (isGoalkeeperB) {
+            updatedGameData.goalkeepers = {
+              ...updatedGameData.goalkeepers,
+              teamB: null
+            }
+          } else {
+            // Remove from field players
+            updatedGameData.teamA = updatedGameData.teamA.filter(p => p.id !== player.id)
+            updatedGameData.teamB = updatedGameData.teamB.filter(p => p.id !== player.id)
+          }
+          
+          gameState.setCurrentGameContext({
+            ...gameState.currentGameContext,
+            gameData: updatedGameData
+          })
+        }
       }
 
       const result = await removePlayerFromMatch({
@@ -893,35 +1045,38 @@ export function useGameActions(
 
       if (result.validationErrors) {
         showSnackbar('Invalid input data')
-        if (gameState.currentGameContext?.type === 'planned') {
-          const revertedGameData = await convertPlannedGameToActiveGameData(gameState.currentGameContext.gameData.match)
+        // Revert optimistic update
+        if (originalGameData && gameState.currentGameContext) {
           gameState.setCurrentGameContext({
-            type: 'planned',
-            gameData: revertedGameData,
-            matchId: gameState.currentGameContext.matchId
+            ...gameState.currentGameContext,
+            gameData: originalGameData
           })
-          gameState.setLocalTeamA([...revertedGameData.teamA])
-          gameState.setLocalTeamB([...revertedGameData.teamB])
+          if (gameState.currentGameContext?.type === 'planned') {
+            gameState.setLocalTeamA([...originalGameData.teamA])
+            gameState.setLocalTeamB([...originalGameData.teamB])
+          }
         }
         return
       }
 
       if (result.serverError) {
         showSnackbar(result.serverError)
-        if (gameState.currentGameContext?.type === 'planned') {
-          const revertedGameData = await convertPlannedGameToActiveGameData(gameState.currentGameContext.gameData.match)
+        // Revert optimistic update
+        if (originalGameData && gameState.currentGameContext) {
           gameState.setCurrentGameContext({
-            type: 'planned',
-            gameData: revertedGameData,
-            matchId: gameState.currentGameContext.matchId
+            ...gameState.currentGameContext,
+            gameData: originalGameData
           })
-          gameState.setLocalTeamA([...revertedGameData.teamA])
-          gameState.setLocalTeamB([...revertedGameData.teamB])
+          if (gameState.currentGameContext?.type === 'planned') {
+            gameState.setLocalTeamA([...originalGameData.teamA])
+            gameState.setLocalTeamB([...originalGameData.teamB])
+          }
         }
         return
       }
 
       if (result.data) {
+        // Success - keep the optimistic update for planned games, refresh for active games
         if (gameState.currentGameContext?.type !== 'planned') {
           gameState.refreshGameData()
         }
@@ -930,15 +1085,16 @@ export function useGameActions(
       console.error('Error removing player:', error)
       showSnackbar('Failed to remove player')
       
-      if (gameState.currentGameContext?.type === 'planned') {
-        const revertedGameData = await convertPlannedGameToActiveGameData(gameState.currentGameContext.gameData.match)
+      // Revert optimistic update
+      if (originalGameData && gameState.currentGameContext) {
         gameState.setCurrentGameContext({
-          type: 'planned',
-          gameData: revertedGameData,
-          matchId: gameState.currentGameContext.matchId
+          ...gameState.currentGameContext,
+          gameData: originalGameData
         })
-        gameState.setLocalTeamA([...revertedGameData.teamA])
-        gameState.setLocalTeamB([...revertedGameData.teamB])
+        if (gameState.currentGameContext?.type === 'planned') {
+          gameState.setLocalTeamA([...originalGameData.teamA])
+          gameState.setLocalTeamB([...originalGameData.teamB])
+        }
       }
     }
   }
@@ -1453,6 +1609,9 @@ export function useGameActions(
     availablePlayersForSelection,
     
     // Authentication status
-    isAuthenticated
+    isAuthenticated,
+    
+    // State
+    isPauseToggleBusy
   }
 } 

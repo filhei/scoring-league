@@ -3,6 +3,7 @@ import type { Player } from '../../lib/types'
 import { PlayerTile } from './PlayerTile'
 import { GoalkeeperTile } from './GoalkeeperTile'
 import { DropPlaceholder } from './DropPlaceholder'
+import { VestToggle } from './VestToggle'
 import type { DragState } from '../../lib/hooks/useDragAndDrop'
 
 interface TeamDisplayProps {
@@ -21,6 +22,8 @@ interface TeamDisplayProps {
   onRemovePlayer: (player: Player) => void
   matchStatus?: string // Add match status to determine if it's planned
   isAuthenticated?: boolean
+  teamWithVests?: 'A' | 'B' | null
+  onVestToggle?: (team: 'A' | 'B') => void
 }
 
 export function TeamDisplay({
@@ -38,7 +41,9 @@ export function TeamDisplay({
   onAddPlayer,
   onRemovePlayer,
   matchStatus,
-  isAuthenticated = true
+  isAuthenticated = true,
+  teamWithVests,
+  onVestToggle
 }: TeamDisplayProps) {
   const isDragging = !!dragState
 
@@ -132,18 +137,52 @@ export function TeamDisplay({
     <div 
       data-team-container
       data-team={team}
-      className="space-y-2"
+      className="space-y-2 md:space-y-2"
       onDragOver={isAuthenticated ? (e) => onDragOver(e, team, players) : undefined}
       onDragLeave={isAuthenticated ? onDragLeave : undefined}
       onDrop={isAuthenticated ? (e) => onDrop(e, team) : undefined}
     >
+      {/* Team Header - Mobile Only */}
+      <div className="flex md:hidden items-center justify-between mb-4">
+        <h3 
+          className="text-lg font-bold transition-colors duration-300"
+          style={{
+            color: 'var(--accent-blue)'
+          }}
+        >
+          Team {team}
+        </h3>
+        {onVestToggle && (
+          teamWithVests === team ? (
+            <VestToggle
+              team={team}
+              hasVests={true}
+              isDarkMode={isDarkMode}
+              isAreaHovered={false}
+              onToggle={onVestToggle}
+            />
+          ) : (
+            <button
+              onClick={() => onVestToggle(team)}
+              className="px-3 py-1 text-xs font-medium transition-all duration-200 hover:scale-105 active:scale-95"
+              style={{
+                color: 'var(--accent-blue)'
+              }}
+              title="Lägg till västar"
+            >
+              västar
+            </button>
+          )
+        )}
+      </div>
+
       {renderTeamPlayers()}
       
       {/* Add Player Button */}
       {isAuthenticated && (
         <button 
           onClick={() => onAddPlayer(team, false)}
-          className="w-full px-4 py-2 border-2 border-dashed rounded-lg text-sm font-medium transition-all duration-300 hover:scale-[1.02]"
+          className="w-full px-4 py-3 md:py-2 border-2 border-dashed rounded-lg text-sm font-medium transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
           style={{
             borderColor: isDarkMode ? '#4b5563' : '#d1d5db',
             color: isDarkMode ? '#9ca3af' : '#6b7280'
@@ -157,7 +196,7 @@ export function TeamDisplay({
             e.currentTarget.style.color = isDarkMode ? '#9ca3af' : '#6b7280'
           }}
         >
-          + {matchStatus === 'planned' ? 'Add Players' : 'Add Player'}
+          + {matchStatus === 'planned' ? 'Lägg Till Spelare' : 'Lägg Till Spelare'}
         </button>
       )}
     </div>

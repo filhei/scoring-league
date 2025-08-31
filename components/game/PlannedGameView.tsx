@@ -52,6 +52,7 @@ export function PlannedGameView({
         onDeleteGame={actions.handleDeleteGame}
         onResetGame={actions.handleResetGame}
         isAuthenticated={actions.isAuthenticated}
+        isPauseToggleBusy={actions.isPauseToggleBusy}
       />
 
       {/* Player Selection Modal */}

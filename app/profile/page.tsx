@@ -12,13 +12,13 @@ export default function ProfilePage() {
   return (
     <ProtectedRoute>
       <div className={`min-h-screen transition-colors duration-300 ${
-        isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
+        isDarkMode ? 'sm:bg-gray-900 text-white' : 'sm:bg-gray-50 text-gray-900'
       }`}>
         <Navigation isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} />
         
-        <main className="max-w-2xl mx-auto px-6 py-8">
-          <div className={`rounded-lg shadow-sm border p-6 ${
-            isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        <main className="sm:max-w-2xl sm:mx-auto sm:px-6 sm:py-8 p-4">
+          <div className={`sm:rounded-lg shadow-sm sm:border p-4 sm:p-6 ${
+            isDarkMode ? 'sm:bg-gray-800 sm:border-gray-700' : 'sm:bg-white sm:border-gray-200'
           }`}>
             <h1 className="text-2xl font-bold mb-6">Profile Settings</h1>
             

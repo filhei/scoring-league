@@ -34,7 +34,7 @@ export function GameView({ initialActiveGame, availablePlayers, allGames }: Game
   const { snackbar, showSnackbar } = useSnackbar()
   
   // Game actions
-  const actions = useGameActions(gameState, showSnackbar)
+  const actions = useGameActions(gameState, showSnackbar, gameState.timer)
 
   // Add a timeout fallback to prevent infinite loading - reduced timeout
   const [loadingTimeout, setLoadingTimeout] = useState(false)

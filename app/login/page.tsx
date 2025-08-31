@@ -149,9 +149,9 @@ function LoginForm() {
         isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
       }`}>
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
+          <h1 className="text-3xl font-bold mb-2">Välkommen Tillbaka</h1>
           <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-            Sign in to your Scoring League account
+            Logga in på ditt Poängliga-konto
           </p>
         </div>
 
@@ -165,7 +165,7 @@ function LoginForm() {
                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}
               >
-                Email Address
+                E-postadress
               </label>
               <input
                 id="email"
@@ -178,7 +178,7 @@ function LoginForm() {
                     ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
                     : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                 }`}
-                placeholder="Enter your email"
+                placeholder="Ange din e-post"
                 disabled={loading}
               />
             </div>
@@ -202,7 +202,7 @@ function LoginForm() {
                   : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
               }`}
             >
-              {loading ? 'Sending...' : 'Send Email'}
+              {loading ? 'Skickar...' : 'Skicka E-post'}
             </button>
             
             <div className="text-center">
@@ -212,7 +212,7 @@ function LoginForm() {
                   isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'
                 }`}
               >
-                ← Back to Home
+                ← Tillbaka till Hem
               </Link>
             </div>
           </form>
@@ -224,7 +224,7 @@ function LoginForm() {
             {/* Instructions */}
             <div className={`p-4 rounded-md ${isDarkMode ? 'bg-blue-900/20 border border-blue-700' : 'bg-blue-50 border border-blue-200'}`}>
               <h3 className={`font-medium mb-2 ${isDarkMode ? 'text-blue-300' : 'text-blue-800'}`}>
-                Check your email at {email}
+                Kontrollera din e-post på {email}
               </h3>
             </div>
 
@@ -237,7 +237,7 @@ function LoginForm() {
                     isDarkMode ? 'text-gray-300' : 'text-gray-700'
                   }`}
                 >
-                  One-Time Code (Optional)
+                  Engångskod (Valfritt)
                 </label>
                 <input
                   id="code"
@@ -254,7 +254,7 @@ function LoginForm() {
                   disabled={loading}
                 />
                 <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Enter the 6-digit code from your email
+                  Ange 6-siffrig kod från din e-post
                 </p>
               </div>
 
@@ -278,7 +278,7 @@ function LoginForm() {
                       : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
                   }`}
                 >
-                  {loading ? 'Signing in...' : 'Sign In with Code'}
+                  {loading ? 'Loggar in...' : 'Logga In med Kod'}
                 </button>
                 
                 <div className="grid grid-cols-3 items-center">
@@ -289,7 +289,7 @@ function LoginForm() {
                         isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'
                       }`}
                     >
-                      ← Back to Home
+                      ← Tillbaka till Hem
                     </Link>
                   </div>
                   
@@ -301,7 +301,7 @@ function LoginForm() {
                         isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'
                       }`}
                     >
-                      Back to Email
+                      Tillbaka till E-post
                     </button>
                   </div>
                   
@@ -316,7 +316,7 @@ function LoginForm() {
                           : isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'
                       }`}
                     >
-                      Resend Email
+                      Skicka E-post Igen
                     </button>
                   </div>
                 </div>
@@ -342,7 +342,7 @@ function LoginPageFallback() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-            Loading login form...
+            Laddar inloggningsformulär...
           </p>
         </div>
       </div>

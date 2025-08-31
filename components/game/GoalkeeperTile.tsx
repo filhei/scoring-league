@@ -49,7 +49,7 @@ export function GoalkeeperTile({
       draggable={!!goalkeeper && !isGoalkeeperBeingDragged} // Only draggable if there's a goalkeeper and it's not being dragged
       onDragStart={(e) => goalkeeper && !isGoalkeeperBeingDragged && onDragStart?.(e, goalkeeper)}
       onDragEnd={onDragEnd}
-      className={`group px-4 py-2 rounded-lg border transition-all duration-300 ${
+      className={`group px-3 md:px-4 py-3 md:py-2 rounded-lg border transition-all duration-300 ${
         isDragTarget
           ? `border-2 ${isDarkMode ? 'border-blue-400 bg-blue-900/20' : 'border-blue-500 bg-blue-50'}`
           : !displayGoalkeeper 
@@ -74,54 +74,62 @@ export function GoalkeeperTile({
             color: isDragTarget ? (isDarkMode ? '#60a5fa' : '#3b82f6') : 'var(--accent-blue)'
           }}
         >
-          {isDragTarget ? `MAKE ${draggedPlayerName?.toUpperCase()} GOALKEEPER` : 'GOALKEEPER'}
+          {isDragTarget ? `GÖR ${draggedPlayerName?.toUpperCase()} MÅLVAKT` : 'MÅLVAKT'}
         </div>
         {displayGoalkeeper ? (
           <>
-            <div className="flex items-center justify-between pr-6">
-              <span className={`font-medium transition-colors duration-300 ${
-                isDarkMode ? 'text-white' : 'text-gray-800'
-              }`}>
-                {displayGoalkeeper.name || 'Unknown Player'}
-              </span>
-              <span className={`text-sm transition-colors duration-300 ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-600'
-              }`}>
-                {formatPlayerStats(getPlayerStats(displayGoalkeeper.id, scores))}
-              </span>
+            <div className="flex items-start md:items-center justify-between gap-2">
+              <div className="flex-1">
+                <span className={`font-medium text-sm md:text-base break-words transition-colors duration-300 ${
+                  isDarkMode ? 'text-white' : 'text-gray-800'
+                }`}>
+                  {displayGoalkeeper.name || 'Okänd Spelare'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className={`text-xs md:text-sm ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>
+                  {formatPlayerStats(getPlayerStats(displayGoalkeeper.id, scores))}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onRemovePlayer?.(displayGoalkeeper)
+                  }}
+                  className={`${getRemoveButtonStyles(isDarkMode, true)} w-6 h-6 md:w-5 md:h-5 text-sm md:text-xs flex items-center justify-center`}
+                  title="remove from team"
+                >
+                  −
+                </button>
+              </div>
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onRemovePlayer?.(displayGoalkeeper)
-              }}
-              className={getRemoveButtonStyles(isDarkMode, true)}
-              title="remove from team"
-            >
-              −
-            </button>
           </>
         ) : (
           <>
-            <div className="flex items-center justify-between pr-6">
-              <span className={`text-sm transition-colors duration-300 ${
-                isDarkMode ? 'text-gray-500' : 'text-gray-400'
-              }`}>
-                Ingen målvakt
-              </span>
-              <span
-                className={`text-sm transition-colors duration-300 ${
-                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                }`}
-                style={{ minHeight: '1.7em', display: 'inline-block' }}
-              >
-                &nbsp;
-              </span>
-            </div>
-            <div className={`absolute top-1/2 right-0 -translate-y-1/2 text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 ${
-              isDarkMode ? 'text-gray-300 hover:text-gray-100' : 'text-gray-600 hover:text-gray-800'
-            }`}>
-              + Add
+            <div className="flex items-start md:items-center justify-between gap-2">
+              <div className="flex-1">
+                <span className={`text-sm transition-colors duration-300 ${
+                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                }`}>
+                  Ingen målvakt
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span
+                  className={`text-xs md:text-sm transition-colors duration-300 ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`}
+                  style={{ minHeight: '1.7em', display: 'inline-block' }}
+                >
+                  &nbsp;
+                </span>
+                <div className={`text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 ${
+                  isDarkMode ? 'text-gray-300 hover:text-gray-100' : 'text-gray-600 hover:text-gray-800'
+                }`}>
+                  + Add
+                </div>
+              </div>
             </div>
           </>
         )}

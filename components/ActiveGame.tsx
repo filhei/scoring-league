@@ -25,6 +25,7 @@ interface ActiveGameProps {
   onDeleteGame?: () => void
   onResetGame?: () => void
   isAuthenticated?: boolean
+  isPauseToggleBusy?: boolean
 }
 
 export function ActiveGame({
@@ -47,7 +48,8 @@ export function ActiveGame({
   onVestToggle,
   onDeleteGame,
   onResetGame,
-  isAuthenticated = true
+  isAuthenticated = true,
+  isPauseToggleBusy = false
 }: ActiveGameProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -93,7 +95,7 @@ export function ActiveGame({
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6" ref={containerRef}>
+    <div className="sm:max-w-6xl sm:mx-auto sm:p-6 p-4" ref={containerRef}>
       {/* Custom Drag Image */}
       <DragImage
         isVisible={!!dragState}
@@ -104,37 +106,29 @@ export function ActiveGame({
       />
 
       {/* Active Game Pane */}
-      <div className={`rounded-2xl p-8 mb-8 transition-colors duration-300 ${
+      <div className={`sm:rounded-2xl p-4 sm:p-8 mb-6 sm:mb-8 transition-colors duration-300 ${
         isDarkMode
-          ? 'bg-gray-800 border border-gray-700'
-          : 'bg-gray-50 border border-gray-200'
+          ? 'sm:bg-gray-800 sm:border sm:border-gray-700'
+          : 'sm:bg-gray-50 sm:border sm:border-gray-200'
       }`}>
         {/* Title */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-6 md:mb-8">
           <div className="flex items-center gap-3">
-            <h2 className={`text-3xl font-bold transition-colors duration-300 ${
+            <h2 className={`text-2xl md:text-3xl font-bold transition-colors duration-300 ${
               isDarkMode ? 'text-white' : 'text-gray-900'
             }`}>
               {matchStatus === 'planned' ? 'Planned Game' : 'Active Game'}
-              <span className="text-sm font-normal ml-2 opacity-60">
+              <span className="text-xs md:text-sm font-normal ml-2 opacity-60">
                 (Game {activeGame.match.gameCount || 'N/A'})
               </span>
             </h2>
-            {!isAuthenticated && (
-              <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                isDarkMode 
-                  ? 'bg-gray-700 text-gray-300 border border-gray-600' 
-                  : 'bg-gray-100 text-gray-600 border border-gray-200'
-              }`}>
-                Read Only
-              </div>
-            )}
           </div>
-          {isAuthenticated && (onDeleteGame || onResetGame) && (
+          {isAuthenticated && (
             <GameSettingsDropdown
               isDarkMode={isDarkMode}
               onDeleteGame={onDeleteGame}
               onResetGame={onResetGame}
+              onSwapSides={onSwapSides}
               matchStatus={matchStatus || activeGame.match.match_status}
             />
           )}
@@ -158,10 +152,11 @@ export function ActiveGame({
           onSwapSides={onSwapSides}
           onVestToggle={onVestToggle}
           isAuthenticated={isAuthenticated}
+          isPauseToggleBusy={isPauseToggleBusy}
         />
 
         {/* Teams Display */}
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {/* Left Team */}
           <TeamDisplay
             team={leftTeam}
@@ -179,6 +174,8 @@ export function ActiveGame({
             onRemovePlayer={onRemovePlayer}
             matchStatus={matchStatus}
             isAuthenticated={isAuthenticated}
+            teamWithVests={activeGame.match.team_with_vests as 'A' | 'B' | null}
+            onVestToggle={onVestToggle}
           />
 
           {/* Right Team */}
@@ -198,6 +195,8 @@ export function ActiveGame({
             onRemovePlayer={onRemovePlayer}
             matchStatus={matchStatus}
             isAuthenticated={isAuthenticated}
+            teamWithVests={activeGame.match.team_with_vests as 'A' | 'B' | null}
+            onVestToggle={onVestToggle}
           />
         </div>
       </div>

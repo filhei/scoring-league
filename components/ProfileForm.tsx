@@ -186,7 +186,7 @@ export function ProfileForm() {
         {/* Success/Error Messages */}
         {submitSuccess && (
           <div className="p-4 bg-green-100 border border-green-400 text-green-700 rounded-md">
-            Profile updated successfully!
+            Profil uppdaterad framgångsrikt!
           </div>
         )}
         
@@ -198,7 +198,7 @@ export function ProfileForm() {
 
         {/* Name Section */}
         <div>
-          <label className="block text-sm font-medium mb-2">Name</label>
+          <label className="block text-sm font-medium mb-2">Namn</label>
           <input
             type="text"
             value={name}
@@ -213,9 +213,13 @@ export function ProfileForm() {
 
         {/* Position Preferences */}
         <div>
-          <h3 className="text-lg font-semibold mb-4">Position Preferences</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Click on a position to cycle through your preferences. You can have one primary and multiple secondary preferences.
+          <h3 className="text-lg font-semibold mb-4">
+            Positionspreferenser
+          </h3>
+          <p className={`text-sm mb-4 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            Välj dina föredragna positioner i ordning (1 = mest föredragen)
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {positions.map(({ position, preference }) => (
@@ -234,19 +238,22 @@ export function ProfileForm() {
 
         {/* Remove Account Section */}
         <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold text-red-600 mb-4">Danger Zone</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Once you delete your account, there is no going back. Please be certain.
+          <h3 className="text-lg font-semibold mb-4 text-red-600">
+            Ta Bort Konto
+          </h3>
+          <p className={`text-sm mb-4 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-600'
+          }`}>
+            Detta kommer att permanent ta bort ditt konto och all din data. Denna åtgärd kan inte ångras.
           </p>
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={() => setShowDeleteDialog(true)}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-            >
-              Remove Account
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleDeleteAccount}
+            disabled={isSubmitting}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+          >
+            {isSubmitting ? 'Tar bort...' : 'Ta Bort Konto'}
+          </button>
         </div>
 
         {/* Divider */}
@@ -254,15 +261,13 @@ export function ProfileForm() {
 
         {/* Save Button */}
         <div className="flex justify-end space-x-3">
-          {hasChanges && (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
-            >
-              Cancel
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={resetForm}
+            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+          >
+            Avbryt
+          </button>
           <button
             type="submit"
             disabled={!hasChanges || isSubmitting}
@@ -272,7 +277,7 @@ export function ProfileForm() {
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400'
             }`}
           >
-            {isSubmitting ? 'Saving...' : 'Save Changes'}
+            {isSubmitting ? 'Sparar...' : 'Spara Ändringar'}
           </button>
         </div>
       </form>

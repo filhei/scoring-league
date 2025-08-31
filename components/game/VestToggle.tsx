@@ -16,7 +16,7 @@ export function VestToggle({ team, hasVests, isDarkMode, isAreaHovered, onToggle
   return (
     <button
       onClick={() => onToggle(team)}
-      className={`w-6 h-6 flex items-center justify-center transition-all duration-200 hover:scale-110 ${
+      className={`w-6 h-6 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 ${
         isDarkMode
           ? 'text-gray-400 hover:text-white'
           : 'text-gray-500 hover:text-gray-800'

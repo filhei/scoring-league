@@ -4,10 +4,11 @@ interface GameSettingsDropdownProps {
   isDarkMode: boolean
   onDeleteGame?: () => void
   onResetGame?: () => void
+  onSwapSides?: () => void
   matchStatus?: string
 }
 
-export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, matchStatus }: GameSettingsDropdownProps) {
+export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, onSwapSides, matchStatus }: GameSettingsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [showResetConfirmation, setShowResetConfirmation] = useState(false)
@@ -87,6 +88,22 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, ma
               : 'bg-white border-gray-200'
           }`}>
             <div className="py-1">
+              {/* Swap Teams - Mobile Only */}
+              {onSwapSides && (
+                <button
+                  onClick={() => {
+                    setIsOpen(false)
+                    onSwapSides()
+                  }}
+                  className={`w-full px-4 py-2 text-left text-sm transition-colors duration-200 md:hidden ${
+                    isDarkMode
+                      ? 'text-blue-400 hover:bg-gray-700 hover:text-blue-300'
+                      : 'text-blue-600 hover:bg-gray-50 hover:text-blue-700'
+                  }`}
+                >
+                  Swap Teams
+                </button>
+              )}
               {onResetGame && matchStatus !== 'planned' && (
                 <button
                   onClick={handleResetClick}

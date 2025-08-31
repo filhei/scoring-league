@@ -77,7 +77,7 @@ export function ProfileDropdown() {
             <div className={`px-4 py-2 text-sm border-b ${
               isDarkMode ? 'border-gray-700 text-gray-300' : 'border-gray-200 text-gray-700'
             }`}>
-              <div className="font-medium">{player.name || 'Unknown Player'}</div>
+              <div className="font-medium">{player.name || 'Okänd Spelare'}</div>
               <div className="text-xs opacity-75">{user.email}</div>
             </div>
           )}

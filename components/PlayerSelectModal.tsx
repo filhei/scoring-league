@@ -94,7 +94,7 @@ export function PlayerSelectModal({
               e.currentTarget.style.backgroundColor = isDarkMode ? '#374151' : '#e5e7eb'
             }}
           >
-            Cancel
+            Avbryt
           </button>
         </div>
       </div>
@@ -272,7 +272,7 @@ function MultiPlayerSelectModal({
           <div className={`text-sm transition-colors duration-300 ${
             isDarkMode ? 'text-gray-300' : 'text-gray-600'
           }`}>
-            {selectedPlayers.size} player{selectedPlayers.size !== 1 ? 's' : ''} selected
+            {selectedPlayers.size} spelare vald{selectedPlayers.size !== 1 ? 'a' : ''}
           </div>
           
           <div className="flex space-x-3">
@@ -290,7 +290,7 @@ function MultiPlayerSelectModal({
                 e.currentTarget.style.backgroundColor = isDarkMode ? '#374151' : '#e5e7eb'
               }}
             >
-              Cancel
+              Avbryt
             </button>
             
             <button

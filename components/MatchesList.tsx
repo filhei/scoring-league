@@ -50,11 +50,11 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
 
   if (authLoading) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className={`rounded-2xl p-8 transition-colors duration-300 ${
+      <div className="sm:max-w-6xl sm:mx-auto sm:p-6 p-4">
+        <div className={`sm:rounded-2xl p-6 sm:p-8 transition-colors duration-300 ${
           isDarkMode
-            ? 'bg-gray-800 border border-gray-700'
-            : 'bg-gray-50 border border-gray-200'
+            ? 'sm:bg-gray-800 sm:border sm:border-gray-700'
+            : 'sm:bg-gray-50 sm:border sm:border-gray-200'
         }`}>
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -71,11 +71,11 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
 
   if (allGamesToShow.length === 0) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className={`rounded-2xl p-8 transition-colors duration-300 ${
+      <div className="sm:max-w-6xl sm:mx-auto sm:p-6 p-4">
+        <div className={`sm:rounded-2xl p-6 sm:p-8 transition-colors duration-300 ${
           isDarkMode
-            ? 'bg-gray-800 border border-gray-700'
-            : 'bg-gray-50 border border-gray-200'
+            ? 'sm:bg-gray-800 sm:border sm:border-gray-700'
+            : 'sm:bg-gray-50 sm:border sm:border-gray-200'
         }`}>
           <div className="text-center">
             <div className={`text-6xl mb-6 transition-colors duration-300 ${
@@ -105,7 +105,7 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
                   isCreatingGame ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'
                 }`}
               >
-                {isCreatingGame ? 'Creating Game...' : 'Create New Game'}
+                {isCreatingGame ? 'Skapar Match...' : 'Skapa Ny Match'}
               </button>
             )}
           </div>
@@ -115,17 +115,17 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className={`rounded-2xl p-6 transition-colors duration-300 ${
+    <div className="sm:max-w-4xl sm:mx-auto sm:p-6 p-4">
+      <div className={`sm:rounded-2xl p-4 sm:p-6 transition-colors duration-300 ${
         isDarkMode
-          ? 'bg-gray-800 border border-gray-700'
-          : 'bg-gray-50 border border-gray-200'
+          ? 'sm:bg-gray-800 sm:border sm:border-gray-700'
+          : 'sm:bg-gray-50 sm:border sm:border-gray-200'
       }`}>
         <div className="flex justify-between items-center mb-6">
           <h3 className={`text-xl font-bold transition-colors duration-300 ${
             isDarkMode ? 'text-white' : 'text-gray-900'
           }`}>
-            All Games
+            Alla Matcher
           </h3>
           {isAuthenticated && (
             <button
@@ -139,7 +139,7 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
                 isCreatingGame ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
               }`}
             >
-              {isCreatingGame ? 'Creating...' : '+ New Game'}
+              {isCreatingGame ? 'Skapar...' : '+ Ny Match'}
             </button>
           )}
         </div>
@@ -151,10 +151,10 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
             return (
               <div
                 key={game.id}
-                className={`w-full p-4 rounded-xl text-left transition-all duration-200 hover:scale-[1.02] cursor-pointer ${
+                className={`w-full p-4 sm:rounded-xl text-left transition-all duration-200 hover:scale-[1.02] cursor-pointer ${
                   isDarkMode
-                    ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600'
-                    : 'bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
+                    ? 'sm:bg-gray-700 hover:bg-gray-600 sm:border sm:border-gray-600'
+                    : 'sm:bg-white hover:bg-gray-50 sm:border sm:border-gray-200 hover:sm:border-gray-300'
                 }`}
                 onClick={() => handleGameSelect(game)}
               >
@@ -163,14 +163,14 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
                     <div className={`font-semibold transition-colors duration-300 ${
                       isDarkMode ? 'text-white' : 'text-gray-900'
                     }`}>
-                      Game {game.gameCount || 'N/A'}
+                      Match {game.gameCount || 'N/A'}
                     </div>
                     <div className={`text-sm transition-colors duration-300 ${
                       isDarkMode ? 'text-gray-400' : 'text-gray-600'
                     }`}>
                       {isActive 
-                        ? `Started: ${new Date(game.start_time!).toLocaleString()}`
-                        : `Created: ${new Date(game.created_at!).toLocaleString()}`
+                        ? `Startad: ${new Date(game.start_time!).toLocaleString()}`
+                        : `Skapad: ${new Date(game.created_at!).toLocaleString()}`
                       }
                     </div>
                   </div>
@@ -181,7 +181,7 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
                         ? 'bg-gray-700 text-gray-300'
                         : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {isActive ? 'Active' : 'Planned'}
+                    {isActive ? 'Aktiv' : 'Planerad'}
                   </div>
                 </div>
               </div>
@@ -189,10 +189,10 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
           })}
         </div>
         {!isAuthenticated && (
-          <div className={`mt-6 p-4 rounded-lg text-center ${
+          <div className={`mt-6 p-4 sm:rounded-lg text-center ${
             isDarkMode 
-              ? 'bg-gray-700/50 border border-gray-600' 
-              : 'bg-gray-50 border border-gray-200'
+              ? 'sm:bg-gray-700/50 sm:border sm:border-gray-600' 
+              : 'sm:bg-gray-50 sm:border sm:border-gray-200'
           }`}>
             <p className={`text-sm transition-colors duration-300 ${
               isDarkMode ? 'text-gray-400' : 'text-gray-600'
