@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Poängliga",
-  description: "Fotbollsmatcher poängsystem och spelarhantering",
+  description: "Statistik för söndagsbandyn",
 };
 
 export default function RootLayout({
