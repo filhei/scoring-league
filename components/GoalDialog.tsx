@@ -22,7 +22,10 @@ export function GoalDialog({
   if (!goalDialog.isOpen || !activeGame) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.65)' }}
+    >
       <div className={`rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-hidden transition-colors duration-300 ${
         isDarkMode
           ? 'bg-gray-800 border border-gray-700'
