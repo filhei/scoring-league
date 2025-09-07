@@ -78,21 +78,11 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
             : 'sm:bg-gray-50 sm:border sm:border-gray-200'
         }`}>
           <div className="text-center">
-            <div className={`text-6xl mb-6 transition-colors duration-300 ${
-              isDarkMode ? 'text-gray-600' : 'text-gray-400'
-            }`}>
-              ⚽
-            </div>
-            <h2 className={`text-3xl font-bold mb-4 transition-colors duration-300 ${
+            <h2 className={`text-3xl font-bold mb-8 transition-colors duration-300 ${
               isDarkMode ? 'text-white' : 'text-gray-900'
             }`}>
-              No Games Available
+              Det finns inga matcher att visa
             </h2>
-            <p className={`text-lg mb-8 transition-colors duration-300 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>
-              {isAuthenticated ? 'Create a new match to get started.' : 'No games have been created yet.'}
-            </p>
             {isAuthenticated && (
               <button
                 onClick={onCreateNewGame}
