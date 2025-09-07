@@ -68,7 +68,7 @@ export function PlayerTile({
                 e.stopPropagation()
                 onRemovePlayer?.(player)
               }}
-              className={`${getRemoveButtonStyles(isDarkMode, false)} w-6 h-6 md:w-5 md:h-5 text-sm md:text-xs flex items-center justify-center`}
+              className={`${getRemoveButtonStyles(isDarkMode, false)} w-6 h-6 md:w-5 md:h-5 text-sm md:text-xs flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300`}
               title="remove from team"
             >
               −

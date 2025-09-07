@@ -67,7 +67,7 @@ export function GoalkeeperTile({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
-      <div className="flex justify-between items-start md:items-center gap-2">
+      <div className="flex justify-between items-center gap-2">
         <div className="flex-1">
           <div 
             className="text-xs font-bold mb-1 transition-colors duration-300"
@@ -96,14 +96,14 @@ export function GoalkeeperTile({
                   e.stopPropagation()
                   onRemovePlayer?.(displayGoalkeeper)
                 }}
-                className={`${getRemoveButtonStyles(isDarkMode, false)} w-6 h-6 md:w-5 md:h-5 text-sm md:text-xs flex items-center justify-center`}
+                className={`${getRemoveButtonStyles(isDarkMode, false)} w-6 h-6 md:w-5 md:h-5 text-sm md:text-xs flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300`}
                 title="remove from team"
               >
                 −
               </button>
             </>
           ) : (
-            <div className={`text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 ${
+            <div className={`text-sm font-medium opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:scale-110 mr-1 ${
               isDarkMode ? 'text-gray-300 hover:text-gray-100' : 'text-gray-600 hover:text-gray-800'
             }`}>
               + Add
