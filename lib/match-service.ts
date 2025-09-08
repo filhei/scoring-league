@@ -328,7 +328,7 @@ export class MatchService {
   /**
    * Parse PostgreSQL interval to seconds
    */
-  private static parseInterval(interval: unknown): number {
+  static parseInterval(interval: unknown): number {
     if (typeof interval === 'string') {
       // Handle formats like "1234 seconds", "00:20:34", etc.
       if (interval.includes('seconds')) {

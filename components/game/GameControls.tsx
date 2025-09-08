@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import type { UseMatchTimerReturn } from '../../lib/hooks/useMatchTimer'
+import type { Score, Player } from '../../lib/types'
 import { VestToggle } from './VestToggle'
+import { ScorersDisplay } from './ScorersDisplay'
 
 interface GameControlsProps {
   timer?: UseMatchTimerReturn | null
@@ -11,6 +13,10 @@ interface GameControlsProps {
   isDarkMode: boolean
   teamWithVests: 'A' | 'B' | null
   matchStatus: string
+  scores: Score[]
+  teamAPlayers: Player[]
+  teamBPlayers: Player[]
+  goalkeepers: { teamA: Player | null; teamB: Player | null }
   onScoreIncrement: (team: 'A' | 'B') => void
   onPauseToggle: () => void
   onEndMatch: () => void
@@ -31,6 +37,10 @@ export function GameControls({
   isDarkMode,
   teamWithVests,
   matchStatus,
+  scores,
+  teamAPlayers,
+  teamBPlayers,
+  goalkeepers,
   onScoreIncrement,
   onPauseToggle,
   onEndMatch,
@@ -147,6 +157,15 @@ export function GameControls({
           </button>
         )}
       </div>
+
+      {/* Scorers Display */}
+      <ScorersDisplay
+        scores={scores}
+        teamAPlayers={teamAPlayers}
+        teamBPlayers={teamBPlayers}
+        goalkeepers={goalkeepers}
+        isDarkMode={isDarkMode}
+      />
 
       {/* Start/End Match Button */}
       <div className="flex justify-center mb-6 md:mb-8">

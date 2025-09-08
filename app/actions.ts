@@ -28,7 +28,18 @@ export const addScore = actionClient
   .action(async ({ parsedInput: { matchId, team, scoringPlayerId, assistingPlayerId } }) => {
     try {
       const supabaseServer = await createServerSupabaseClient()
-      const currentDuration = MatchService.calculateCurrentDuration({ id: matchId } as any)
+      
+      // Fetch the full match data to calculate current duration
+      const { data: matchData, error: matchError } = await supabaseServer
+        .from('matches')
+        .select('*')
+        .eq('id', matchId)
+        .single()
+
+      if (matchError) throw handleSupabaseError(matchError)
+      if (!matchData) throw new Error('Match not found')
+
+      const currentDuration = MatchService.calculateCurrentDuration(matchData)
       
       const { data, error } = await supabaseServer
         .from('scores')

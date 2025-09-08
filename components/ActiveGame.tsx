@@ -147,6 +147,10 @@ export function ActiveGame({
           isDarkMode={isDarkMode}
           teamWithVests={activeGame.match.team_with_vests as 'A' | 'B' | null}
           matchStatus={matchStatus || activeGame.match.match_status}
+          scores={activeGame.scores}
+          teamAPlayers={activeGame.teamA}
+          teamBPlayers={activeGame.teamB}
+          goalkeepers={activeGame.goalkeepers}
           onScoreIncrement={onScoreIncrement}
           onPauseToggle={onPauseToggle}
           onEndMatch={onEndMatch}
