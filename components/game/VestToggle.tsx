@@ -6,12 +6,28 @@ interface VestToggleProps {
   isDarkMode: boolean
   isAreaHovered: boolean
   onToggle: (team: 'A' | 'B') => void
+  isAuthenticated?: boolean
 }
 
-export function VestToggle({ team, hasVests, isDarkMode, isAreaHovered, onToggle }: VestToggleProps) {
+export function VestToggle({ team, hasVests, isDarkMode, isAreaHovered, onToggle, isAuthenticated = true }: VestToggleProps) {
   const shouldShow = hasVests || isAreaHovered
   
   if (!shouldShow) return <div className="w-6 h-6" /> // Placeholder to maintain spacing
+  
+  if (!isAuthenticated) {
+    // Show vest icon but not interactive for unauthenticated users
+    return (
+      <div className="w-6 h-6 flex items-center justify-center">
+        <span 
+          className={`text-lg transition-opacity duration-200 ${
+            hasVests ? 'opacity-100' : 'opacity-60'
+          }`}
+        >
+          🦺
+        </span>
+      </div>
+    )
+  }
   
   return (
     <button

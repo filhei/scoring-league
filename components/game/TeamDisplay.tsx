@@ -100,6 +100,7 @@ export function TeamDisplay({
         draggedPlayerName={dragState?.player.name || 'Unknown Player'}
         isDragging={isDragging}
         dragState={dragState}
+        isAuthenticated={isAuthenticated}
       />
     )
 
@@ -127,6 +128,7 @@ export function TeamDisplay({
             onDragStart={isAuthenticated ? onDragStart : undefined}
             onDragEnd={isAuthenticated ? onDragEnd : undefined}
             onRemovePlayer={isAuthenticated ? onRemovePlayer : undefined}
+            isAuthenticated={isAuthenticated}
           />
         )
       }

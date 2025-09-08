@@ -16,6 +16,7 @@ interface PlayerTileProps {
   onDragStart?: (e: React.DragEvent, player: Player) => void
   onDragEnd?: (e: React.DragEvent) => void
   onRemovePlayer?: (player: Player) => void
+  isAuthenticated?: boolean
 }
 
 export function PlayerTile({
@@ -29,7 +30,8 @@ export function PlayerTile({
   scores,
   onDragStart,
   onDragEnd,
-  onRemovePlayer
+  onRemovePlayer,
+  isAuthenticated = true
 }: PlayerTileProps) {
   const isBeingDragged = isDragging && dragState?.player.id === player.id
 
@@ -62,7 +64,7 @@ export function PlayerTile({
           }`}>
             {formatPlayerStats(getPlayerStats(player.id, scores))}
           </span>
-          {!isGoalkeeper && (
+          {!isGoalkeeper && isAuthenticated && (
             <button
               onClick={(e) => {
                 e.stopPropagation()

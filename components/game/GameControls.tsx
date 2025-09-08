@@ -225,20 +225,23 @@ export function GameControls({
             isDarkMode={isDarkMode}
             isAreaHovered={leftTeamHovered}
             onToggle={onVestToggle}
+            isAuthenticated={isAuthenticated}
           />
         </div>
         
-        <button
-          onClick={onSwapSides}
-          className={`w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all duration-300 hover:scale-110 active:scale-95 ${
-            isDarkMode
-              ? 'text-gray-400 hover:bg-gray-800 hover:text-white'
-              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
-          }`}
-          title="Byt sida"
-        >
-          ⇄
-        </button>
+        {isAuthenticated && (
+          <button
+            onClick={onSwapSides}
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all duration-300 hover:scale-110 active:scale-95 ${
+              isDarkMode
+                ? 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+            }`}
+            title="Byt sida"
+          >
+            ⇄
+          </button>
+        )}
         
         <div 
           className="flex items-center space-x-2 group"
@@ -251,6 +254,7 @@ export function GameControls({
             isDarkMode={isDarkMode}
             isAreaHovered={rightTeamHovered}
             onToggle={onVestToggle}
+            isAuthenticated={isAuthenticated}
           />
           <h3 
             className="text-lg md:text-xl font-bold transition-colors duration-300"
