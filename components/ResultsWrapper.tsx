@@ -19,7 +19,7 @@ export function ResultsWrapper({ pastGames }: ResultsWrapperProps) {
         <h1 className={`text-3xl font-bold mb-8 text-center transition-colors duration-300 ${
           isDarkMode ? 'text-white' : 'text-black'
         }`}>
-          Past Game Results
+          Resultat
         </h1>
         <PastGamesList pastGames={pastGames} isDarkMode={isDarkMode} />
       </div>

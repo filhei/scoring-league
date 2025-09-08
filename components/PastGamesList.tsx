@@ -10,7 +10,7 @@ export function PastGamesList({ pastGames, isDarkMode = false }: PastGamesListPr
   if (pastGames.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-lg text-gray-500 dark:text-gray-400">No past games found.</p>
+        <p className="text-lg text-gray-500 dark:text-gray-400">Inga resultat att visa.</p>
       </div>
     )
   }
@@ -18,12 +18,12 @@ export function PastGamesList({ pastGames, isDarkMode = false }: PastGamesListPr
   // Group games by date
   const groupedGames = pastGames.reduce((groups, game) => {
     const date = new Date(game.match.start_time)
-    const dateKey = date.toDateString() // This gives us a consistent date string
-    const dateHeader = date.toLocaleDateString('en-US', {
+    const dateKey = date.toISOString().split('T')[0] // YYYY-MM-DD for consistent grouping
+    const dateHeader = date.toLocaleDateString('sv-SE', {
       weekday: 'long',
       day: 'numeric',
-      month: 'short'
-    })
+      month: 'long'
+    }).replace(/^./, (match) => match.toUpperCase())
 
     if (!groups[dateKey]) {
       groups[dateKey] = {

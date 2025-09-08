@@ -20,9 +20,9 @@ export default function ProfilePage() {
           <div className={`sm:rounded-lg shadow-sm sm:border p-4 sm:p-6 ${
             isDarkMode ? 'sm:bg-gray-800 sm:border-gray-700' : 'sm:bg-white sm:border-gray-200'
           }`}>
-            <h1 className="text-2xl font-bold mb-6">Profile Settings</h1>
+            <h1 className="text-2xl font-bold mb-6">Profil</h1>
             
-            <Suspense fallback={<div>Loading profile...</div>}>
+            <Suspense fallback={<div>Laddar profil...</div>}>
               <ProfileForm />
             </Suspense>
           </div>

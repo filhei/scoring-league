@@ -117,9 +117,9 @@ export function ActiveGame({
             <h2 className={`text-2xl md:text-3xl font-bold transition-colors duration-300 ${
               isDarkMode ? 'text-white' : 'text-gray-900'
             }`}>
-              {matchStatus === 'planned' ? 'Planned Game' : 'Active Game'}
+              {matchStatus === 'planned' ? 'Planerad match' : 'Aktiv match'}
               <span className="text-xs md:text-sm font-normal ml-2 opacity-60">
-                (Game {activeGame.match.gameCount || 'N/A'})
+                (# {activeGame.match.gameCount || 'N/A'})
               </span>
             </h2>
           </div>

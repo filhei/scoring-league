@@ -90,7 +90,7 @@ export function ProfileDropdown() {
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
-            Profile
+            Profil
           </Link>
           <button
             onClick={handleSignOut}
@@ -100,7 +100,7 @@ export function ProfileDropdown() {
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
-            Sign Out
+            Logga ut
           </button>
         </div>
       )}

@@ -28,9 +28,9 @@ export function PositionCard({ position, preference, onPreferenceChange, isDarkM
       <div className="text-center">
         <div className="font-semibold">{position}</div>
         <div className="text-sm opacity-80 mt-1">
-          {preference === 'primary' && 'Primary'}
-          {preference === 'secondary' && 'Secondary'}
-          {preference === null && 'No preference'}
+          {preference === 'primary' && 'Prio'}
+          {preference === 'secondary' && 'Sekundär'}
+          {preference === null && 'Nej'}
         </div>
       </div>
     </div>

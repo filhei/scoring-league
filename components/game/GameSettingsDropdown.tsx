@@ -101,7 +101,20 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                       : 'text-blue-600 hover:bg-gray-50 hover:text-blue-700'
                   }`}
                 >
-                  Swap Teams
+                  <span className="inline-flex items-center gap-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                    </svg>
+                    Byt sida
+                  </span>
                 </button>
               )}
               {onResetGame && matchStatus !== 'planned' && (
@@ -113,7 +126,20 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                       : 'text-yellow-600 hover:bg-gray-50 hover:text-yellow-700'
                   }`}
                 >
-                  Reset Game
+                  <span className="inline-flex items-center gap-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Starta om match
+                  </span>
                 </button>
               )}
               {onDeleteGame && (
@@ -125,7 +151,19 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                       : 'text-red-600 hover:bg-gray-50 hover:text-red-700'
                   }`}
                 >
-                  Delete Game
+                  <span className="inline-flex items-center gap-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-7 0h10" />
+                    </svg>
+                    Släng match
+                  </span>
                 </button>
               )}
             </div>
@@ -147,12 +185,12 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
             <h3 className={`text-xl font-bold mb-4 ${
               isDarkMode ? 'text-white' : 'text-gray-900'
             }`}>
-              Reset Game?
+              Starta om match?
             </h3>
                          <p className={`mb-6 ${
                isDarkMode ? 'text-gray-300' : 'text-gray-600'
              }`}>
-               This will reset the timer to zero and remove all goals, but keep the teams. The game will be paused. This action cannot be undone.
+               Tiden kommer att återställas till noll och alla mål kommer att tas bort, men lagen behålls. Kan ej ångras.
              </p>
             <div className="flex space-x-3">
               <button
@@ -163,7 +201,7 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                     : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
                 }`}
               >
-                Cancel
+                Avbryt
               </button>
               <button
                 onClick={handleConfirmReset}
@@ -178,7 +216,7 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                   e.currentTarget.style.backgroundColor = 'var(--accent-blue)'
                 }}
               >
-                Reset
+                Starta om match
               </button>
             </div>
           </div>
@@ -199,12 +237,12 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
             <h3 className={`text-xl font-bold mb-4 ${
               isDarkMode ? 'text-white' : 'text-gray-900'
             }`}>
-              Delete Game?
+              Ta bort match?
             </h3>
             <p className={`mb-6 ${
               isDarkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
-              Are you sure you want to delete this game? This action cannot be undone.
+              Är du säker på att du vill ta bort matchen? Kan ej ångras.
             </p>
             <div className="flex space-x-3">
               <button
@@ -215,7 +253,7 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                     : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
                 }`}
               >
-                Cancel
+                Avbryt
               </button>
               <button
                 onClick={handleConfirmDelete}
@@ -230,7 +268,7 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                   e.currentTarget.style.backgroundColor = 'var(--accent-red)'
                 }}
               >
-                Delete
+                Ta bort match
               </button>
             </div>
           </div>
