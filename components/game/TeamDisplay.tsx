@@ -24,6 +24,7 @@ interface TeamDisplayProps {
   isAuthenticated?: boolean
   teamWithVests?: 'A' | 'B' | null
   onVestToggle?: (team: 'A' | 'B') => void
+  hideMobileHeader?: boolean // Add prop to hide mobile header
 }
 
 export function TeamDisplay({
@@ -43,7 +44,8 @@ export function TeamDisplay({
   matchStatus,
   isAuthenticated = true,
   teamWithVests,
-  onVestToggle
+  onVestToggle,
+  hideMobileHeader = false
 }: TeamDisplayProps) {
   const isDragging = !!dragState
 
@@ -143,7 +145,8 @@ export function TeamDisplay({
       onDrop={isAuthenticated ? (e) => onDrop(e, team) : undefined}
     >
       {/* Team Header - Mobile Only */}
-      <div className="flex md:hidden items-center justify-between mb-4">
+      {!hideMobileHeader && (
+        <div className="flex md:hidden items-center justify-between mb-4">
         <h3 
           className="text-lg font-bold transition-colors duration-300"
           style={{
@@ -175,6 +178,7 @@ export function TeamDisplay({
           )
         )}
       </div>
+      )}
 
       {renderTeamPlayers()}
       

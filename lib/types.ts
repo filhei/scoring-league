@@ -38,6 +38,15 @@ export interface PastGameData {
   teamWithVests: string | null
 }
 
+export interface PastGameDetailedData {
+  match: Match
+  teamA: Player[]
+  teamB: Player[]
+  goalkeepers: { teamA: Player | null; teamB: Player | null }
+  scores: Score[]
+  teamWithVests: string | null
+}
+
 export interface GoalDialogState {
   isOpen: boolean
   team: 'A' | 'B' | null

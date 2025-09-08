@@ -4,9 +4,11 @@ import { PastGameCard } from './PastGameCard'
 interface PastGamesListProps {
   pastGames: PastGameData[]
   isDarkMode?: boolean
+  onGameSelect?: (matchId: string) => void
+  loading?: boolean
 }
 
-export function PastGamesList({ pastGames, isDarkMode = false }: PastGamesListProps) {
+export function PastGamesList({ pastGames, isDarkMode = false, onGameSelect, loading = false }: PastGamesListProps) {
   if (pastGames.length === 0) {
     return (
       <div className="text-center py-12">
@@ -59,7 +61,13 @@ export function PastGamesList({ pastGames, isDarkMode = false }: PastGamesListPr
             {/* Games for this date */}
             <div className="space-y-4">
               {group.games.map((game) => (
-                <PastGameCard key={game.match.id} game={game} isDarkMode={isDarkMode} />
+                <PastGameCard 
+                  key={game.match.id} 
+                  game={game} 
+                  isDarkMode={isDarkMode}
+                  onGameSelect={onGameSelect}
+                  loading={loading}
+                />
               ))}
             </div>
           </div>
