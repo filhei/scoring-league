@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useMatchTimer } from './useMatchTimer'
-import { useGameData } from './useGameData'
+import { useGameData, getGameIdFromURL, getViewFromURL, updateURLForGame } from './useGameData'
 import { convertPlannedGameToActiveGameData } from '../game-utils'
 import type { Player, Match, ActiveGameData, Score } from '../types'
 
@@ -40,6 +40,7 @@ export interface GameState {
   setStartingGameId: (id: string | null) => void
   setSelectedGameId: (id: string | null) => void
   setIsEndingGame: (ending: boolean) => void
+  setIsLoadingFromURL: (loading: boolean) => void
   
   // Computed values
   currentGameData: ActiveGameData | null
@@ -76,6 +77,7 @@ export function useGameState(): GameState {
   const [startingGameId, setStartingGameId] = useState<string | null>(null)
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null)
   const [isEndingGame, setIsEndingGame] = useState(false)
+  const [isLoadingFromURL, setIsLoadingFromURL] = useState(false)
   
   // Use refs to track previous values and prevent unnecessary updates
   const prevActiveGameId = useRef<string | null>(null)
@@ -157,9 +159,9 @@ export function useGameState(): GameState {
   // Timer hook - use stable match reference
   const timer = useMatchTimer(stableMatch, handleMatchUpdate)
 
-  // Update current game context when activeGame changes - simplified
+  // Update current game context when activeGame changes - only if it matches current context
   useEffect(() => {
-    if (isEndingGame) {
+    if (isEndingGame || isLoadingFromURL) {
       return
     }
     
@@ -171,7 +173,9 @@ export function useGameState(): GameState {
       return
     }
     
-    if (activeGame) {
+    // Only update current context if we're currently viewing the active game
+    // This prevents automatic switching when other games become active
+    if (activeGame && currentGameContext?.matchId === activeGame.match.id) {
       setCurrentGameContext({
         type: activeGame.match.match_status === 'active' || activeGame.match.match_status === 'paused' ? 'active' : 'planned',
         gameData: activeGame,
@@ -180,49 +184,158 @@ export function useGameState(): GameState {
       
       setLocalTeamA([...activeGame.teamA])
       setLocalTeamB([...activeGame.teamB])
-      
-      if (isStartingGame && startingGameId && activeGame.match.id === startingGameId) {
-        setIsStartingGame(false)
-        setStartingGameId(null)
-      }
-      
-      if (selectedGameId && activeGame.match.id === selectedGameId) {
-        setSelectedGameId(null)
-      }
-      
-      // Update refs
-      prevActiveGameId.current = activeGameId || null
-      prevActiveGameStatus.current = activeGameStatus || null
-    } else {
-      if (!isStartingGame) {
-        setCurrentGameContext(null)
-        setLocalTeamA([])
-        setLocalTeamB([])
-        prevActiveGameId.current = null
-        prevActiveGameStatus.current = null
-        stableMatchRef.current = null
-      }
     }
-  }, [activeGame?.match.id, activeGame?.match.match_status, isStartingGame, startingGameId, selectedGameId, isEndingGame])
+    
+    // Handle starting game completion
+    if (isStartingGame && startingGameId && activeGame?.match.id === startingGameId) {
+      setIsStartingGame(false)
+      setStartingGameId(null)
+    }
+    
+    // Handle selected game completion
+    if (selectedGameId && activeGame?.match.id === selectedGameId) {
+      setSelectedGameId(null)
+    }
+    
+    // Update refs
+    prevActiveGameId.current = activeGameId || null
+    prevActiveGameStatus.current = activeGameStatus || null
+  }, [activeGame?.match.id, activeGame?.match.match_status, isStartingGame, startingGameId, selectedGameId, isEndingGame, isLoadingFromURL, currentGameContext?.matchId])
 
-  // Set initial state based on whether there's an active game - simplified
+  // Set initial state based on URL parameters or active game - URL-first approach
   useEffect(() => {
     if (!loading && !hasInitialized) {
       setHasInitialized(true)
       setUserRequestedMatchesList(false)
-      if (activeGame) {
+      
+      const urlGameId = getGameIdFromURL()
+      const urlView = getViewFromURL()
+      
+      if (urlGameId) {
+        // Load specific game from URL
+        setIsLoadingFromURL(true)
+        loadGameById(urlGameId).then((gameData) => {
+          if (gameData) {
+            const contextType = (gameData.match.match_status === 'active' || gameData.match.match_status === 'paused') ? 'active' : 'planned'
+            setCurrentGameContext({
+              type: contextType,
+              gameData: gameData,
+              matchId: gameData.match.id
+            })
+            setShowMatchesList(false)
+          } else {
+            // Game not found, fall back to matches list
+            setCurrentGameContext(null)
+            setShowMatchesList(true)
+            updateURLForGame(null)
+          }
+          setIsLoadingFromURL(false)
+        }).catch((error) => {
+          console.error('Error loading game from URL:', error)
+          setCurrentGameContext(null)
+          setShowMatchesList(true)
+          updateURLForGame(null)
+          setIsLoadingFromURL(false)
+        })
+      } else if (urlView === 'matches') {
+        // Explicitly show matches list
+        setCurrentGameContext(null)
+        setShowMatchesList(true)
+      } else if (activeGame) {
+        // Default: show active game if no URL params
         setCurrentGameContext({
           type: 'active',
           gameData: activeGame,
           matchId: activeGame.match.id
         })
         setShowMatchesList(false)
+        updateURLForGame(activeGame.match.id)
       } else {
+        // No active game, show matches list
         setCurrentGameContext(null)
         setShowMatchesList(true)
+        updateURLForGame(null)
       }
     }
-  }, [activeGame?.match.id, loading, hasInitialized, gameError])
+  }, [loading, hasInitialized, gameError])
+
+  // Helper function to load a specific game by ID
+  const loadGameById = async (gameId: string): Promise<ActiveGameData | null> => {
+    try {
+      const { supabase } = await import('../supabase')
+      
+      // Fetch the specific match
+      const { data: match, error: matchError } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', gameId)
+        .single()
+
+      if (matchError || !match) {
+        return null
+      }
+
+      // Calculate game count
+      const { data: allMatches, error: countError } = await supabase
+        .from('matches')
+        .select('id, created_at')
+        .order('created_at', { ascending: true })
+
+      if (countError) throw countError
+
+      const gameCount = allMatches?.findIndex(m => m.id === match.id) + 1 || 1
+      const matchWithCount = { ...match, gameCount }
+
+      // Get match players
+      const { data: matchPlayers, error: playersError } = await supabase
+        .from('match_players')
+        .select(`
+          *,
+          players (*)
+        `)
+        .eq('match_id', match.id)
+
+      if (playersError) throw playersError
+
+      // Get scores
+      const { data: scores, error: scoresError } = await supabase
+        .from('scores')
+        .select('*')
+        .eq('match_id', match.id)
+
+      if (scoresError) throw scoresError
+
+      if (matchPlayers) {
+        const teamA = matchPlayers
+          .filter(mp => mp.team === 'A' && !mp.is_goalkeeper)
+          .map(mp => mp.players)
+          .filter(Boolean) as Player[]
+        
+        const teamB = matchPlayers
+          .filter(mp => mp.team === 'B' && !mp.is_goalkeeper)
+          .map(mp => mp.players)
+          .filter(Boolean) as Player[]
+
+        const goalkeepers = {
+          teamA: matchPlayers.find(mp => mp.team === 'A' && mp.is_goalkeeper)?.players || null,
+          teamB: matchPlayers.find(mp => mp.team === 'B' && mp.is_goalkeeper)?.players || null
+        }
+
+        return {
+          match: matchWithCount,
+          teamA,
+          teamB,
+          scores: scores || [],
+          goalkeepers
+        }
+      }
+
+      return null
+    } catch (error) {
+      console.error('Error loading game by ID:', error)
+      return null
+    }
+  }
 
   // Update local state when currentGameContext changes - only when match ID changes
   useEffect(() => {
@@ -284,6 +397,7 @@ export function useGameState(): GameState {
     setStartingGameId,
     setSelectedGameId,
     setIsEndingGame,
+    setIsLoadingFromURL,
     
     // Computed values
     currentGameData,

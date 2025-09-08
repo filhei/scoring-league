@@ -18,6 +18,7 @@ import {
   resetMatch
 } from '@/app/actions'
 import { getAvailablePlayersForSelection, convertPlannedGameToActiveGameData } from '../game-utils'
+import { updateURLForGame } from './useGameData'
 import type { GoalDialogState, PlayerSelectState, Player, Match, ActiveGameData } from '../types'
 import type { GameContext, GameState } from './useGameState'
 
@@ -396,6 +397,7 @@ export function useGameActions(
       gameState.setCurrentGameContext(null)
       gameState.setUserRequestedMatchesList(true)
       gameState.setShowMatchesList(true)
+      updateURLForGame(null)
       
       gameState.refreshGameData()
       
@@ -455,6 +457,7 @@ export function useGameActions(
         gameState.setCurrentGameContext(null)
         gameState.setUserRequestedMatchesList(true)
         gameState.setShowMatchesList(true)
+        updateURLForGame(null)
         
         gameState.refreshGameData()
         
@@ -487,6 +490,7 @@ export function useGameActions(
       gameState.setCurrentGameContext(null)
       gameState.setUserRequestedMatchesList(true)
       gameState.setShowMatchesList(true)
+      updateURLForGame(null)
       
       gameState.refreshGameData()
     } catch (error) {
@@ -1661,6 +1665,9 @@ export function useGameActions(
       matchId: gameState.currentGameContext!.matchId
     })
 
+    // Update URL to reflect the game is now active
+    updateURLForGame(gameState.currentGameContext!.matchId)
+
     console.log('Updated local context to active, now updating database in background...')
 
     gameState.setIsStartingGame(false)
@@ -1686,6 +1693,7 @@ export function useGameActions(
     gameState.setCurrentGameContext(null)
     gameState.setUserRequestedMatchesList(true)
     gameState.setShowMatchesList(true)
+    updateURLForGame(null)
     gameState.refreshGameData()
   }
 
@@ -1713,6 +1721,7 @@ export function useGameActions(
         matchId: game.id
       })
       gameState.setShowMatchesList(false)
+      updateURLForGame(game.id)
       
     } catch (error) {
       console.error('Error loading game:', error)
