@@ -508,7 +508,6 @@ export function useGameActions(
         return
       }
 
-      showSnackbar('Game reset successfully')
       
       // Immediately update the current game context with reset match data
       if (gameState.currentGameContext) {
@@ -1556,12 +1555,6 @@ export function useGameActions(
         return
       }
 
-      // Show appropriate success message
-      if (currentGoalkeeperA && currentGoalkeeperB) {
-        showSnackbar('Målvakter byttes framgångsrikt!')
-      } else {
-        showSnackbar('Målvakt flyttades framgångsrikt!')
-      }
       
       // For active games, refresh to sync with server
       if (gameState.currentGameContext?.type !== 'planned') {
@@ -1726,7 +1719,6 @@ export function useGameActions(
 
       if (result.data) {
         console.log('handleCreateNewGame: Game created successfully, invalidating cache')
-        showSnackbar('New game created successfully!', 3000)
         // Clear any current game context and show matches list
         gameState.setCurrentGameContext(null)
         gameState.setShowMatchesList(true)
