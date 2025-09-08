@@ -50,7 +50,6 @@ export function NoActiveGame({ isDarkMode, onCreateNewGame }: NoActiveGameProps)
 
         if (result.data) {
           console.log('NoActiveGame: Game created successfully, invalidating cache')
-          showSnackbar('New game created successfully!', 3000)
           // Invalidate and refetch all game-related queries
           queryClient.invalidateQueries({ queryKey: ['allGames'] })
           queryClient.invalidateQueries({ queryKey: ['activeGame'] })
