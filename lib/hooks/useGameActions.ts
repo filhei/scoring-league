@@ -979,8 +979,42 @@ export function useGameActions(
       if (gameState.currentGameContext?.type === 'planned') {
         const playerInTeamA = gameState.localTeamA.find(p => p.id === player.id)
         const playerInTeamB = gameState.localTeamB.find(p => p.id === player.id)
+        const isGoalkeeperA = gameState.currentGameContext.gameData.goalkeepers.teamA?.id === player.id
+        const isGoalkeeperB = gameState.currentGameContext.gameData.goalkeepers.teamB?.id === player.id
         
-        if (playerInTeamA) {
+        if (isGoalkeeperA) {
+          // Remove goalkeeper from team A and from field players
+          const newTeamA = gameState.localTeamA.filter(p => p.id !== player.id)
+          gameState.setLocalTeamA(newTeamA)
+          gameState.setCurrentGameContext({
+            type: 'planned',
+            gameData: {
+              ...gameState.currentGameContext.gameData,
+              teamA: newTeamA,
+              goalkeepers: {
+                ...gameState.currentGameContext.gameData.goalkeepers,
+                teamA: null
+              }
+            },
+            matchId: gameState.currentGameContext.matchId
+          })
+        } else if (isGoalkeeperB) {
+          // Remove goalkeeper from team B and from field players
+          const newTeamB = gameState.localTeamB.filter(p => p.id !== player.id)
+          gameState.setLocalTeamB(newTeamB)
+          gameState.setCurrentGameContext({
+            type: 'planned',
+            gameData: {
+              ...gameState.currentGameContext.gameData,
+              teamB: newTeamB,
+              goalkeepers: {
+                ...gameState.currentGameContext.gameData.goalkeepers,
+                teamB: null
+              }
+            },
+            matchId: gameState.currentGameContext.matchId
+          })
+        } else if (playerInTeamA) {
           const newTeamA = gameState.localTeamA.filter(p => p.id !== player.id)
           gameState.setLocalTeamA(newTeamA)
           gameState.setCurrentGameContext({
@@ -1016,11 +1050,15 @@ export function useGameActions(
               ...updatedGameData.goalkeepers,
               teamA: null
             }
+            // Also remove from field players to prevent showing as field player
+            updatedGameData.teamA = updatedGameData.teamA.filter(p => p.id !== player.id)
           } else if (isGoalkeeperB) {
             updatedGameData.goalkeepers = {
               ...updatedGameData.goalkeepers,
               teamB: null
             }
+            // Also remove from field players to prevent showing as field player
+            updatedGameData.teamB = updatedGameData.teamB.filter(p => p.id !== player.id)
           } else {
             // Remove from field players
             updatedGameData.teamA = updatedGameData.teamA.filter(p => p.id !== player.id)
