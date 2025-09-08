@@ -50,6 +50,7 @@ export interface GameActions {
   handleCreateNewGame: () => Promise<void>
   handleSwitchPlayerTeam: (player: Player, newTeam: 'A' | 'B', newIndex?: number) => Promise<void>
   handleRemovePlayer: (player: Player) => Promise<void>
+  handleSwapGoalkeepers: () => Promise<void>
   
   // Helper functions
   updateTeamState: (newTeamA: Player[], newTeamB: Player[]) => void
@@ -390,8 +391,7 @@ export function useGameActions(
       console.log('handleEndMatch: controlMatch completed successfully')
       
       const winnerText = winnerTeam ? `Team ${winnerTeam} wins!` : 'Match ended in a tie!'
-      showSnackbar(`Match ended successfully. ${winnerText}`, 3000)
-      
+
       console.log('handleEndMatch: Going back to matches list')
       gameState.setCurrentGameContext(null)
       gameState.setUserRequestedMatchesList(true)
@@ -450,7 +450,6 @@ export function useGameActions(
 
       if (createResult.data) {
         const winnerText = winnerTeam ? `Team ${winnerTeam} wins!` : 'Match ended in a tie!'
-        showSnackbar(`Match ended successfully. ${winnerText} New match created with same teams!`, 4000)
         
         console.log('handleEndMatchAndCreateNew: Going back to matches list')
         gameState.setCurrentGameContext(null)
@@ -484,8 +483,6 @@ export function useGameActions(
         showSnackbar('Failed to delete game')
         return
       }
-
-      showSnackbar('Game deleted successfully')
       
       gameState.setCurrentGameContext(null)
       gameState.setUserRequestedMatchesList(true)
@@ -1408,6 +1405,191 @@ export function useGameActions(
     }
   }
 
+  const handleSwapGoalkeepers = async () => {
+    if (!requireAuth('swap goalkeepers')) return
+    if (!ensureCorrectMatch('Swap goalkeepers')) return
+
+    try {
+      const currentGoalkeeperA = gameState.currentGameContext!.gameData.goalkeepers.teamA
+      const currentGoalkeeperB = gameState.currentGameContext!.gameData.goalkeepers.teamB
+
+      // Check if at least one team has a goalkeeper
+      if (!currentGoalkeeperA && !currentGoalkeeperB) {
+        showSnackbar('Ingen målvakt att byta')
+        return
+      }
+
+      let newGoalkeeperA: Player | null = null
+      let newGoalkeeperB: Player | null = null
+      let assignResultA: any = null
+      let assignResultB: any = null
+
+      if (currentGoalkeeperA && currentGoalkeeperB) {
+        // Both teams have goalkeepers - swap them
+        newGoalkeeperA = currentGoalkeeperB
+        newGoalkeeperB = currentGoalkeeperA
+
+        // Update local state immediately for better UX
+        if (gameState.currentGameContext) {
+          const updatedGameData = {
+            ...gameState.currentGameContext.gameData,
+            goalkeepers: {
+              teamA: newGoalkeeperA,
+              teamB: newGoalkeeperB
+            }
+          }
+          
+          gameState.setCurrentGameContext({
+            ...gameState.currentGameContext,
+            gameData: updatedGameData
+          })
+        }
+
+        // Perform database operations in parallel
+        const [resultA, resultB] = await Promise.all([
+          assignGoalkeeper({
+            matchId: gameState.currentGameContext!.matchId,
+            playerId: currentGoalkeeperB.id,
+            team: 'A'
+          }),
+          assignGoalkeeper({
+            matchId: gameState.currentGameContext!.matchId,
+            playerId: currentGoalkeeperA.id,
+            team: 'B'
+          })
+        ])
+        assignResultA = resultA
+        assignResultB = resultB
+
+      } else if (currentGoalkeeperA) {
+        // Only team A has a goalkeeper - move to team B
+        newGoalkeeperA = null
+        newGoalkeeperB = currentGoalkeeperA
+
+        // Update local state immediately for better UX
+        if (gameState.currentGameContext) {
+          const updatedGameData = {
+            ...gameState.currentGameContext.gameData,
+            goalkeepers: {
+              teamA: null,
+              teamB: currentGoalkeeperA
+            }
+          }
+          
+          gameState.setCurrentGameContext({
+            ...gameState.currentGameContext,
+            gameData: updatedGameData
+          })
+        }
+
+        // Remove from team A and assign to team B
+        const [removeResult, assignResult] = await Promise.all([
+          removeGoalkeeper({
+            matchId: gameState.currentGameContext!.matchId,
+            playerId: currentGoalkeeperA.id
+          }),
+          assignGoalkeeper({
+            matchId: gameState.currentGameContext!.matchId,
+            playerId: currentGoalkeeperA.id,
+            team: 'B'
+          })
+        ])
+        assignResultA = removeResult
+        assignResultB = assignResult
+
+      } else if (currentGoalkeeperB) {
+        // Only team B has a goalkeeper - move to team A
+        newGoalkeeperA = currentGoalkeeperB
+        newGoalkeeperB = null
+
+        // Update local state immediately for better UX
+        if (gameState.currentGameContext) {
+          const updatedGameData = {
+            ...gameState.currentGameContext.gameData,
+            goalkeepers: {
+              teamA: currentGoalkeeperB,
+              teamB: null
+            }
+          }
+          
+          gameState.setCurrentGameContext({
+            ...gameState.currentGameContext,
+            gameData: updatedGameData
+          })
+        }
+
+        // Remove from team B and assign to team A
+        const [removeResult, assignResult] = await Promise.all([
+          removeGoalkeeper({
+            matchId: gameState.currentGameContext!.matchId,
+            playerId: currentGoalkeeperB.id
+          }),
+          assignGoalkeeper({
+            matchId: gameState.currentGameContext!.matchId,
+            playerId: currentGoalkeeperB.id,
+            team: 'A'
+          })
+        ])
+        assignResultA = assignResult
+        assignResultB = removeResult
+      }
+
+      if (assignResultA.validationErrors || assignResultA.serverError || 
+          assignResultB.validationErrors || assignResultB.serverError) {
+        console.error('Failed to swap goalkeepers in database')
+        showSnackbar('Varning: Målvaktsbyte sparades inte korrekt')
+        
+        // Revert local state on error
+        if (gameState.currentGameContext) {
+          const revertedGameData = {
+            ...gameState.currentGameContext.gameData,
+            goalkeepers: {
+              teamA: currentGoalkeeperA,
+              teamB: currentGoalkeeperB
+            }
+          }
+          gameState.setCurrentGameContext({
+            ...gameState.currentGameContext,
+            gameData: revertedGameData
+          })
+        }
+        return
+      }
+
+      // Show appropriate success message
+      if (currentGoalkeeperA && currentGoalkeeperB) {
+        showSnackbar('Målvakter byttes framgångsrikt!')
+      } else {
+        showSnackbar('Målvakt flyttades framgångsrikt!')
+      }
+      
+      // For active games, refresh to sync with server
+      if (gameState.currentGameContext?.type !== 'planned') {
+        gameState.refreshGameData()
+      }
+    } catch (error) {
+      console.error('Error swapping goalkeepers:', error)
+      showSnackbar('Misslyckades att byta målvakter')
+      
+      // Revert local state on error
+      if (gameState.currentGameContext) {
+        const currentGoalkeeperA = gameState.currentGameContext.gameData.goalkeepers.teamA
+        const currentGoalkeeperB = gameState.currentGameContext.gameData.goalkeepers.teamB
+        const revertedGameData = {
+          ...gameState.currentGameContext.gameData,
+          goalkeepers: {
+            teamA: currentGoalkeeperA,
+            teamB: currentGoalkeeperB
+          }
+        }
+        gameState.setCurrentGameContext({
+          ...gameState.currentGameContext,
+          gameData: revertedGameData
+        })
+      }
+    }
+  }
+
   const handleClosePlayerSelect = () => {
     setShowPlayerSelect({ team: null, isGoalkeeper: false })
   }
@@ -1599,6 +1781,7 @@ export function useGameActions(
     handleCreateNewGame,
     handleSwitchPlayerTeam,
     handleRemovePlayer,
+    handleSwapGoalkeepers,
     
     // Helper functions
     updateTeamState,

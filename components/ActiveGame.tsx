@@ -18,6 +18,7 @@ interface ActiveGameProps {
   onStartMatch?: () => void
   onEndMatchAndCreateNew?: () => void
   onSwapSides: () => void
+  onSwapGoalkeepers?: () => void
   onAddPlayer: (team: 'A' | 'B', isGoalkeeper?: boolean) => void
   onRemovePlayer: (player: Player) => void
   onSwitchPlayerTeam: (player: Player, newTeam: 'A' | 'B', newIndex?: number) => void
@@ -42,6 +43,7 @@ export function ActiveGame({
   onStartMatch,
   onEndMatchAndCreateNew,
   onSwapSides,
+  onSwapGoalkeepers,
   onAddPlayer,
   onRemovePlayer,
   onSwitchPlayerTeam,
@@ -129,6 +131,7 @@ export function ActiveGame({
               onDeleteGame={onDeleteGame}
               onResetGame={onResetGame}
               onSwapSides={onSwapSides}
+              onSwapGoalkeepers={onSwapGoalkeepers}
               matchStatus={matchStatus || activeGame.match.match_status}
             />
           )}

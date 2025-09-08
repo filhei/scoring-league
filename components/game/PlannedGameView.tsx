@@ -45,6 +45,7 @@ export function PlannedGameView({
         onStartMatch={actions.handleStartPlannedGame}
         onEndMatchAndCreateNew={actions.handleEndMatchAndCreateNew}
         onSwapSides={actions.handleSwapSides}
+        onSwapGoalkeepers={actions.handleSwapGoalkeepers}
         onAddPlayer={actions.handleAddPlayer}
         onRemovePlayer={actions.handleRemovePlayer}
         onSwitchPlayerTeam={actions.handleSwitchPlayerTeam}

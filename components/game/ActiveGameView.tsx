@@ -50,6 +50,7 @@ export function ActiveGameView({
         onEndMatch={actions.handleEndMatch}
         onEndMatchAndCreateNew={actions.handleEndMatchAndCreateNew}
         onSwapSides={actions.handleSwapSides}
+        onSwapGoalkeepers={actions.handleSwapGoalkeepers}
         onAddPlayer={actions.handleAddPlayer}
         onRemovePlayer={actions.handleRemovePlayer}
         onSwitchPlayerTeam={actions.handleSwitchPlayerTeam}

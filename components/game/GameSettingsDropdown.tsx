@@ -5,10 +5,11 @@ interface GameSettingsDropdownProps {
   onDeleteGame?: () => void
   onResetGame?: () => void
   onSwapSides?: () => void
+  onSwapGoalkeepers?: () => void
   matchStatus?: string
 }
 
-export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, onSwapSides, matchStatus }: GameSettingsDropdownProps) {
+export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, onSwapSides, onSwapGoalkeepers, matchStatus }: GameSettingsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [showResetConfirmation, setShowResetConfirmation] = useState(false)
@@ -114,6 +115,35 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                       <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                     </svg>
                     Byt sida
+                  </span>
+                </button>
+              )}
+              {/* Swap Goalkeepers - Mobile Only */}
+              {onSwapGoalkeepers && (
+                <button
+                  onClick={() => {
+                    setIsOpen(false)
+                    onSwapGoalkeepers()
+                  }}
+                  className={`w-full px-4 py-2 text-left text-sm transition-colors duration-200 md:hidden ${
+                    isDarkMode
+                      ? 'text-green-400 hover:bg-gray-700 hover:text-green-300'
+                      : 'text-green-600 hover:bg-gray-50 hover:text-green-700'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    Byt målvakter
                   </span>
                 </button>
               )}
