@@ -21,6 +21,7 @@ interface FillGameResult {
   }>;
   unmatchedNames: string[];
   errors: string[];
+  randomized: boolean;
 }
 
 interface ScrapingResult {
@@ -84,6 +85,29 @@ async function callMatchAttendeesToPlayers(
   return await response.json();
 }
 
+async function callRandomizeTeams(
+  matchId: string,
+  mode: "random" | "balanced" = "random",
+): Promise<{ success: boolean; reassignedPlayers: number; errors: string[] }> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const randomizeUrl = `${supabaseUrl}/functions/v1/randomize_teams`;
+
+  const response = await fetch(randomizeUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+    },
+    body: JSON.stringify({ matchId, mode }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Randomize teams failed: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
 async function addPlayersToMatch(
   supabase: any,
   matchId: string,
@@ -137,11 +161,11 @@ async function addPlayersToMatch(
     return { success: true, errors: [], addedCount: 0 };
   }
 
-  // Add only new players to team A
-  const matchPlayers = newPlayers.map((player) => ({
+  // Add new players alternating between teams A and B
+  const matchPlayers = newPlayers.map((player, index) => ({
     match_id: matchId,
     player_id: player.id,
-    team: "A" as const,
+    team: index % 2 === 0 ? "A" : "B",
     is_goalkeeper: false, // Default to false, can be updated later
   }));
 
@@ -181,6 +205,7 @@ async function fillGameFromAttendees(
         matchedPlayers: [],
         unmatchedNames: [],
         errors: [`Scraping failed: ${scrapingResult.error}`],
+        randomized: false,
       };
     }
 
@@ -191,6 +216,7 @@ async function fillGameFromAttendees(
         matchedPlayers: [],
         unmatchedNames: [],
         errors: ["No attending players found"],
+        randomized: false,
       };
     }
 
@@ -210,6 +236,7 @@ async function fillGameFromAttendees(
         matchedPlayers: [],
         unmatchedNames: scrapingResult.attendingPlayers,
         errors: [`Matching failed: ${matchResult.error}`],
+        randomized: false,
       };
     }
 
@@ -221,6 +248,27 @@ async function fillGameFromAttendees(
       matchResult.matchedPlayers,
     );
 
+    let randomized = false;
+    if (addResult.success && addResult.addedCount > 0) {
+      // Step 4: Randomize teams after adding players
+      console.log("Randomizing teams for match:", matchId);
+      try {
+        const randomizeResult = await callRandomizeTeams(matchId, "random");
+        randomized = randomizeResult.success;
+        if (!randomizeResult.success) {
+          addResult.errors.push(
+            `Team randomization failed: ${randomizeResult.errors.join(", ")}`,
+          );
+        }
+      } catch (error) {
+        addResult.errors.push(
+          `Team randomization error: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        );
+      }
+    }
+
     return {
       success: addResult.success,
       addedPlayers: addResult.addedCount,
@@ -231,6 +279,7 @@ async function fillGameFromAttendees(
       })),
       unmatchedNames: matchResult.unmatchedNames,
       errors: addResult.errors,
+      randomized,
     };
   } catch (error) {
     return {
@@ -239,6 +288,7 @@ async function fillGameFromAttendees(
       matchedPlayers: [],
       unmatchedNames: [],
       errors: [error instanceof Error ? error.message : "Unknown error"],
+      randomized: false,
     };
   }
 }
@@ -314,6 +364,7 @@ Deno.serve(async (req: Request) => {
         matchedPlayers: [],
         unmatchedNames: [],
         errors: [error instanceof Error ? error.message : "Unknown error"],
+        randomized: false,
       }),
       {
         status: 500,
