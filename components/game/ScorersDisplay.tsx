@@ -40,7 +40,7 @@ function processScoresForTeam(
         playerScoreMap.get(noScorerKey)!.times.push(timeInMinutes)
       } else {
         playerScoreMap.set(noScorerKey, {
-          player: { id: 'no-scorer', name: 'Mål', elo: null, is_active: null, created_at: null, user_id: null },
+          player: { id: 'no-scorer', name: 'Mål', elo: null, is_active: null, created_at: null, user_id: null, list_name: null },
           times: [timeInMinutes],
           isOwnGoal: false
         })
@@ -120,7 +120,7 @@ export function ScorersDisplay({ scores, teamAPlayers, teamBPlayers, goalkeepers
           isDarkMode ? 'text-gray-300' : 'text-gray-600'
         }`}>
           <span className="font-medium">
-            {player.name}
+            {player.name || 'Okänd spelare'}
             {isOwnGoal && <span className="ml-1">*</span>}
           </span>
           <span className="ml-1">

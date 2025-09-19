@@ -56,7 +56,7 @@ export function PlayerTile({
         <span className={`font-medium text-sm md:text-base break-words flex-1 ${
           isDarkMode ? 'text-white' : 'text-gray-800'
         }`}>
-          {player.name || 'Unknown Player'}
+          {player.name || 'Okänd spelare'}
         </span>
         <div className="flex items-center gap-2 flex-shrink-0">
           <span className={`text-xs md:text-sm ${

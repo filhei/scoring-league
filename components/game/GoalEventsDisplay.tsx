@@ -71,7 +71,7 @@ export function GoalEventsDisplay({ scores, teamAPlayers, teamBPlayers, goalkeep
       {event.assister && (
         <>
           <span className="ml-1">(</span>
-          <span className="font-medium">{event.assister.name}</span>
+          <span className="font-medium">{event.assister.name || 'Okänd spelare'}</span>
           <span>)</span>
         </>
       )}

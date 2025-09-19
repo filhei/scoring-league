@@ -75,7 +75,7 @@ export function GoalDialog({
                       ? (isDarkMode ? 'text-white' : 'text-gray-900')
                       : (isDarkMode ? 'text-gray-500' : 'text-gray-400')
                   }`}>
-                    {goalDialog.scoringPlayer ? (goalDialog.scoringPlayer.name || 'Unknown Player') : 'Ingen vald'}
+                    {goalDialog.scoringPlayer ? (goalDialog.scoringPlayer.name || 'Okänd spelare') : 'Ingen vald'}
                   </span>
                   {goalDialog.scoringPlayer && (
                     <button
@@ -115,7 +115,7 @@ export function GoalDialog({
                       ? (isDarkMode ? 'text-white' : 'text-gray-900')
                       : (isDarkMode ? 'text-gray-500' : 'text-gray-400')
                   }`}>
-                    {goalDialog.assistingPlayer ? (goalDialog.assistingPlayer.name || 'Unknown Player') : 'Ingen vald'}
+                    {goalDialog.assistingPlayer ? (goalDialog.assistingPlayer.name || 'Okänd spelare') : 'Ingen vald'}
                   </span>
                   {goalDialog.assistingPlayer && (
                     <button
@@ -173,7 +173,7 @@ export function GoalDialog({
                         <span className={`font-medium transition-colors duration-300 truncate flex-1 ${
                           isDarkMode ? 'text-white' : 'text-gray-900'
                         }`}>
-                          {player.name || 'Unknown Player'}
+                          {player.name || 'Okänd spelare'}
                         </span>
                         <div className="flex space-x-2 flex-shrink-0 ml-2">
                           {isScoring && (
@@ -284,7 +284,7 @@ export function GoalDialog({
                         <span className={`font-medium transition-colors duration-300 truncate flex-1 ${
                           isDarkMode ? 'text-white' : 'text-gray-900'
                         }`}>
-                          {player.name || 'Unknown Player'}
+                          {player.name || 'Okänd spelare'}
                         </span>
                         <div className="flex space-x-2 flex-shrink-0 ml-2">
                           {isScoring && (
