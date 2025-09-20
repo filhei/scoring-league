@@ -37,11 +37,31 @@ function shuffleArray<T>(array: T[]): T[] {
 function assignTeamsRandom(
   players: MatchPlayer[],
 ): Array<{ player_id: string; team: "A" | "B" }> {
+  // Shuffle players randomly
   const shuffled = shuffleArray(players);
-  return shuffled.map((player, index) => ({
-    player_id: player.player_id,
-    team: index % 2 === 0 ? "A" : "B",
-  }));
+
+  // For better randomization, we'll randomly decide which team gets the extra player
+  // when there's an odd number of players
+  const teamASize = Math.floor(shuffled.length / 2);
+  const teamBSize = shuffled.length - teamASize;
+
+  // Randomly decide if team A or B gets assigned first
+  const startWithTeamA = Math.random() < 0.5;
+
+  return shuffled.map((player, index) => {
+    let team: "A" | "B";
+
+    if (startWithTeamA) {
+      team = index < teamASize ? "A" : "B";
+    } else {
+      team = index < teamBSize ? "B" : "A";
+    }
+
+    return {
+      player_id: player.player_id,
+      team,
+    };
+  });
 }
 
 function assignTeamsBalanced(

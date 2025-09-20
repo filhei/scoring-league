@@ -3,6 +3,7 @@
 import { ActiveGame } from '../ActiveGame'
 import { PlayerSelectModal } from '../PlayerSelectModal'
 import { GoalDialog } from '../GoalDialog'
+import { LoadingOverlay } from '../ui/LoadingOverlay'
 import { Snackbar } from '../Snackbar'
 import { getTeamScore } from '../../lib/game-utils'
 import type { ActiveGameData, Player } from '../../lib/types'
@@ -46,14 +47,19 @@ export function PlannedGameView({
         onEndMatchAndCreateNew={actions.handleEndMatchAndCreateNew}
         onSwapSides={actions.handleSwapSides}
         onSwapGoalkeepers={actions.handleSwapGoalkeepers}
+        onSwapFieldPlayers={actions.handleSwapFieldPlayers}
         onAddPlayer={actions.handleAddPlayer}
         onRemovePlayer={actions.handleRemovePlayer}
         onSwitchPlayerTeam={actions.handleSwitchPlayerTeam}
         onVestToggle={actions.handleVestToggle}
         onDeleteGame={actions.handleDeleteGame}
         onResetGame={actions.handleResetGame}
+        onFillFromAttendees={actions.handleFillFromAttendees}
+        onRandomizeTeams={actions.handleRandomizeTeams}
         isAuthenticated={actions.isAuthenticated}
         isPauseToggleBusy={actions.isPauseToggleBusy}
+        isFillFromAttendeesLoading={actions.isFillFromAttendeesLoading}
+        isRandomizeTeamsLoading={actions.isRandomizeTeamsLoading}
       />
 
       {/* Player Selection Modal */}
@@ -82,6 +88,13 @@ export function PlannedGameView({
 
       {/* Snackbar */}
       <Snackbar snackbar={snackbar} isDarkMode={isDarkMode} />
+
+      {/* Loading Overlay */}
+      <LoadingOverlay
+        isVisible={actions.isFillFromAttendeesLoading || actions.isRandomizeTeamsLoading}
+        message={actions.isFillFromAttendeesLoading ? "Fyller match från Bokat.se..." : "Slumpar lag..."}
+        isDarkMode={isDarkMode}
+      />
     </>
   )
 } 

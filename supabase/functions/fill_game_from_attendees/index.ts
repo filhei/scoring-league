@@ -43,6 +43,150 @@ interface MatchResult {
   error?: string;
 }
 
+// Helper function to get default goalkeepers from environment variables
+function getDefaultGoalkeepers(): {
+  teamA: string | null;
+  teamB: string | null;
+} {
+  const teamA = Deno.env.get("DEFAULT_GOALKEEPER_A") || null;
+  const teamB = Deno.env.get("DEFAULT_GOALKEEPER_B") || null;
+
+  console.log("Environment variables loaded:");
+  console.log("DEFAULT_GOALKEEPER_A:", teamA);
+  console.log("DEFAULT_GOALKEEPER_B:", teamB);
+
+  return { teamA, teamB };
+}
+
+// Helper function to check if a player matches a goalkeeper name
+function isGoalkeeperMatch(
+  player: MatchResult["matchedPlayers"][0],
+  goalkeeperName: string,
+): boolean {
+  if (!goalkeeperName) {
+    console.log("No goalkeeper name provided for matching");
+    return false;
+  }
+
+  const normalizedGoalkeeperName = goalkeeperName.toLowerCase().trim();
+  const playerName = player.name?.toLowerCase().trim() || "";
+  const playerListName = player.list_name?.toLowerCase().trim() || "";
+
+  console.log(`Checking player match for goalkeeper "${goalkeeperName}":`);
+  console.log(`  Player name: "${player.name}"`);
+  console.log(`  Player list_name: "${player.list_name}"`);
+  console.log(`  Normalized goalkeeper: "${normalizedGoalkeeperName}"`);
+  console.log(`  Normalized player name: "${playerName}"`);
+  console.log(`  Normalized list name: "${playerListName}"`);
+
+  // Check for exact matches or partial matches (contains)
+  const nameMatch = playerName.includes(normalizedGoalkeeperName);
+  const listNameMatch = playerListName.includes(normalizedGoalkeeperName);
+  const goalkeeperContainsName = normalizedGoalkeeperName.includes(playerName);
+  const goalkeeperContainsListName = normalizedGoalkeeperName.includes(
+    playerListName,
+  );
+
+  console.log(`  Match results:`);
+  console.log(`    playerName.includes(goalkeeper): ${nameMatch}`);
+  console.log(`    listName.includes(goalkeeper): ${listNameMatch}`);
+  console.log(`    goalkeeper.includes(playerName): ${goalkeeperContainsName}`);
+  console.log(
+    `    goalkeeper.includes(listName): ${goalkeeperContainsListName}`,
+  );
+
+  const isMatch = nameMatch || listNameMatch || goalkeeperContainsName ||
+    goalkeeperContainsListName;
+  console.log(`  Final match result: ${isMatch}`);
+
+  return isMatch;
+}
+
+// Helper function to identify and separate goalkeepers from field players
+function identifyGoalkeepers(
+  players: MatchResult["matchedPlayers"],
+): {
+  teamAGoalkeeper: MatchResult["matchedPlayers"][0] | null;
+  teamBGoalkeeper: MatchResult["matchedPlayers"][0] | null;
+  fieldPlayers: MatchResult["matchedPlayers"];
+} {
+  console.log("=== Starting goalkeeper identification ===");
+  console.log(`Total players to process: ${players.length}`);
+
+  const defaultGoalkeepers = getDefaultGoalkeepers();
+  let teamAGoalkeeper: MatchResult["matchedPlayers"][0] | null = null;
+  let teamBGoalkeeper: MatchResult["matchedPlayers"][0] | null = null;
+  const fieldPlayers: MatchResult["matchedPlayers"] = [];
+
+  console.log("Processing each player for goalkeeper assignment:");
+
+  for (const player of players) {
+    console.log(
+      `\n--- Processing player: ${
+        player.name || player.list_name || player.id
+      } ---`,
+    );
+    let assignedAsGoalkeeper = false;
+
+    // Check if player matches Team A goalkeeper
+    if (!teamAGoalkeeper && defaultGoalkeepers.teamA) {
+      console.log(`Checking for Team A goalkeeper match...`);
+      if (isGoalkeeperMatch(player, defaultGoalkeepers.teamA)) {
+        teamAGoalkeeper = player;
+        assignedAsGoalkeeper = true;
+        console.log(`✓ ASSIGNED as Team A goalkeeper!`);
+      } else {
+        console.log(`✗ Not a match for Team A goalkeeper`);
+      }
+    } else if (!defaultGoalkeepers.teamA) {
+      console.log(`No Team A goalkeeper configured`);
+    } else {
+      console.log(`Team A goalkeeper already assigned`);
+    }
+
+    // Check if player matches Team B goalkeeper (and wasn't already assigned to Team A)
+    if (!assignedAsGoalkeeper && !teamBGoalkeeper && defaultGoalkeepers.teamB) {
+      console.log(`Checking for Team B goalkeeper match...`);
+      if (isGoalkeeperMatch(player, defaultGoalkeepers.teamB)) {
+        teamBGoalkeeper = player;
+        assignedAsGoalkeeper = true;
+        console.log(`✓ ASSIGNED as Team B goalkeeper!`);
+      } else {
+        console.log(`✗ Not a match for Team B goalkeeper`);
+      }
+    } else if (!defaultGoalkeepers.teamB) {
+      console.log(`No Team B goalkeeper configured`);
+    } else if (teamBGoalkeeper) {
+      console.log(`Team B goalkeeper already assigned`);
+    }
+
+    // If not assigned as goalkeeper, add to field players
+    if (!assignedAsGoalkeeper) {
+      fieldPlayers.push(player);
+      console.log(`Added to field players`);
+    }
+  }
+
+  console.log("\n=== Goalkeeper identification complete ===");
+  console.log(
+    `Team A goalkeeper: ${
+      teamAGoalkeeper
+        ? (teamAGoalkeeper.name || teamAGoalkeeper.list_name)
+        : "None"
+    }`,
+  );
+  console.log(
+    `Team B goalkeeper: ${
+      teamBGoalkeeper
+        ? (teamBGoalkeeper.name || teamBGoalkeeper.list_name)
+        : "None"
+    }`,
+  );
+  console.log(`Field players: ${fieldPlayers.length}`);
+
+  return { teamAGoalkeeper, teamBGoalkeeper, fieldPlayers };
+}
+
 async function callScrapeAttendees(url: string): Promise<ScrapingResult> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const scrapeUrl = `${supabaseUrl}/functions/v1/scrape_attendees`;
@@ -161,13 +305,65 @@ async function addPlayersToMatch(
     return { success: true, errors: [], addedCount: 0 };
   }
 
-  // Add new players alternating between teams A and B
-  const matchPlayers = newPlayers.map((player, index) => ({
-    match_id: matchId,
-    player_id: player.id,
-    team: index % 2 === 0 ? "A" : "B",
-    is_goalkeeper: false, // Default to false, can be updated later
-  }));
+  // Identify goalkeepers and field players
+  console.log(
+    `\n=== About to identify goalkeepers from ${newPlayers.length} new players ===`,
+  );
+  console.log("New players list:");
+  newPlayers.forEach((player, index) => {
+    console.log(
+      `  ${
+        index + 1
+      }. ID: ${player.id}, Name: "${player.name}", List Name: "${player.list_name}"`,
+    );
+  });
+
+  const { teamAGoalkeeper, teamBGoalkeeper, fieldPlayers } =
+    identifyGoalkeepers(newPlayers);
+
+  const matchPlayers = [];
+
+  // Add goalkeepers first
+  if (teamAGoalkeeper) {
+    matchPlayers.push({
+      match_id: matchId,
+      player_id: teamAGoalkeeper.id,
+      team: "A",
+      is_goalkeeper: true,
+    });
+    console.log(
+      `Assigned Team A goalkeeper: ${
+        teamAGoalkeeper.name || teamAGoalkeeper.list_name
+      }`,
+    );
+  }
+
+  if (teamBGoalkeeper) {
+    matchPlayers.push({
+      match_id: matchId,
+      player_id: teamBGoalkeeper.id,
+      team: "B",
+      is_goalkeeper: true,
+    });
+    console.log(
+      `Assigned Team B goalkeeper: ${
+        teamBGoalkeeper.name || teamBGoalkeeper.list_name
+      }`,
+    );
+  }
+
+  // Add field players alternating between teams
+  fieldPlayers.forEach((player, index) => {
+    // Alternate teams starting with A
+    const team = index % 2 === 0 ? "A" : "B";
+
+    matchPlayers.push({
+      match_id: matchId,
+      player_id: player.id,
+      team,
+      is_goalkeeper: false,
+    });
+  });
 
   const { error: insertError } = await supabase
     .from("match_players")

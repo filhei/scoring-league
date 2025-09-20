@@ -49,8 +49,8 @@ function findPlayerTable(doc: Document): Element | null {
         const headerTexts = Array.from(headers).map((h) =>
           h.textContent?.trim() || ""
         );
-
-        const requiredHeaders = ["Status", "Namn", "Gäst", "Kommentar"];
+        console.log("headerTexts", headerTexts);
+        const requiredHeaders = ["Status", "Namn", "Kommentar"];
         const hasAllHeaders = requiredHeaders.every((header) =>
           headerTexts.some((text) => text.includes(header))
         );

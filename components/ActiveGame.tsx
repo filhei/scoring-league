@@ -19,14 +19,19 @@ interface ActiveGameProps {
   onEndMatchAndCreateNew?: () => void
   onSwapSides: () => void
   onSwapGoalkeepers?: () => void
+  onSwapFieldPlayers?: () => void
   onAddPlayer: (team: 'A' | 'B', isGoalkeeper?: boolean) => void
   onRemovePlayer: (player: Player) => void
   onSwitchPlayerTeam: (player: Player, newTeam: 'A' | 'B', newIndex?: number) => void
   onVestToggle: (team: 'A' | 'B') => void
   onDeleteGame?: () => void
   onResetGame?: () => void
+  onFillFromAttendees?: () => void
+  onRandomizeTeams?: () => void
   isAuthenticated?: boolean
   isPauseToggleBusy?: boolean
+  isFillFromAttendeesLoading?: boolean
+  isRandomizeTeamsLoading?: boolean
 }
 
 export function ActiveGame({
@@ -44,14 +49,19 @@ export function ActiveGame({
   onEndMatchAndCreateNew,
   onSwapSides,
   onSwapGoalkeepers,
+  onSwapFieldPlayers,
   onAddPlayer,
   onRemovePlayer,
   onSwitchPlayerTeam,
   onVestToggle,
   onDeleteGame,
   onResetGame,
+  onFillFromAttendees,
+  onRandomizeTeams,
   isAuthenticated = true,
-  isPauseToggleBusy = false
+  isPauseToggleBusy = false,
+  isFillFromAttendeesLoading = false,
+  isRandomizeTeamsLoading = false
 }: ActiveGameProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -132,7 +142,12 @@ export function ActiveGame({
               onResetGame={onResetGame}
               onSwapSides={onSwapSides}
               onSwapGoalkeepers={onSwapGoalkeepers}
+              onSwapFieldPlayers={onSwapFieldPlayers}
+              onFillFromAttendees={onFillFromAttendees}
+              onRandomizeTeams={onRandomizeTeams}
               matchStatus={matchStatus || activeGame.match.match_status}
+              isFillFromAttendeesLoading={isFillFromAttendeesLoading}
+              isRandomizeTeamsLoading={isRandomizeTeamsLoading}
             />
           )}
         </div>
