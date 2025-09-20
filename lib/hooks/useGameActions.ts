@@ -1429,19 +1429,29 @@ export function useGameActions(
         if (isCurrentlyGoalkeeper && newIndex >= 0) {
           if (currentTeam === newTeam) {
             if (currentTeam === "A") {
-              const newTeamA = [...gameState.localTeamA];
+              const newTeamA = gameState.localTeamA.filter((p) =>
+                p.id !== player.id
+              );
+              const newTeamB = gameState.localTeamB.filter((p) =>
+                p.id !== player.id
+              );
               newTeamA.splice(newIndex, 0, player);
               updateTeamStateAndGoalkeeper(
                 newTeamA,
-                gameState.localTeamB,
+                newTeamB,
                 currentTeam,
                 null,
               );
             } else {
-              const newTeamB = [...gameState.localTeamB];
+              const newTeamA = gameState.localTeamA.filter((p) =>
+                p.id !== player.id
+              );
+              const newTeamB = gameState.localTeamB.filter((p) =>
+                p.id !== player.id
+              );
               newTeamB.splice(newIndex, 0, player);
               updateTeamStateAndGoalkeeper(
-                gameState.localTeamA,
+                newTeamA,
                 newTeamB,
                 currentTeam,
                 null,
@@ -1449,19 +1459,29 @@ export function useGameActions(
             }
           } else {
             if (newTeam === "A") {
-              const newTeamA = [...gameState.localTeamA];
+              const newTeamA = gameState.localTeamA.filter((p) =>
+                p.id !== player.id
+              );
+              const newTeamB = gameState.localTeamB.filter((p) =>
+                p.id !== player.id
+              );
               newTeamA.splice(newIndex, 0, player);
               updateTeamStateAndGoalkeeper(
                 newTeamA,
-                gameState.localTeamB,
+                newTeamB,
                 currentTeam,
                 null,
               );
             } else {
-              const newTeamB = [...gameState.localTeamB];
+              const newTeamA = gameState.localTeamA.filter((p) =>
+                p.id !== player.id
+              );
+              const newTeamB = gameState.localTeamB.filter((p) =>
+                p.id !== player.id
+              );
               newTeamB.splice(newIndex, 0, player);
               updateTeamStateAndGoalkeeper(
-                gameState.localTeamA,
+                newTeamA,
                 newTeamB,
                 currentTeam,
                 null,
@@ -1513,14 +1533,6 @@ export function useGameActions(
             newTeamB = newTeamB.filter((p) =>
               p.id !== player.id && p.id !== otherGoalkeeper?.id
             );
-
-            if (otherGoalkeeper) {
-              if (currentTeam === "A") {
-                newTeamA.push(otherGoalkeeper);
-              } else {
-                newTeamB.push(otherGoalkeeper);
-              }
-            }
 
             updateTeamState(newTeamA, newTeamB);
 
