@@ -149,37 +149,48 @@ export function TeamDisplay({
       {/* Team Header - Mobile Only */}
       {!hideMobileHeader && (
         <div className="flex md:hidden items-center justify-between mb-4">
-        <h3 
-          className="text-lg font-bold transition-colors duration-300"
-          style={{
-            color: 'var(--accent-blue)'
-          }}
-        >
-          Team {team}
-        </h3>
-        {onVestToggle && (
-          teamWithVests === team ? (
-            <VestToggle
-              team={team}
-              hasVests={true}
-              isDarkMode={isDarkMode}
-              isAreaHovered={false}
-              onToggle={onVestToggle}
-            />
-          ) : (
-            <button
-              onClick={() => onVestToggle(team)}
-              className="px-3 py-1 text-xs font-medium transition-all duration-200 hover:scale-105 active:scale-95"
-              style={{
-                color: 'var(--accent-blue)'
-              }}
-              title="Lägg till västar"
-            >
-              västar
-            </button>
-          )
-        )}
-      </div>
+          <h3 
+            className="text-lg font-bold transition-colors duration-300"
+            style={{
+              color: 'var(--accent-blue)'
+            }}
+          >
+            Team {team}
+          </h3>
+          {onVestToggle && (
+            isAuthenticated
+              ? (
+                teamWithVests === team
+                  ? (
+                    <VestToggle
+                      team={team}
+                      hasVests={true}
+                      isDarkMode={isDarkMode}
+                      isAreaHovered={false}
+                      onToggle={onVestToggle}
+                      isAuthenticated={true}
+                    />
+                  ) : (
+                    <button
+                      onClick={() => onVestToggle(team)}
+                      className="px-3 py-1 text-xs font-medium transition-all duration-200 hover:scale-105 active:scale-95"
+                      style={{
+                        color: 'var(--accent-blue)'
+                      }}
+                      title="Lägg till västar"
+                    >
+                      västar
+                    </button>
+                  )
+              )
+              : (
+                teamWithVests === team
+                  ? (
+                    <span className="text-lg">🦺</span>
+                  ) : null
+              )
+          )}
+        </div>
       )}
 
       {renderTeamPlayers()}

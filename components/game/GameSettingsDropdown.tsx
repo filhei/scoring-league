@@ -103,8 +103,8 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                   }}
                   className={`w-full px-4 py-2 text-left text-sm transition-colors duration-200 md:hidden ${
                     isDarkMode
-                      ? 'text-blue-400 hover:bg-gray-700 hover:text-blue-300'
-                      : 'text-blue-600 hover:bg-gray-50 hover:text-blue-700'
+                      ? 'text-white hover:bg-gray-700 hover:text-white'
+                      : 'text-black hover:bg-gray-50 hover:text-black'
                   }`}
                 >
                   <span className="inline-flex items-center gap-2">
@@ -132,8 +132,8 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                   }}
                   className={`w-full px-4 py-2 text-left text-sm transition-colors duration-200 md:hidden ${
                     isDarkMode
-                      ? 'text-green-400 hover:bg-gray-700 hover:text-green-300'
-                      : 'text-green-600 hover:bg-gray-50 hover:text-green-700'
+                      ? 'text-white hover:bg-gray-700 hover:text-white'
+                      : 'text-black hover:bg-gray-50 hover:text-black'
                   }`}
                 >
                   <span className="inline-flex items-center gap-2">
@@ -148,7 +148,7 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                     </svg>
-                    Byt utespelare
+                    Byt målvakter
                   </span>
                 </button>
               )}
@@ -161,8 +161,8 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                   }}
                   className={`w-full px-4 py-2 text-left text-sm transition-colors duration-200 ${
                     isDarkMode
-                      ? 'text-cyan-400 hover:bg-gray-700 hover:text-cyan-300'
-                      : 'text-cyan-600 hover:bg-gray-50 hover:text-cyan-700'
+                      ? 'text-white hover:bg-gray-700 hover:text-white'
+                      : 'text-black hover:bg-gray-50 hover:text-black'
                   }`}
                 >
                   <span className="inline-flex items-center gap-2">
@@ -195,8 +195,8 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                     isFillFromAttendeesLoading
                       ? 'text-gray-400 cursor-not-allowed'
                       : isDarkMode
-                      ? 'text-purple-400 hover:bg-gray-700 hover:text-purple-300'
-                      : 'text-purple-600 hover:bg-gray-50 hover:text-purple-700'
+                      ? 'text-white hover:bg-gray-700 hover:text-white'
+                      : 'text-black hover:bg-gray-50 hover:text-black'
                   }`}
                 >
                   <span className="inline-flex items-center gap-2">
@@ -248,8 +248,8 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                     isRandomizeTeamsLoading
                       ? 'text-gray-400 cursor-not-allowed'
                       : isDarkMode
-                      ? 'text-orange-400 hover:bg-gray-700 hover:text-orange-300'
-                      : 'text-orange-600 hover:bg-gray-50 hover:text-orange-700'
+                        ? 'text-white hover:bg-gray-700 hover:text-white'
+                        : 'text-black hover:bg-gray-50 hover:text-black'
                   }`}
                 >
                   <span className="inline-flex items-center gap-2">
@@ -360,7 +360,8 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                          <p className={`mb-6 ${
                isDarkMode ? 'text-gray-300' : 'text-gray-600'
              }`}>
-               Tiden kommer att återställas till noll och alla mål kommer att tas bort, men lagen behålls. Kan ej ångras.
+               Timern och målen nollställs, men lagen behålls.
+               
              </p>
             <div className="flex space-x-3">
               <button

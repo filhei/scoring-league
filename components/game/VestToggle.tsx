@@ -15,7 +15,8 @@ export function VestToggle({ team, hasVests, isDarkMode, isAreaHovered, onToggle
   if (!shouldShow) return <div className="w-6 h-6" /> // Placeholder to maintain spacing
   
   if (!isAuthenticated) {
-    // Show vest icon but not interactive for unauthenticated users
+    // For unauthenticated users: show icon only if vests are assigned; otherwise show nothing
+    if (!hasVests) return <div className="w-6 h-6" />
     return (
       <div className="w-6 h-6 flex items-center justify-center">
         <span 

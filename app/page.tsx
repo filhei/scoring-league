@@ -28,19 +28,26 @@ export default function Home() {
   const { isDarkMode, toggleDarkMode } = useDarkMode()
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false)
 
-  // Hide welcome banner after 3 seconds when user logs in
+  // Show welcome banner only once per login session (per tab) using sessionStorage
   useEffect(() => {
-    if (user && player) {
-      setShowWelcomeBanner(true)
-      const timer = setTimeout(() => {
-        setShowWelcomeBanner(false)
-      }, 3000)
-      
-      return () => clearTimeout(timer)
-    } else {
+    if (!user || !player) {
       setShowWelcomeBanner(false)
+      return
     }
-  }, [user, player])
+
+    const key = `welcome_shown_${user.id}`
+    const hasShown = typeof window !== 'undefined' ? sessionStorage.getItem(key) : '1'
+
+    if (hasShown) {
+      setShowWelcomeBanner(false)
+      return
+    }
+
+    setShowWelcomeBanner(true)
+    sessionStorage.setItem(key, '1')
+    const timer = setTimeout(() => setShowWelcomeBanner(false), 3000)
+    return () => clearTimeout(timer)
+  }, [user?.id, player?.id])
 
   if (loading) {
     return <GameLoadingSkeleton />
@@ -53,11 +60,14 @@ export default function Home() {
       <Navigation isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} />
       
       {/* Auth Status Banner */}
-      {user && player && showWelcomeBanner && (
-        <div className={`px-4 py-2 text-sm transition-opacity duration-500 sm:px-6 ${
-          isDarkMode ? 'bg-blue-900/20 text-blue-300' : 'bg-blue-50 text-blue-700'
-        }`}>
-          Välkommen tillbaka, {player.name || 'Okänd Spelare'}! 
+      {user && player && (
+        <div
+          aria-live="polite"
+          className={`px-4 py-2 text-sm transition-opacity duration-500 sm:px-6 ${
+            isDarkMode ? 'bg-blue-900/20 text-blue-300' : 'bg-blue-50 text-blue-700'
+          } ${showWelcomeBanner ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
+        >
+          Välkommen tillbaka, {player.name || 'Okänd Spelare'}!
           {!user.email_confirmed_at && (
             <span className="ml-2 text-yellow-600 dark:text-yellow-400">
               (Kontrollera din e-post för att bekräfta ditt konto)
