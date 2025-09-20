@@ -34,7 +34,8 @@ export function PastGameView({ gameData, isDarkMode, isSidesSwapped }: PastGameV
     return players.filter(p => p.id !== goalkeeper?.id)
   }
 
-  const formatMatchDate = (startTime: string) => {
+  const formatMatchDate = (startTime: string | null) => {
+    if (!startTime) return 'Okänt datum'
     const date = new Date(startTime)
     return date.toLocaleDateString('sv-SE', {
       weekday: 'long',
@@ -46,8 +47,8 @@ export function PastGameView({ gameData, isDarkMode, isSidesSwapped }: PastGameV
     }).replace(/^./, (match) => match.toUpperCase())
   }
 
-  const formatDuration = (startTime: string, endTime: string | null) => {
-    if (!endTime) return 'Match pågår'
+  const formatDuration = (startTime: string | null, endTime: string | null) => {
+    if (!startTime || !endTime) return 'Okänd längd'
     
     const start = new Date(startTime)
     const end = new Date(endTime)

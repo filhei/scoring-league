@@ -88,7 +88,7 @@ async function getScoreboardData(): Promise<PlayerStats[]> {
       const winner = teamAScore > teamBScore ? 'A' : teamBScore > teamAScore ? 'B' : null
       
       // Get unique session date
-      const sessionDate = new Date(match.start_time).toDateString()
+      const sessionDate = match.start_time ? new Date(match.start_time).toDateString() : 'Unknown Date'
       
       // Update player statistics
       matchPlayerData.forEach(mp => {

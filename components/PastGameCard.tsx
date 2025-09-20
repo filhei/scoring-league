@@ -16,8 +16,8 @@ export function PastGameCard({
 }: PastGameCardProps) {
   const { match, teamA, teamB, goalkeepers, scores, teamWithVests } = game
   
-  const formatDuration = (startTime: string, endTime: string | null) => {
-    if (!endTime) return 'In Progress'
+  const formatDuration = (startTime: string | null, endTime: string | null) => {
+    if (!startTime || !endTime) return 'Unknown Duration'
     
     const start = new Date(startTime)
     const end = new Date(endTime)

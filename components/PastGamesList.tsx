@@ -19,6 +19,22 @@ export function PastGamesList({ pastGames, isDarkMode = false, onGameSelect, loa
 
   // Group games by date
   const groupedGames = pastGames.reduce((groups, game) => {
+    if (!game.match.start_time) {
+      // Handle games without start time
+      const dateKey = 'unknown'
+      const dateHeader = 'Okänt datum'
+      
+      if (!groups[dateKey]) {
+        groups[dateKey] = {
+          header: dateHeader,
+          games: []
+        }
+      }
+      
+      groups[dateKey].games.push(game)
+      return groups
+    }
+    
     const date = new Date(game.match.start_time)
     const dateKey = date.toISOString().split('T')[0] // YYYY-MM-DD for consistent grouping
     const dateHeader = date.toLocaleDateString('sv-SE', {
