@@ -19,6 +19,7 @@ interface GoalkeeperTileProps {
   draggedPlayerName?: string // New prop for the dragged player name
   isDragging?: boolean // Prop to indicate if any drag is in progress
   dragState?: { player: Player } | null // New prop for the drag state
+  isAuthenticated?: boolean
 }
 
 export function GoalkeeperTile({
@@ -36,7 +37,8 @@ export function GoalkeeperTile({
   isDragTarget = false,
   draggedPlayerName,
   isDragging = false,
-  dragState
+  dragState,
+  isAuthenticated = true
 }: GoalkeeperTileProps) {
   // Show empty goalkeeper tile when the goalkeeper is being dragged
   const isGoalkeeperBeingDragged = isDragging && dragState && goalkeeper && dragState.player.id === goalkeeper.id
@@ -62,77 +64,58 @@ export function GoalkeeperTile({
               ? 'bg-gray-700 border-gray-600'
               : 'bg-gray-100 border-gray-200'
       } ${goalkeeper && !isGoalkeeperBeingDragged ? 'cursor-grab active:cursor-grabbing' : ''}`}
-      onClick={() => !displayGoalkeeper && onAddPlayer?.(team, true)}
+      onClick={() => !displayGoalkeeper && isAuthenticated && onAddPlayer?.(team, true)}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
-      <div className="relative">
-        <div 
-          className="text-xs font-bold mb-1 transition-colors duration-300"
-          style={{
-            color: isDragTarget ? (isDarkMode ? '#60a5fa' : '#3b82f6') : 'var(--accent-blue)'
-          }}
-        >
-          {isDragTarget ? `GÖR ${draggedPlayerName?.toUpperCase()} MÅLVAKT` : 'MÅLVAKT'}
+      <div className="flex justify-between items-center gap-2">
+        <div className="flex-1">
+          <div 
+            className="text-xs font-bold mb-1 transition-colors duration-300"
+            style={{
+              color: isDragTarget ? (isDarkMode ? '#60a5fa' : '#3b82f6') : 'var(--accent-blue)'
+            }}
+          >
+            {isDragTarget ? `GÖR ${draggedPlayerName?.toUpperCase()} MÅLVAKT` : 'MÅLVAKT'}
+          </div>
+          <span className={`font-medium text-sm md:text-base break-words transition-colors duration-300 ${
+            isDarkMode ? 'text-white' : 'text-gray-800'
+          }`}>
+            {displayGoalkeeper ? (displayGoalkeeper.name || 'Okänd Spelare') : 'Ingen målvakt'}
+          </span>
         </div>
-        {displayGoalkeeper ? (
-          <>
-            <div className="flex items-start md:items-center justify-between gap-2">
-              <div className="flex-1">
-                <span className={`font-medium text-sm md:text-base break-words transition-colors duration-300 ${
-                  isDarkMode ? 'text-white' : 'text-gray-800'
-                }`}>
-                  {displayGoalkeeper.name || 'Okänd Spelare'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <span className={`text-xs md:text-sm ${
-                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                }`}>
-                  {formatPlayerStats(getPlayerStats(displayGoalkeeper.id, scores))}
-                </span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {displayGoalkeeper ? (
+            <>
+              <span className={`text-xs md:text-sm ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+                {formatPlayerStats(getPlayerStats(displayGoalkeeper.id, scores))}
+              </span>
+              {isAuthenticated && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
                     onRemovePlayer?.(displayGoalkeeper)
                   }}
-                  className={`${getRemoveButtonStyles(isDarkMode, true)} w-6 h-6 md:w-5 md:h-5 text-sm md:text-xs flex items-center justify-center`}
+                  className={`${getRemoveButtonStyles(isDarkMode, false)} w-6 h-6 md:w-5 md:h-5 text-sm md:text-xs flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300`}
                   title="remove from team"
                 >
                   −
                 </button>
+              )}
+            </>
+          ) : (
+            isAuthenticated && (
+              <div className={`text-sm font-medium opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:scale-110 mr-1 ${
+                isDarkMode ? 'text-gray-300 hover:text-gray-100' : 'text-gray-600 hover:text-gray-800'
+              }`}>
+                + Add
               </div>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="flex items-start md:items-center justify-between gap-2">
-              <div className="flex-1">
-                <span className={`text-sm transition-colors duration-300 ${
-                  isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                }`}>
-                  Ingen målvakt
-                </span>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <span
-                  className={`text-xs md:text-sm transition-colors duration-300 ${
-                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}
-                  style={{ minHeight: '1.7em', display: 'inline-block' }}
-                >
-                  &nbsp;
-                </span>
-                <div className={`text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 ${
-                  isDarkMode ? 'text-gray-300 hover:text-gray-100' : 'text-gray-600 hover:text-gray-800'
-                }`}>
-                  + Add
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+            )
+          )}
+        </div>
       </div>
     </div>
   )

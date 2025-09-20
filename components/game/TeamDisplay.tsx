@@ -24,6 +24,7 @@ interface TeamDisplayProps {
   isAuthenticated?: boolean
   teamWithVests?: 'A' | 'B' | null
   onVestToggle?: (team: 'A' | 'B') => void
+  hideMobileHeader?: boolean // Add prop to hide mobile header
 }
 
 export function TeamDisplay({
@@ -43,7 +44,8 @@ export function TeamDisplay({
   matchStatus,
   isAuthenticated = true,
   teamWithVests,
-  onVestToggle
+  onVestToggle,
+  hideMobileHeader = false
 }: TeamDisplayProps) {
   const isDragging = !!dragState
 
@@ -54,7 +56,7 @@ export function TeamDisplay({
     }
 
     const placeholderKey = index === -1 ? `goalkeeper-placeholder-${team}` : `drop-placeholder-${team}-${index}`
-    const placeholderText = index === -1 ? `Make ${dragState.player.name || 'Unknown Player'} goalkeeper` : `Drop ${dragState.player.name || 'Unknown Player'} here`
+    const placeholderText = index === -1 ? `Make ${dragState.player.name || 'Okänd spelare'} goalkeeper` : `Drop ${dragState.player.name || 'Okänd spelare'} here`
 
     return (
       <div
@@ -95,9 +97,10 @@ export function TeamDisplay({
         onDragStart={isAuthenticated ? onDragStart : undefined}
         onDragEnd={isAuthenticated ? onDragEnd : undefined}
         isDragTarget={isGoalkeeperDragTarget}
-        draggedPlayerName={dragState?.player.name || 'Unknown Player'}
+        draggedPlayerName={dragState?.player.name || 'Okänd spelare'}
         isDragging={isDragging}
         dragState={dragState}
+        isAuthenticated={isAuthenticated}
       />
     )
 
@@ -125,6 +128,7 @@ export function TeamDisplay({
             onDragStart={isAuthenticated ? onDragStart : undefined}
             onDragEnd={isAuthenticated ? onDragEnd : undefined}
             onRemovePlayer={isAuthenticated ? onRemovePlayer : undefined}
+            isAuthenticated={isAuthenticated}
           />
         )
       }
@@ -143,38 +147,51 @@ export function TeamDisplay({
       onDrop={isAuthenticated ? (e) => onDrop(e, team) : undefined}
     >
       {/* Team Header - Mobile Only */}
-      <div className="flex md:hidden items-center justify-between mb-4">
-        <h3 
-          className="text-lg font-bold transition-colors duration-300"
-          style={{
-            color: 'var(--accent-blue)'
-          }}
-        >
-          Team {team}
-        </h3>
-        {onVestToggle && (
-          teamWithVests === team ? (
-            <VestToggle
-              team={team}
-              hasVests={true}
-              isDarkMode={isDarkMode}
-              isAreaHovered={false}
-              onToggle={onVestToggle}
-            />
-          ) : (
-            <button
-              onClick={() => onVestToggle(team)}
-              className="px-3 py-1 text-xs font-medium transition-all duration-200 hover:scale-105 active:scale-95"
-              style={{
-                color: 'var(--accent-blue)'
-              }}
-              title="Lägg till västar"
-            >
-              västar
-            </button>
-          )
-        )}
-      </div>
+      {!hideMobileHeader && (
+        <div className="flex md:hidden items-center justify-between mb-4">
+          <h3 
+            className="text-lg font-bold transition-colors duration-300"
+            style={{
+              color: 'var(--accent-blue)'
+            }}
+          >
+            Team {team}
+          </h3>
+          {onVestToggle && (
+            isAuthenticated
+              ? (
+                teamWithVests === team
+                  ? (
+                    <VestToggle
+                      team={team}
+                      hasVests={true}
+                      isDarkMode={isDarkMode}
+                      isAreaHovered={false}
+                      onToggle={onVestToggle}
+                      isAuthenticated={true}
+                    />
+                  ) : (
+                    <button
+                      onClick={() => onVestToggle(team)}
+                      className="px-3 py-1 text-xs font-medium transition-all duration-200 hover:scale-105 active:scale-95"
+                      style={{
+                        color: 'var(--accent-blue)'
+                      }}
+                      title="Lägg till västar"
+                    >
+                      västar
+                    </button>
+                  )
+              )
+              : (
+                teamWithVests === team
+                  ? (
+                    <span className="text-lg">🦺</span>
+                  ) : null
+              )
+          )}
+        </div>
+      )}
 
       {renderTeamPlayers()}
       

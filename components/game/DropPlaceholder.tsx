@@ -18,7 +18,7 @@ export function DropPlaceholder({ player, isDarkMode }: DropPlaceholderProps) {
       }}
     >
       <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-        Drop {player.name || 'Unknown Player'} here
+        Drop {player.name || 'Okänd spelare'} here
       </span>
     </div>
   )

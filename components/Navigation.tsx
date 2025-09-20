@@ -84,7 +84,7 @@ export function Navigation({ isDarkMode, onToggleDarkMode }: NavigationProps) {
           {/* Desktop Navigation - Hidden on mobile */}
           <nav className="hidden md:flex space-x-6">
             <Link 
-              href="/" 
+              href="/games?view=matches" 
               className={`text-sm font-medium transition-colors duration-300 hover:opacity-80 ${
                 isDarkMode ? 'text-gray-300' : 'text-gray-600'
               }`}
@@ -130,7 +130,7 @@ export function Navigation({ isDarkMode, onToggleDarkMode }: NavigationProps) {
           }`}>
             <nav className="px-6 py-4 space-y-4">
               <Link 
-                href="/" 
+                href="/games?view=matches" 
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`block text-base font-medium transition-colors duration-300 hover:opacity-80 py-2 ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-600'

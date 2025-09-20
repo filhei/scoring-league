@@ -18,14 +18,20 @@ interface ActiveGameProps {
   onStartMatch?: () => void
   onEndMatchAndCreateNew?: () => void
   onSwapSides: () => void
+  onSwapGoalkeepers?: () => void
+  onSwapFieldPlayers?: () => void
   onAddPlayer: (team: 'A' | 'B', isGoalkeeper?: boolean) => void
   onRemovePlayer: (player: Player) => void
   onSwitchPlayerTeam: (player: Player, newTeam: 'A' | 'B', newIndex?: number) => void
   onVestToggle: (team: 'A' | 'B') => void
   onDeleteGame?: () => void
   onResetGame?: () => void
+  onFillFromAttendees?: () => void
+  onRandomizeTeams?: () => void
   isAuthenticated?: boolean
   isPauseToggleBusy?: boolean
+  isFillFromAttendeesLoading?: boolean
+  isRandomizeTeamsLoading?: boolean
 }
 
 export function ActiveGame({
@@ -42,14 +48,20 @@ export function ActiveGame({
   onStartMatch,
   onEndMatchAndCreateNew,
   onSwapSides,
+  onSwapGoalkeepers,
+  onSwapFieldPlayers,
   onAddPlayer,
   onRemovePlayer,
   onSwitchPlayerTeam,
   onVestToggle,
   onDeleteGame,
   onResetGame,
+  onFillFromAttendees,
+  onRandomizeTeams,
   isAuthenticated = true,
-  isPauseToggleBusy = false
+  isPauseToggleBusy = false,
+  isFillFromAttendeesLoading = false,
+  isRandomizeTeamsLoading = false
 }: ActiveGameProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -117,9 +129,9 @@ export function ActiveGame({
             <h2 className={`text-2xl md:text-3xl font-bold transition-colors duration-300 ${
               isDarkMode ? 'text-white' : 'text-gray-900'
             }`}>
-              {matchStatus === 'planned' ? 'Planned Game' : 'Active Game'}
+              {matchStatus === 'planned' ? 'Planerad match' : 'Aktiv match'}
               <span className="text-xs md:text-sm font-normal ml-2 opacity-60">
-                (Game {activeGame.match.gameCount || 'N/A'})
+                (# {activeGame.match.gameCount || 'N/A'})
               </span>
             </h2>
           </div>
@@ -129,7 +141,13 @@ export function ActiveGame({
               onDeleteGame={onDeleteGame}
               onResetGame={onResetGame}
               onSwapSides={onSwapSides}
+              onSwapGoalkeepers={onSwapGoalkeepers}
+              onSwapFieldPlayers={onSwapFieldPlayers}
+              onFillFromAttendees={onFillFromAttendees}
+              onRandomizeTeams={onRandomizeTeams}
               matchStatus={matchStatus || activeGame.match.match_status}
+              isFillFromAttendeesLoading={isFillFromAttendeesLoading}
+              isRandomizeTeamsLoading={isRandomizeTeamsLoading}
             />
           )}
         </div>
@@ -144,6 +162,10 @@ export function ActiveGame({
           isDarkMode={isDarkMode}
           teamWithVests={activeGame.match.team_with_vests as 'A' | 'B' | null}
           matchStatus={matchStatus || activeGame.match.match_status}
+          scores={activeGame.scores}
+          teamAPlayers={activeGame.teamA}
+          teamBPlayers={activeGame.teamB}
+          goalkeepers={activeGame.goalkeepers}
           onScoreIncrement={onScoreIncrement}
           onPauseToggle={onPauseToggle}
           onEndMatch={onEndMatch}

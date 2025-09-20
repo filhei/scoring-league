@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import type { UseMatchTimerReturn } from '../../lib/hooks/useMatchTimer'
+import type { Score, Player } from '../../lib/types'
 import { VestToggle } from './VestToggle'
+import { ScorersDisplay } from './ScorersDisplay'
 
 interface GameControlsProps {
   timer?: UseMatchTimerReturn | null
@@ -11,6 +13,10 @@ interface GameControlsProps {
   isDarkMode: boolean
   teamWithVests: 'A' | 'B' | null
   matchStatus: string
+  scores: Score[]
+  teamAPlayers: Player[]
+  teamBPlayers: Player[]
+  goalkeepers: { teamA: Player | null; teamB: Player | null }
   onScoreIncrement: (team: 'A' | 'B') => void
   onPauseToggle: () => void
   onEndMatch: () => void
@@ -31,6 +37,10 @@ export function GameControls({
   isDarkMode,
   teamWithVests,
   matchStatus,
+  scores,
+  teamAPlayers,
+  teamBPlayers,
+  goalkeepers,
   onScoreIncrement,
   onPauseToggle,
   onEndMatch,
@@ -148,6 +158,15 @@ export function GameControls({
         )}
       </div>
 
+      {/* Scorers Display */}
+      <ScorersDisplay
+        scores={scores}
+        teamAPlayers={teamAPlayers}
+        teamBPlayers={teamBPlayers}
+        goalkeepers={goalkeepers}
+        isDarkMode={isDarkMode}
+      />
+
       {/* Start/End Match Button */}
       <div className="flex justify-center mb-6 md:mb-8">
         {isAuthenticated && (matchStatus === 'planned' ? (
@@ -206,20 +225,23 @@ export function GameControls({
             isDarkMode={isDarkMode}
             isAreaHovered={leftTeamHovered}
             onToggle={onVestToggle}
+            isAuthenticated={isAuthenticated}
           />
         </div>
         
-        <button
-          onClick={onSwapSides}
-          className={`w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all duration-300 hover:scale-110 active:scale-95 ${
-            isDarkMode
-              ? 'text-gray-400 hover:bg-gray-800 hover:text-white'
-              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
-          }`}
-          title="Byt sida"
-        >
-          ⇄
-        </button>
+        {isAuthenticated && (
+          <button
+            onClick={onSwapSides}
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all duration-300 hover:scale-110 active:scale-95 ${
+              isDarkMode
+                ? 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+            }`}
+            title="Byt sida"
+          >
+            ⇄
+          </button>
+        )}
         
         <div 
           className="flex items-center space-x-2 group"
@@ -232,6 +254,7 @@ export function GameControls({
             isDarkMode={isDarkMode}
             isAreaHovered={rightTeamHovered}
             onToggle={onVestToggle}
+            isAuthenticated={isAuthenticated}
           />
           <h3 
             className="text-lg md:text-xl font-bold transition-colors duration-300"
@@ -246,7 +269,10 @@ export function GameControls({
 
       {/* End Match Confirmation Dialog */}
       {showEndConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.65)' }}
+        >
           <div className={`rounded-2xl p-6 max-w-md w-full mx-4 ${
             isDarkMode
               ? 'bg-gray-800 border border-gray-700'

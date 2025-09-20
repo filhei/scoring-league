@@ -1,15 +1,23 @@
 import type { PastGameData } from '../lib/types'
 
+// PastGameCard component for displaying past game results
 interface PastGameCardProps {
   game: PastGameData
   isDarkMode?: boolean
+  onGameSelect?: (matchId: string) => void
+  loading?: boolean
 }
 
-export function PastGameCard({ game, isDarkMode = false }: PastGameCardProps) {
+export function PastGameCard({ 
+  game, 
+  isDarkMode = false, 
+  onGameSelect, 
+  loading = false 
+}: PastGameCardProps) {
   const { match, teamA, teamB, goalkeepers, scores, teamWithVests } = game
   
-  const formatDuration = (startTime: string, endTime: string | null) => {
-    if (!endTime) return 'In Progress'
+  const formatDuration = (startTime: string | null, endTime: string | null) => {
+    if (!startTime || !endTime) return 'Unknown Duration'
     
     const start = new Date(startTime)
     const end = new Date(endTime)
@@ -42,12 +50,25 @@ export function PastGameCard({ game, isDarkMode = false }: PastGameCardProps) {
 
   const isDraw = scores.teamA === scores.teamB
 
+  const handleClick = () => {
+    if (onGameSelect && !loading) {
+      onGameSelect(match.id)
+    }
+  }
+
   return (
-    <div className={`sm:border sm:rounded-lg p-4 sm:p-6 sm:shadow-sm hover:sm:shadow-md transition-shadow ${
-      isDarkMode
-        ? 'sm:bg-gray-800 sm:border-gray-700'
-        : 'sm:bg-gray-50 sm:border-gray-200'
-    }`}>
+    <div 
+      className={`sm:border sm:rounded-lg p-4 sm:p-6 sm:shadow-sm transition-all duration-200 ${
+        onGameSelect 
+          ? 'cursor-pointer hover:sm:shadow-md hover:scale-[1.02] active:scale-[0.98]' 
+          : 'transition-shadow'
+      } ${
+        isDarkMode
+          ? 'sm:bg-gray-800 sm:border-gray-700'
+          : 'sm:bg-gray-50 sm:border-gray-200'
+      }`}
+      onClick={handleClick}
+    >
       <div className="flex min-h-[120px]">
         {/* Teams Column */}
         <div className="flex-1 space-y-3">

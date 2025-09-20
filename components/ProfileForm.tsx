@@ -166,7 +166,7 @@ export function ProfileForm() {
           onClick={refetch}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
         >
-          Try Again
+          Försök igen
         </button>
       </div>
     )
@@ -175,7 +175,7 @@ export function ProfileForm() {
   if (!profileData) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-600">No profile data available</p>
+        <p className="text-gray-600">Ingen profildata tillgänglig</p>
       </div>
     )
   }
@@ -186,7 +186,7 @@ export function ProfileForm() {
         {/* Success/Error Messages */}
         {submitSuccess && (
           <div className="p-4 bg-green-100 border border-green-400 text-green-700 rounded-md">
-            Profil uppdaterad framgångsrikt!
+            Profilén uppdaterad!
           </div>
         )}
         
@@ -214,12 +214,12 @@ export function ProfileForm() {
         {/* Position Preferences */}
         <div>
           <h3 className="text-lg font-semibold mb-4">
-            Positionspreferenser
+            Position
           </h3>
           <p className={`text-sm mb-4 ${
             isDarkMode ? 'text-gray-400' : 'text-gray-600'
           }`}>
-            Välj dina föredragna positioner i ordning (1 = mest föredragen)
+            Välj dina föredragna positioner
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {positions.map(({ position, preference }) => (
@@ -248,7 +248,7 @@ export function ProfileForm() {
           </p>
           <button
             type="button"
-            onClick={handleDeleteAccount}
+            onClick={() => setShowDeleteDialog(true)}
             disabled={isSubmitting}
             className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
           >
@@ -284,7 +284,10 @@ export function ProfileForm() {
 
       {/* Delete Account Confirmation Dialog */}
       {showDeleteDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.65)' }}
+        >
           <div className={`p-6 rounded-lg shadow-lg max-w-md w-full mx-4 ${
             isDarkMode ? 'bg-gray-800' : 'bg-white'
           }`}>

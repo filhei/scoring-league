@@ -50,7 +50,6 @@ export function NoActiveGame({ isDarkMode, onCreateNewGame }: NoActiveGameProps)
 
         if (result.data) {
           console.log('NoActiveGame: Game created successfully, invalidating cache')
-          showSnackbar('New game created successfully!', 3000)
           // Invalidate and refetch all game-related queries
           queryClient.invalidateQueries({ queryKey: ['allGames'] })
           queryClient.invalidateQueries({ queryKey: ['activeGame'] })
@@ -76,24 +75,11 @@ export function NoActiveGame({ isDarkMode, onCreateNewGame }: NoActiveGameProps)
           : 'sm:bg-gray-50 sm:border sm:border-gray-200'
       }`}>
         <div className="text-center">
-          <div className={`text-6xl mb-6 transition-colors duration-300 ${
-            isDarkMode ? 'text-gray-600' : 'text-gray-400'
-          }`}>
-            ⚽
-          </div>
-          <h2 className={`text-3xl font-bold mb-4 transition-colors duration-300 ${
+          <h2 className={`text-3xl font-bold mb-8 transition-colors duration-300 ${
             isDarkMode ? 'text-white' : 'text-gray-900'
           }`}>
-            Ingen Aktiv Match
+            Det finns inga matcher att visa
           </h2>
-          <p className={`text-lg mb-8 transition-colors duration-300 ${
-            isDarkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>
-            {isAuthenticated 
-              ? 'Starta en ny match för att se matchstatus här.' 
-              : 'Logga in för att skapa och hantera matcher, eller bläddra bland befintliga matcher.'
-            }
-          </p>
           {isAuthenticated ? (
             <button
               onClick={handleCreateGame}

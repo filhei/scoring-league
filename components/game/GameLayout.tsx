@@ -35,7 +35,7 @@ export function GameLayout({
                 : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
             }`}
           >
-            ← Back to Matches
+            ← Tillbaka till matcher
           </button>
         </div>
       )}

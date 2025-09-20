@@ -44,7 +44,10 @@ export function PlayerSelectModal({
 
   // For active games - single player selection (existing behavior)
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+    <div 
+      className="fixed inset-0 flex items-center justify-center z-50"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.65)' }}
+    >
       <div className={`rounded-2xl p-6 max-w-md w-full mx-4 transition-colors duration-300 ${
         isDarkMode
           ? 'bg-gray-800 border border-gray-700'
@@ -64,7 +67,7 @@ export function PlayerSelectModal({
                 onPlayerSelect(player, showPlayerSelect.team!)
                 onClose()
               }}
-              className={`w-full p-4 text-left rounded-lg transition-all duration-300 hover:scale-[1.02] ${
+              className={`w-full p-4 text-left rounded-lg transition-colors duration-300 ${
                 isDarkMode
                   ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600'
                   : 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
@@ -73,7 +76,7 @@ export function PlayerSelectModal({
               <div className={`font-medium transition-colors duration-300 ${
                 isDarkMode ? 'text-white' : 'text-gray-800'
               }`}>
-                {player.name || 'Unknown Player'}
+                {player.name || 'Okänd spelare'}
               </div>
             </button>
           ))}
@@ -82,7 +85,7 @@ export function PlayerSelectModal({
         <div className="flex justify-end mt-6">
           <button
             onClick={onClose}
-            className="px-6 py-2 rounded-full font-medium transition-all duration-300 hover:scale-105 text-white"
+            className="px-6 py-2 rounded-full font-medium transition-colors duration-300 text-white"
             style={{
               backgroundColor: isDarkMode ? '#374151' : '#e5e7eb',
               color: isDarkMode ? '#ffffff' : '#1f2937'
@@ -157,7 +160,7 @@ function MultiPlayerSelectModal({
     // For planned games, we want to assign the selected players to the team
     // The selected players should replace the current team members
     const selectedPlayerObjects = availablePlayers.filter(p => selectedPlayers.has(p.id))
-    console.log(`MultiPlayerSelectModal: Confirming selection for team ${team}:`, selectedPlayerObjects.map(p => p.name || 'Unknown Player'))
+    console.log(`MultiPlayerSelectModal: Confirming selection for team ${team}:`, selectedPlayerObjects.map(p => p.name || 'Okänd spelare'))
     
     // Note: The goalkeeper handling is done separately in the game actions
     // This function only handles field players, goalkeepers are managed through
@@ -186,7 +189,10 @@ function MultiPlayerSelectModal({
   })
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+    <div 
+      className="fixed inset-0 flex items-center justify-center z-50"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.65)' }}
+    >
       <div className={`rounded-2xl p-6 max-w-lg w-full mx-4 transition-colors duration-300 ${
         isDarkMode
           ? 'bg-gray-800 border border-gray-700'
@@ -207,7 +213,7 @@ function MultiPlayerSelectModal({
               <button
                 key={player.id}
                 onClick={() => handlePlayerToggle(player.id)}
-                className={`w-full p-4 text-left rounded-lg transition-all duration-300 hover:scale-[1.02] flex items-center space-x-3 ${
+                className={`w-full p-4 text-left rounded-lg transition-colors duration-300 flex items-center space-x-3 ${
                   isSelected
                     ? isDarkMode
                       ? 'bg-blue-700 hover:bg-blue-600 border border-blue-500'
@@ -242,7 +248,7 @@ function MultiPlayerSelectModal({
                     ? isDarkMode ? 'text-white' : 'text-gray-800'
                     : isDarkMode ? 'text-white' : 'text-gray-800'
                 }`}>
-                  {player.name || 'Unknown Player'}
+                  {player.name || 'Okänd spelare'}
                   {isInOtherTeam && (
                     <span className={`ml-2 text-xs px-2 py-1 rounded ${
                       isDarkMode
@@ -278,7 +284,7 @@ function MultiPlayerSelectModal({
           <div className="flex space-x-3">
             <button
               onClick={onClose}
-              className="px-6 py-2 rounded-full font-medium transition-all duration-300 hover:scale-105 text-white"
+              className="px-6 py-2 rounded-full font-medium transition-colors duration-300 text-white"
               style={{
                 backgroundColor: isDarkMode ? '#374151' : '#e5e7eb',
                 color: isDarkMode ? '#ffffff' : '#1f2937'
@@ -295,7 +301,7 @@ function MultiPlayerSelectModal({
             
             <button
               onClick={handleConfirm}
-              className="px-6 py-2 rounded-full font-medium transition-all duration-300 hover:scale-105 text-white"
+              className="px-6 py-2 rounded-full font-medium transition-colors duration-300 text-white"
               style={{
                 backgroundColor: 'var(--accent-blue)'
               }}

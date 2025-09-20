@@ -17,17 +17,23 @@ async function fetchAvailablePlayers(): Promise<Player[]> {
 }
 
 async function fetchActiveGame(): Promise<ActiveGameData | null> {
-  // Get active or paused match
-  const { data: match, error: matchError } = await supabase
+  // Get active or paused match - handle multiple active games by getting the most recent one
+  const { data: matches, error: matchError } = await supabase
     .from('matches')
     .select('*')
     .in('match_status', ['active', 'paused'])
-    .single()
+    .order('start_time', { ascending: false })
+    .limit(1)
 
   if (matchError) {
-    if (matchError.code === 'PGRST116') return null // No active match
     throw matchError
   }
+
+  if (!matches || matches.length === 0) {
+    return null // No active match
+  }
+
+  const match = matches[0]
 
   if (!match) return null
 
@@ -197,6 +203,34 @@ async function fetchGameById(gameId: string): Promise<ActiveGameData | null> {
   }
 
   return null
+}
+
+// Utility functions for URL-based state management
+export function getGameIdFromURL(): string | null {
+  if (typeof window === 'undefined') return null
+  const params = new URLSearchParams(window.location.search)
+  return params.get('game')
+}
+
+export function getViewFromURL(): string | null {
+  if (typeof window === 'undefined') return null
+  const params = new URLSearchParams(window.location.search)
+  return params.get('view')
+}
+
+export function updateURLForGame(gameId: string | null): void {
+  if (typeof window === 'undefined') return
+  
+  const url = new URL(window.location.href)
+  if (gameId) {
+    url.searchParams.set('game', gameId)
+    url.searchParams.delete('view')
+  } else {
+    url.searchParams.delete('game')
+    url.searchParams.set('view', 'matches')
+  }
+  
+  window.history.replaceState({}, '', url.toString())
 }
 
 export function useGameData() {

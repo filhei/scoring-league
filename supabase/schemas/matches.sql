@@ -1,6 +1,6 @@
 CREATE TABLE matches (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  start_time TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  start_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   duration INTERVAL,
   pause_duration INTERVAL,
   end_time TIMESTAMP WITH TIME ZONE,
