@@ -38,15 +38,15 @@ CREATE POLICY "Users can update their own record" ON players
   );
 
 -- Users can nullify their own account
--- This allows setting everything except id and list_name to null
+-- This allows setting everything except id to null
 CREATE POLICY "Users can nullify their own account" ON players
   FOR UPDATE TO authenticated
   USING (user_id = auth.uid())
   WITH CHECK (
     -- Prevent changing id (must remain the same)
     id = (SELECT id FROM players WHERE user_id = auth.uid()) AND
-    -- Prevent changing list_name (service role only)
-    list_name = (SELECT list_name FROM players WHERE user_id = auth.uid()) AND
+    -- Allow nullifying list_name as part of account deletion
+    (list_name IS NULL) AND
     -- Allow setting rest to null only
     (name IS NULL) AND
     (elo IS NULL) AND
