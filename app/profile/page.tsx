@@ -1,7 +1,6 @@
 'use client'
 
 import { Suspense } from 'react'
-import { Navigation } from '../../components/Navigation'
 import { ProfileForm } from '../../components/ProfileForm'
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute'
 import { useDarkMode } from '../../lib/hooks/useDarkMode'
@@ -14,7 +13,6 @@ export default function ProfilePage() {
       <div className={`min-h-screen transition-colors duration-300 ${
         isDarkMode ? 'sm:bg-gray-900 text-white' : 'sm:bg-gray-50 text-gray-900'
       }`}>
-        <Navigation isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} />
         
         <main className="sm:max-w-2xl sm:mx-auto sm:px-6 sm:py-8 p-4">
           <div className={`sm:rounded-lg shadow-sm sm:border p-4 sm:p-6 ${

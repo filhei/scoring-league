@@ -361,7 +361,6 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                isDarkMode ? 'text-gray-300' : 'text-gray-600'
              }`}>
                Timern och målen nollställs, men lagen behålls.
-               
              </p>
             <div className="flex space-x-3">
               <button

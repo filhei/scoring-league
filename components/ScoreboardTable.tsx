@@ -3,9 +3,10 @@ import type { PlayerStats } from '../lib/types'
 interface ScoreboardTableProps {
   scoreboardData: PlayerStats[]
   isDarkMode?: boolean
+  currentPlayerId?: string
 }
 
-export function ScoreboardTable({ scoreboardData, isDarkMode = false }: ScoreboardTableProps) {
+export function ScoreboardTable({ scoreboardData, isDarkMode = false, currentPlayerId }: ScoreboardTableProps) {
   if (scoreboardData.length === 0) {
     return (
       <div className="text-center py-12">
@@ -75,12 +76,15 @@ export function ScoreboardTable({ scoreboardData, isDarkMode = false }: Scoreboa
         <tbody className={`sm:divide-y ${
           isDarkMode ? 'sm:divide-gray-700' : 'sm:divide-gray-200'
         }`}>
-          {scoreboardData.map((player, index) => (
+          {scoreboardData.map((player) => {
+            const isCurrent = currentPlayerId && player.player.id === currentPlayerId
+            return (
             <tr 
               key={player.player.id} 
               className={`transition-colors ${
                 isDarkMode ? 'sm:hover:bg-gray-700' : 'sm:hover:bg-gray-50'
-              }`}
+              } ${isCurrent ? (isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50') : ''}`}
+              aria-current={isCurrent ? 'true' : undefined}
             >
               <td className={`px-4 py-3 text-sm font-medium ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
@@ -128,7 +132,7 @@ export function ScoreboardTable({ scoreboardData, isDarkMode = false }: Scoreboa
                 {player.points}
               </td>
             </tr>
-          ))}
+          )})}
         </tbody>
       </table>
     </div>
