@@ -272,13 +272,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log("Randomizing teams...");
-    console.log("Match ID:", matchId);
-    console.log("Mode:", mode);
-
     const result = await randomizeTeams(matchId, mode);
-
-    console.log("Result:", result);
 
     return new Response(
       JSON.stringify(result),

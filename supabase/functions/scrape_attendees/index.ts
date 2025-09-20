@@ -4,20 +4,14 @@
 
 // Setup type definitions for built-in Supabase Runtime APIs
 import "@supabase/functions-js";
-import {
-  Document,
-  DOMParser,
-  Element,
-} from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
+import { Document, DOMParser, Element } from "deno_dom";
 
 interface ScrapingResult {
   attendingPlayers: string[];
   error?: string;
 }
 
-interface ScrapeRequest {
-  url: string;
-}
+type ScrapeRequest = Record<string, never>;
 
 // Helper function to find parent element by tag name (replaces .closest())
 function findParentByTagName(
@@ -49,7 +43,6 @@ function findPlayerTable(doc: Document): Element | null {
         const headerTexts = Array.from(headers).map((h) =>
           h.textContent?.trim() || ""
         );
-        console.log("headerTexts", headerTexts);
         const requiredHeaders = ["Status", "Namn", "Kommentar"];
         const hasAllHeaders = requiredHeaders.every((header) =>
           headerTexts.some((text) => text.includes(header))
@@ -193,15 +186,12 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { url }: ScrapeRequest = await req.json();
-
+    const url = Deno.env.get("BOKAT_URL");
     if (!url) {
       return new Response(
-        JSON.stringify({
-          error: "Missing required field: url",
-        }),
+        JSON.stringify({ error: "BOKAT_URL env variable is not set" }),
         {
-          status: 400,
+          status: 500,
           headers: {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
@@ -210,16 +200,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log("Starting scrape...");
-    console.log("URL:", url);
-
     const result = await scrapeEventData(url);
-
-    console.log("Results:");
-    console.log("Attending players:", result.attendingPlayers);
-    if (result.error) {
-      console.log("Error:", result.error);
-    }
 
     return new Response(
       JSON.stringify(result),

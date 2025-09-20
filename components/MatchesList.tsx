@@ -23,20 +23,8 @@ export function MatchesList({ activeGame, allGames, isDarkMode, onSelectGame, on
   // Show all games (active and planned) in reverse order (newest first) while keeping the count
   const allGamesToShow = [...activeGames, ...plannedGames].reverse()
 
-  // Debug logging
-  console.log('MatchesList:', {
-    totalGames: allGames.length,
-    plannedGames: plannedGames.length,
-    activeGames: activeGames.length,
-    activeGameId: activeGame?.match.id,
-    gamesToShow: allGamesToShow.length,
-    gamesToShowIds: allGamesToShow.map(g => `Game ${g.gameCount || 'N/A'} (${g.match_status})`),
-    isAuthenticated,
-    authLoading
-  })
 
   const handleGameSelect = (game: Match) => {
-    console.log(`MatchesList: Clicked on game ${game.gameCount || 'N/A'} (${game.match_status})`)
     
     // Add a small delay to ensure any pending state updates are complete
     setTimeout(() => {

@@ -339,24 +339,18 @@ export const createMatch = actionClient
   .inputSchema(createMatchSchema)
   .action(async ({ parsedInput }) => {
     try {
-      console.log("Creating match with params:", parsedInput);
-
       // Create server-side Supabase client
       const supabaseServer = await createServerSupabaseClient();
 
       // Check if user is authenticated
       const { data: { user }, error: authError } = await supabaseServer.auth
         .getUser();
-      console.log("Auth check - user:", user?.email, "error:", authError);
-      console.log("Auth check - user object:", user);
 
       if (authError) {
-        console.log("Auth error:", authError);
         throw new Error("Authentication error: " + authError.message);
       }
 
       if (!user) {
-        console.log("User not authenticated, cannot create match");
         throw new Error("Authentication required to create matches");
       }
 
@@ -371,8 +365,6 @@ export const createMatch = actionClient
         .single();
 
       if (matchError) throw handleSupabaseError(matchError);
-
-      console.log("Match created successfully:", match);
 
       // If team data is provided, add players to the match
       if (
@@ -436,14 +428,11 @@ export const createMatch = actionClient
       }
 
       revalidatePath("/");
-      console.log("Revalidating path and returning success");
       return { success: true, data: match };
     } catch (error) {
-      console.log("createMatch: Caught error:", error);
       const appError = error instanceof Error
         ? error
         : handleSupabaseError(error);
-      console.log("createMatch: AppError:", appError);
       return { success: false, error: appError.message };
     }
   });
@@ -527,27 +516,12 @@ export const updateProfile = actionClient
   .inputSchema(updateProfileSchema)
   .action(async ({ parsedInput: { name, positions } }) => {
     try {
-      console.log("updateProfile: ACTION STARTED");
-      console.log(
-        "updateProfile: Starting update with name:",
-        name,
-        "positions:",
-        positions,
-      );
       const supabaseServer = await createServerSupabaseClient();
 
       // Get current user
       const { data: { user }, error: userError } = await supabaseServer.auth
         .getUser();
-      console.log(
-        "updateProfile: Auth result - user:",
-        user?.email,
-        "error:",
-        userError,
-      );
-      console.log("updateProfile: User object:", user);
       if (userError || !user) throw new Error("User not authenticated");
-      console.log("updateProfile: User authenticated:", user.email);
 
       // Test if we can access the user's data
       const { data: testPlayer, error: testError } = await supabaseServer
@@ -556,20 +530,7 @@ export const updateProfile = actionClient
         .eq("user_id", user.id)
         .single();
 
-      console.log(
-        "updateProfile: Test player query - data:",
-        testPlayer,
-        "error:",
-        testError,
-      );
-
       // Update player name
-      console.log(
-        "updateProfile: Updating player name to:",
-        name,
-        "for user_id:",
-        user.id,
-      );
       const { data: updateData, error: updateError } = await supabaseServer
         .from("players")
         .update({ name })
@@ -589,10 +550,6 @@ export const updateProfile = actionClient
         );
         throw handleSupabaseError(updateError);
       }
-      console.log(
-        "updateProfile: Name updated successfully, data:",
-        updateData,
-      );
 
       // Get player ID
       const { data: player, error: playerError } = await supabaseServer
@@ -602,13 +559,8 @@ export const updateProfile = actionClient
         .single();
 
       if (playerError) throw handleSupabaseError(playerError);
-      console.log("updateProfile: Got player ID:", player.id);
 
       // Delete existing position preferences
-      console.log(
-        "updateProfile: Deleting existing positions for player ID:",
-        player.id,
-      );
       const { data: deleteData, error: deleteError } = await supabaseServer
         .from("player_positions")
         .delete()
@@ -619,13 +571,8 @@ export const updateProfile = actionClient
         console.error("updateProfile: Delete positions error:", deleteError);
         throw handleSupabaseError(deleteError);
       }
-      console.log(
-        "updateProfile: Existing positions deleted, count:",
-        deleteData?.length || 0,
-      );
 
       // Insert new position preferences (only for positions with actual preferences)
-      console.log("updateProfile: All positions received:", positions);
       const positionsToInsert = positions
         .filter((
           pos,
@@ -639,16 +586,7 @@ export const updateProfile = actionClient
           preference: pos.preference,
         }));
 
-      console.log(
-        "updateProfile: Filtered positions to insert:",
-        positionsToInsert,
-      );
-
       if (positionsToInsert.length > 0) {
-        console.log(
-          "updateProfile: Inserting new positions:",
-          positionsToInsert,
-        );
         const { data: insertData, error: insertError } = await supabaseServer
           .from("player_positions")
           .insert(positionsToInsert)
@@ -658,19 +596,11 @@ export const updateProfile = actionClient
           console.error("updateProfile: Insert positions error:", insertError);
           throw handleSupabaseError(insertError);
         }
-        console.log(
-          "updateProfile: New positions inserted:",
-          insertData?.length || 0,
-        );
       } else {
-        console.log(
-          "updateProfile: No positions to insert (all preferences are null)",
-        );
       }
 
       revalidatePath("/profile");
       revalidatePath("/");
-      console.log("updateProfile: Update completed successfully");
       return { success: true, data: { updated: true } };
     } catch (error) {
       console.error("updateProfile: Error occurred:", error);
@@ -700,18 +630,11 @@ export const testAuth = actionClient
   .inputSchema(z.object({}))
   .action(async () => {
     try {
-      console.log("testAuth: Starting test");
       const supabaseServer = await createServerSupabaseClient();
 
       // Get current user
       const { data: { user }, error: userError } = await supabaseServer.auth
         .getUser();
-      console.log(
-        "testAuth: Auth result - user:",
-        user?.email,
-        "error:",
-        userError,
-      );
 
       if (userError || !user) {
         return { success: false, error: "User not authenticated" };
@@ -723,13 +646,6 @@ export const testAuth = actionClient
         .select("id, name, email")
         .eq("user_id", user.id)
         .single();
-
-      console.log(
-        "testAuth: Player query - data:",
-        player,
-        "error:",
-        playerError,
-      );
 
       if (playerError) {
         return {
@@ -753,22 +669,11 @@ export const testProfileUpdate = actionClient
   .inputSchema(z.object({ name: z.string() }))
   .action(async ({ parsedInput: { name } }) => {
     try {
-      console.log("testProfileUpdate: ACTION STARTED");
-      console.log("testProfileUpdate: Name:", name);
-
       const supabaseServer = await createServerSupabaseClient();
 
       // Get current user
       const { data: { user }, error: userError } = await supabaseServer.auth
         .getUser();
-      console.log(
-        "testProfileUpdate: Auth result - user:",
-        user?.email,
-        "error:",
-        userError,
-      );
-      console.log("testProfileUpdate: User ID:", user?.id);
-      console.log("testProfileUpdate: User email:", user?.email);
 
       if (userError || !user) {
         return { success: false, error: "User not authenticated" };
@@ -781,15 +686,6 @@ export const testProfileUpdate = actionClient
         .eq("user_id", user.id)
         .single();
 
-      console.log(
-        "testProfileUpdate: Player query - data:",
-        playerData,
-        "error:",
-        playerError,
-      );
-      console.log("testProfileUpdate: Current user ID:", user.id);
-      console.log("testProfileUpdate: Player user_id:", playerData?.user_id);
-
       if (playerError) {
         return {
           success: false,
@@ -798,24 +694,12 @@ export const testProfileUpdate = actionClient
       }
 
       // Just update the name
-      console.log(
-        "testProfileUpdate: Attempting to update name to:",
-        name,
-        "for user_id:",
-        user.id,
-      );
       const { data: updateData, error: updateError } = await supabaseServer
         .from("players")
         .update({ name })
         .eq("user_id", user.id)
         .select();
 
-      console.log(
-        "testProfileUpdate: Update result - data:",
-        updateData,
-        "error:",
-        updateError,
-      );
       if (updateError) {
         console.error("testProfileUpdate: Update error details:", {
           code: updateError.code,

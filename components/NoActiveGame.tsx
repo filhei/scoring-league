@@ -4,7 +4,6 @@ import { useTransition } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { createMatch } from '../app/actions'
-import { useSnackbar } from '../lib/hooks/useSnackbar'
 import { useAuth } from '../lib/auth-context'
 
 interface NoActiveGameProps {
@@ -14,16 +13,13 @@ interface NoActiveGameProps {
 
 export function NoActiveGame({ isDarkMode, onCreateNewGame }: NoActiveGameProps) {
   const [isPending, startTransition] = useTransition()
-  const { showSnackbar } = useSnackbar()
   const queryClient = useQueryClient()
   const { user, player } = useAuth()
   const isAuthenticated = user && player
 
   function handleCreateGame() {
-    console.log('NoActiveGame: Starting game creation')
     startTransition(async () => {
       try {
-        console.log('NoActiveGame: Calling createMatch action')
         const result = await createMatch({
           teamWithVests: null,
           teamAPlayerIds: undefined,
@@ -32,37 +28,30 @@ export function NoActiveGame({ isDarkMode, onCreateNewGame }: NoActiveGameProps)
           teamBGoalkeeperId: null
         })
         
-        console.log('NoActiveGame: Result received:', result)
         
         if (result.validationErrors) {
-          showSnackbar('Invalid input data', 4000)
+          // Validation errors are handled by the form validation
           return
         }
 
         if (result.serverError) {
-          if (result.serverError.includes('Authentication required')) {
-            showSnackbar('Please sign in to create a new game', 4000)
-          } else {
-            showSnackbar(result.serverError, 4000)
-          }
+          // Server errors are handled by the error boundary
           return
         }
 
         if (result.data) {
-          console.log('NoActiveGame: Game created successfully, invalidating cache')
           // Invalidate and refetch all game-related queries
           queryClient.invalidateQueries({ queryKey: ['allGames'] })
           queryClient.invalidateQueries({ queryKey: ['activeGame'] })
           queryClient.refetchQueries({ queryKey: ['allGames'] })
           queryClient.refetchQueries({ queryKey: ['activeGame'] })
-          console.log('NoActiveGame: Cache invalidation completed')
           // Navigate to the new game view
           if (onCreateNewGame) {
             onCreateNewGame()
           }
         }
       } catch (error) {
-        showSnackbar('Failed to create game', 4000)
+        // Game creation failed - error is handled by error boundary
       }
     })
   }
