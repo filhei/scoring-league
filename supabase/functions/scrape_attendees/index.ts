@@ -4,20 +4,14 @@
 
 // Setup type definitions for built-in Supabase Runtime APIs
 import "@supabase/functions-js";
-import {
-  Document,
-  DOMParser,
-  Element,
-} from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
+import { Document, DOMParser, Element } from "deno_dom";
 
 interface ScrapingResult {
   attendingPlayers: string[];
   error?: string;
 }
 
-interface ScrapeRequest {
-  url: string;
-}
+type ScrapeRequest = Record<string, never>;
 
 // Helper function to find parent element by tag name (replaces .closest())
 function findParentByTagName(
@@ -192,15 +186,12 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { url }: ScrapeRequest = await req.json();
-
+    const url = Deno.env.get("BOKAT_URL");
     if (!url) {
       return new Response(
-        JSON.stringify({
-          error: "Missing required field: url",
-        }),
+        JSON.stringify({ error: "BOKAT_URL env variable is not set" }),
         {
-          status: 400,
+          status: 500,
           headers: {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",

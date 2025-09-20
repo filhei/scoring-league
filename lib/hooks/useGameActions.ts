@@ -2136,12 +2136,6 @@ export function useGameActions(
     if (!requireAuth("Fill from attendees")) return;
 
     try {
-      const bokatUrl = process.env.NEXT_PUBLIC_BOKAT_URL;
-      if (!bokatUrl) {
-        // BOKAT_URL environment variable not configured
-        return;
-      }
-
       const matchId = gameState.currentGameContext!.matchId;
 
       // Set loading state instead of showing progress snackbar
@@ -2158,7 +2152,6 @@ export function useGameActions(
           },
           body: JSON.stringify({
             matchId,
-            url: bokatUrl,
           }),
         },
       );

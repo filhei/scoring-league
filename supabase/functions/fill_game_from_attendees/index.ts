@@ -8,7 +8,6 @@ import { createClient } from "@supabase/supabase-js";
 
 interface FillGameRequest {
   matchId: string;
-  url: string;
 }
 
 interface FillGameResult {
@@ -136,7 +135,7 @@ async function callScrapeAttendees(url: string): Promise<ScrapingResult> {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
     },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({}),
   });
 
   if (!response.ok) {
@@ -300,7 +299,6 @@ async function addPlayersToMatch(
 
 async function fillGameFromAttendees(
   matchId: string,
-  url: string,
 ): Promise<FillGameResult> {
   try {
     // Create Supabase client with service role key
@@ -308,7 +306,19 @@ async function fillGameFromAttendees(
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Step 1: Scrape attendees
+    // Step 1: Resolve URL from env and scrape attendees
+    const url = Deno.env.get("BOKAT_URL");
+    if (!url) {
+      return {
+        success: false,
+        addedPlayers: 0,
+        matchedPlayers: [],
+        unmatchedNames: [],
+        errors: ["BOKAT_URL env variable is not set"],
+        randomized: false,
+      };
+    }
+
     const scrapingResult = await callScrapeAttendees(url);
 
     if (scrapingResult.error) {
@@ -428,12 +438,12 @@ Deno.serve(async (req: Request) => {
     }
 
     // Parse request body
-    const { matchId, url }: FillGameRequest = await req.json();
+    const { matchId }: FillGameRequest = await req.json();
 
-    if (!matchId || !url) {
+    if (!matchId) {
       return new Response(
         JSON.stringify({
-          error: "Missing required fields: matchId and url",
+          error: "Missing required field: matchId",
         }),
         {
           status: 400,
@@ -445,7 +455,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const result = await fillGameFromAttendees(matchId, url);
+    const result = await fillGameFromAttendees(matchId);
 
     return new Response(
       JSON.stringify(result),
