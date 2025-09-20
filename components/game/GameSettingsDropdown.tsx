@@ -5,10 +5,16 @@ interface GameSettingsDropdownProps {
   onDeleteGame?: () => void
   onResetGame?: () => void
   onSwapSides?: () => void
+  onSwapGoalkeepers?: () => void
+  onSwapFieldPlayers?: () => void
+  onFillFromAttendees?: () => void
+  onRandomizeTeams?: () => void
   matchStatus?: string
+  isFillFromAttendeesLoading?: boolean
+  isRandomizeTeamsLoading?: boolean
 }
 
-export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, onSwapSides, matchStatus }: GameSettingsDropdownProps) {
+export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, onSwapSides, onSwapGoalkeepers, onSwapFieldPlayers, onFillFromAttendees, onRandomizeTeams, matchStatus, isFillFromAttendeesLoading = false, isRandomizeTeamsLoading = false }: GameSettingsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [showResetConfirmation, setShowResetConfirmation] = useState(false)
@@ -97,11 +103,188 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                   }}
                   className={`w-full px-4 py-2 text-left text-sm transition-colors duration-200 md:hidden ${
                     isDarkMode
-                      ? 'text-blue-400 hover:bg-gray-700 hover:text-blue-300'
-                      : 'text-blue-600 hover:bg-gray-50 hover:text-blue-700'
+                      ? 'text-white hover:bg-gray-700 hover:text-white'
+                      : 'text-black hover:bg-gray-50 hover:text-black'
                   }`}
                 >
-                  Swap Teams
+                  <span className="inline-flex items-center gap-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                    </svg>
+                    Byt sida
+                  </span>
+                </button>
+              )}
+              {/* Swap Goalkeepers - Mobile Only */}
+              {onSwapGoalkeepers && (
+                <button
+                  onClick={() => {
+                    setIsOpen(false)
+                    onSwapGoalkeepers()
+                  }}
+                  className={`w-full px-4 py-2 text-left text-sm transition-colors duration-200 md:hidden ${
+                    isDarkMode
+                      ? 'text-white hover:bg-gray-700 hover:text-white'
+                      : 'text-black hover:bg-gray-50 hover:text-black'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    Byt målvakter
+                  </span>
+                </button>
+              )}
+              {/* Swap Field Players */}
+              {onSwapFieldPlayers && (
+                <button
+                  onClick={() => {
+                    setIsOpen(false)
+                    onSwapFieldPlayers()
+                  }}
+                  className={`w-full px-4 py-2 text-left text-sm transition-colors duration-200 ${
+                    isDarkMode
+                      ? 'text-white hover:bg-gray-700 hover:text-white'
+                      : 'text-black hover:bg-gray-50 hover:text-black'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    Byt utespelare
+                  </span>
+                </button>
+              )}
+              {/* Fill from Attendees */}
+              {onFillFromAttendees && (
+                <button
+                  onClick={() => {
+                    if (!isFillFromAttendeesLoading) {
+                      setIsOpen(false)
+                      onFillFromAttendees()
+                    }
+                  }}
+                  disabled={isFillFromAttendeesLoading}
+                  className={`w-full px-4 py-2 text-left text-sm transition-colors duration-200 ${
+                    isFillFromAttendeesLoading
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : isDarkMode
+                      ? 'text-white hover:bg-gray-700 hover:text-white'
+                      : 'text-black hover:bg-gray-50 hover:text-black'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    {isFillFromAttendeesLoading ? (
+                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                      </svg>
+                    )}
+                    {isFillFromAttendeesLoading ? 'Autofyller...' : 'Autofyll från Bokat.se'}
+                  </span>
+                </button>
+              )}
+              {/* Randomize Teams */}
+              {onRandomizeTeams && (
+                <button
+                  onClick={() => {
+                    if (!isRandomizeTeamsLoading) {
+                      setIsOpen(false)
+                      onRandomizeTeams()
+                    }
+                  }}
+                  disabled={isRandomizeTeamsLoading}
+                  className={`w-full px-4 py-2 text-left text-sm transition-colors duration-200 ${
+                    isRandomizeTeamsLoading
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : isDarkMode
+                        ? 'text-white hover:bg-gray-700 hover:text-white'
+                        : 'text-black hover:bg-gray-50 hover:text-black'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    {isRandomizeTeamsLoading ? (
+                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                      </svg>
+                    )}
+                    {isRandomizeTeamsLoading ? 'Slumpar...' : 'Slumpa lag'}
+                  </span>
                 </button>
               )}
               {onResetGame && matchStatus !== 'planned' && (
@@ -113,7 +296,20 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                       : 'text-yellow-600 hover:bg-gray-50 hover:text-yellow-700'
                   }`}
                 >
-                  Reset Game
+                  <span className="inline-flex items-center gap-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Starta om match
+                  </span>
                 </button>
               )}
               {onDeleteGame && (
@@ -125,7 +321,19 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                       : 'text-red-600 hover:bg-gray-50 hover:text-red-700'
                   }`}
                 >
-                  Delete Game
+                  <span className="inline-flex items-center gap-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-7 0h10" />
+                    </svg>
+                    Släng match
+                  </span>
                 </button>
               )}
             </div>
@@ -135,7 +343,10 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
 
       {/* Reset Confirmation Dialog */}
       {showResetConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.65)' }}
+        >
           <div className={`rounded-2xl p-6 max-w-md w-full mx-4 ${
             isDarkMode
               ? 'bg-gray-800 border border-gray-700'
@@ -144,12 +355,12 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
             <h3 className={`text-xl font-bold mb-4 ${
               isDarkMode ? 'text-white' : 'text-gray-900'
             }`}>
-              Reset Game?
+              Starta om match?
             </h3>
                          <p className={`mb-6 ${
                isDarkMode ? 'text-gray-300' : 'text-gray-600'
              }`}>
-               This will reset the timer to zero and remove all goals, but keep the teams. The game will be paused. This action cannot be undone.
+               Timern och målen nollställs, men lagen behålls.
              </p>
             <div className="flex space-x-3">
               <button
@@ -160,7 +371,7 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                     : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
                 }`}
               >
-                Cancel
+                Avbryt
               </button>
               <button
                 onClick={handleConfirmReset}
@@ -175,7 +386,7 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                   e.currentTarget.style.backgroundColor = 'var(--accent-blue)'
                 }}
               >
-                Reset
+                Starta om match
               </button>
             </div>
           </div>
@@ -184,7 +395,10 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
 
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div 
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.65)' }}
+        >
           <div className={`rounded-2xl p-6 max-w-md w-full mx-4 ${
             isDarkMode
               ? 'bg-gray-800 border border-gray-700'
@@ -193,12 +407,12 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
             <h3 className={`text-xl font-bold mb-4 ${
               isDarkMode ? 'text-white' : 'text-gray-900'
             }`}>
-              Delete Game?
+              Ta bort match?
             </h3>
             <p className={`mb-6 ${
               isDarkMode ? 'text-gray-300' : 'text-gray-600'
             }`}>
-              Are you sure you want to delete this game? This action cannot be undone.
+              Är du säker på att du vill ta bort matchen? Kan ej ångras.
             </p>
             <div className="flex space-x-3">
               <button
@@ -209,7 +423,7 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                     : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
                 }`}
               >
-                Cancel
+                Avbryt
               </button>
               <button
                 onClick={handleConfirmDelete}
@@ -224,7 +438,7 @@ export function GameSettingsDropdown({ isDarkMode, onDeleteGame, onResetGame, on
                   e.currentTarget.style.backgroundColor = 'var(--accent-red)'
                 }}
               >
-                Delete
+                Ta bort match
               </button>
             </div>
           </div>

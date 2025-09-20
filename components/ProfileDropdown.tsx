@@ -55,8 +55,7 @@ export function ProfileDropdown() {
         aria-label="Profile menu"
       >
         <svg 
-          className="w-5 h-5" 
-          fill="none" 
+          className={`w-5 h-5 ${isDarkMode ? 'text-blue-300 fill-blue-900/50' : 'text-blue-700 fill-blue-200'}`}
           stroke="currentColor" 
           viewBox="0 0 24 24"
         >
@@ -90,7 +89,7 @@ export function ProfileDropdown() {
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
-            Profile
+            Profil
           </Link>
           <button
             onClick={handleSignOut}
@@ -100,7 +99,7 @@ export function ProfileDropdown() {
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
-            Sign Out
+            Logga ut
           </button>
         </div>
       )}

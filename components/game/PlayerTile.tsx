@@ -16,6 +16,7 @@ interface PlayerTileProps {
   onDragStart?: (e: React.DragEvent, player: Player) => void
   onDragEnd?: (e: React.DragEvent) => void
   onRemovePlayer?: (player: Player) => void
+  isAuthenticated?: boolean
 }
 
 export function PlayerTile({
@@ -29,7 +30,8 @@ export function PlayerTile({
   scores,
   onDragStart,
   onDragEnd,
-  onRemovePlayer
+  onRemovePlayer,
+  isAuthenticated = true
 }: PlayerTileProps) {
   const isBeingDragged = isDragging && dragState?.player.id === player.id
 
@@ -54,7 +56,7 @@ export function PlayerTile({
         <span className={`font-medium text-sm md:text-base break-words flex-1 ${
           isDarkMode ? 'text-white' : 'text-gray-800'
         }`}>
-          {player.name || 'Unknown Player'}
+          {player.name || 'Okänd spelare'}
         </span>
         <div className="flex items-center gap-2 flex-shrink-0">
           <span className={`text-xs md:text-sm ${
@@ -62,13 +64,13 @@ export function PlayerTile({
           }`}>
             {formatPlayerStats(getPlayerStats(player.id, scores))}
           </span>
-          {!isGoalkeeper && (
+          {!isGoalkeeper && isAuthenticated && (
             <button
               onClick={(e) => {
                 e.stopPropagation()
                 onRemovePlayer?.(player)
               }}
-              className={`${getRemoveButtonStyles(isDarkMode, false)} w-6 h-6 md:w-5 md:h-5 text-sm md:text-xs flex items-center justify-center`}
+              className={`${getRemoveButtonStyles(isDarkMode, false)} w-6 h-6 md:w-5 md:h-5 text-sm md:text-xs flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300`}
               title="remove from team"
             >
               −

@@ -22,7 +22,10 @@ export function GoalDialog({
   if (!goalDialog.isOpen || !activeGame) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.65)' }}
+    >
       <div className={`rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-hidden transition-colors duration-300 ${
         isDarkMode
           ? 'bg-gray-800 border border-gray-700'
@@ -72,7 +75,7 @@ export function GoalDialog({
                       ? (isDarkMode ? 'text-white' : 'text-gray-900')
                       : (isDarkMode ? 'text-gray-500' : 'text-gray-400')
                   }`}>
-                    {goalDialog.scoringPlayer ? (goalDialog.scoringPlayer.name || 'Unknown Player') : 'Ingen vald'}
+                    {goalDialog.scoringPlayer ? (goalDialog.scoringPlayer.name || 'Okänd spelare') : 'Ingen vald'}
                   </span>
                   {goalDialog.scoringPlayer && (
                     <button
@@ -112,7 +115,7 @@ export function GoalDialog({
                       ? (isDarkMode ? 'text-white' : 'text-gray-900')
                       : (isDarkMode ? 'text-gray-500' : 'text-gray-400')
                   }`}>
-                    {goalDialog.assistingPlayer ? (goalDialog.assistingPlayer.name || 'Unknown Player') : 'Ingen vald'}
+                    {goalDialog.assistingPlayer ? (goalDialog.assistingPlayer.name || 'Okänd spelare') : 'Ingen vald'}
                   </span>
                   {goalDialog.assistingPlayer && (
                     <button
@@ -170,7 +173,7 @@ export function GoalDialog({
                         <span className={`font-medium transition-colors duration-300 truncate flex-1 ${
                           isDarkMode ? 'text-white' : 'text-gray-900'
                         }`}>
-                          {player.name || 'Unknown Player'}
+                          {player.name || 'Okänd spelare'}
                         </span>
                         <div className="flex space-x-2 flex-shrink-0 ml-2">
                           {isScoring && (
@@ -281,7 +284,7 @@ export function GoalDialog({
                         <span className={`font-medium transition-colors duration-300 truncate flex-1 ${
                           isDarkMode ? 'text-white' : 'text-gray-900'
                         }`}>
-                          {player.name || 'Unknown Player'}
+                          {player.name || 'Okänd spelare'}
                         </span>
                         <div className="flex space-x-2 flex-shrink-0 ml-2">
                           {isScoring && (

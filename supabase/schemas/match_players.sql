@@ -10,6 +10,9 @@ CREATE UNIQUE INDEX match_players_one_goalkeeper_per_team
 ON match_players (match_id, team) 
 WHERE is_goalkeeper = true;
 
+CREATE UNIQUE INDEX match_players_unique_player_per_match 
+ON match_players (match_id, player_id);
+
 -- Enable RLS
 ALTER TABLE match_players ENABLE ROW LEVEL SECURITY;
 

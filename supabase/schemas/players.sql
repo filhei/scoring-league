@@ -1,6 +1,7 @@
 CREATE TABLE players (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT,
+  list_name TEXT,
   elo INTEGER DEFAULT 1500,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -21,7 +22,7 @@ CREATE POLICY "Authenticated can view all players" ON players
   USING (true);
 
 -- Users can update their own player record (name, elo, is_active only)
--- Explicitly prevents id, created_at, and user_id changes
+-- Explicitly prevents id, created_at, user_id, and list_name changes
 CREATE POLICY "Users can update their own record" ON players
   FOR UPDATE TO authenticated
   USING (user_id = auth.uid())
@@ -31,7 +32,9 @@ CREATE POLICY "Users can update their own record" ON players
     -- Prevent changing created_at (must remain the same)
     created_at = (SELECT created_at FROM players WHERE user_id = auth.uid()) AND
     -- Prevent changing user_id (handled by separate nullification policy)
-    user_id = auth.uid()
+    user_id = auth.uid() AND
+    -- Prevent changing list_name (service role only)
+    list_name = (SELECT list_name FROM players WHERE user_id = auth.uid())
   );
 
 -- Users can nullify their own account
@@ -42,6 +45,8 @@ CREATE POLICY "Users can nullify their own account" ON players
   WITH CHECK (
     -- Prevent changing id (must remain the same)
     id = (SELECT id FROM players WHERE user_id = auth.uid()) AND
+    -- Allow nullifying list_name as part of account deletion
+    (list_name IS NULL) AND
     -- Allow setting rest to null only
     (name IS NULL) AND
     (elo IS NULL) AND
