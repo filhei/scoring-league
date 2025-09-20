@@ -98,7 +98,6 @@ export interface GameActions {
 
 export function useGameActions(
   gameState: GameState,
-  showSnackbar: (message: string, duration?: number) => void,
   timer?: ReturnType<typeof import("./useMatchTimer").useMatchTimer>,
 ): GameActions {
   const queryClient = useQueryClient();
@@ -121,20 +120,16 @@ export function useGameActions(
   const ensureCorrectMatch = (operation: string): boolean => {
     if (!gameState.currentGameContext) {
       console.error(`${operation}: No current game context`);
-      showSnackbar("No game selected");
       return false;
     }
 
-    console.log(
-      `${operation}: Operating on match ID ${gameState.currentGameContext.matchId}`,
-    );
     return true;
   };
 
   // Helper function to check authentication for actions
   const requireAuth = (action: string): boolean => {
     if (!isAuthenticated) {
-      showSnackbar("Please sign in to perform this action", 3000);
+      // Authentication errors are handled by the auth system
       return false;
     }
     return true;
@@ -326,7 +321,7 @@ export function useGameActions(
         return { ...prev, assistingPlayer: player };
       }
 
-      showSnackbar("Bara en målgörare och assisterande spelare kan väljas");
+      // Only one assisting player can be selected - silently ignore additional selections
       return prev;
     });
   };
@@ -378,7 +373,6 @@ export function useGameActions(
       });
 
       if (result.validationErrors) {
-        showSnackbar("Invalid input data");
         // Revert optimistic update
         if (gameState.currentGameContext) {
           const revertedGameData = {
@@ -396,7 +390,6 @@ export function useGameActions(
       }
 
       if (result.serverError) {
-        showSnackbar(result.serverError);
         // Revert optimistic update
         if (gameState.currentGameContext) {
           const revertedGameData = {
@@ -419,7 +412,7 @@ export function useGameActions(
       }
     } catch (error) {
       console.error("Error adding score:", error);
-      showSnackbar("Failed to add score");
+      // Score addition failed - optimistic update will be reverted
       // Revert optimistic update
       if (gameState.currentGameContext) {
         const revertedGameData = {
@@ -458,31 +451,21 @@ export function useGameActions(
 
     // Check if we're already busy to prevent rapid clicking
     if (isPauseToggleBusy || timer?.isTimerBusy) {
-      console.log(
-        "useGameActions.handlePauseToggle: Already busy, skipping request",
-      );
       return;
     }
 
     // Set busy state immediately to prevent double clicks
     setIsPauseToggleBusy(true);
-    console.log(
-      "useGameActions.handlePauseToggle: Set busy state, starting operation",
-    );
 
     try {
       // Use timer functions if available, otherwise fall back to server action
       if (timer) {
-        console.log("useGameActions.handlePauseToggle: Using timer functions");
         if (timer.isPaused) {
           await timer.resumeMatch();
         } else {
           await timer.pauseMatch();
         }
       } else {
-        console.log(
-          "useGameActions.handlePauseToggle: Using server action fallback",
-        );
         const action = gameState.timer.isPaused ? "resume" : "pause";
         const newStatus = gameState.timer.isPaused ? "active" : "paused";
 
@@ -513,22 +496,18 @@ export function useGameActions(
             "Database update failed:",
             result.validationErrors || result.serverError,
           );
-          showSnackbar("Warning: Game state may not be saved");
           // Revert local state on error
           gameState.refreshGameData();
         } else {
-          console.log("Database update successful");
         }
       }
     } catch (error) {
       console.error("Error toggling pause:", error);
-      showSnackbar("Warning: Game state may not be saved");
       // Revert local state on error
       gameState.refreshGameData();
     } finally {
       // Always clear busy state when done
       setIsPauseToggleBusy(false);
-      console.log("useGameActions.handlePauseToggle: Cleared busy state");
     }
   };
 
@@ -537,8 +516,6 @@ export function useGameActions(
     if (!ensureCorrectMatch("End match")) return;
 
     try {
-      console.log("handleEndMatch: Starting to end match...");
-
       gameState.setIsEndingGame(true);
 
       const winnerTeam = gameState.teamAScore > gameState.teamBScore
@@ -546,7 +523,6 @@ export function useGameActions(
         : gameState.teamBScore > gameState.teamAScore
         ? "B"
         : null;
-      console.log("handleEndMatch: Winner team:", winnerTeam);
 
       const result = await controlMatch({
         matchId: gameState.currentGameContext!.matchId,
@@ -559,18 +535,15 @@ export function useGameActions(
           "Database update failed:",
           result.validationErrors || result.serverError,
         );
-        showSnackbar("Failed to end match");
+        // Match end failed - state will be reverted
         gameState.setIsEndingGame(false);
         return;
       }
-
-      console.log("handleEndMatch: controlMatch completed successfully");
 
       const winnerText = winnerTeam
         ? `Team ${winnerTeam} wins!`
         : "Match ended in a tie!";
 
-      console.log("handleEndMatch: Going back to matches list");
       gameState.setCurrentGameContext(null);
       gameState.setUserRequestedMatchesList(true);
       gameState.setShowMatchesList(true);
@@ -580,11 +553,10 @@ export function useGameActions(
 
       setTimeout(() => {
         gameState.setIsEndingGame(false);
-        console.log("handleEndMatch: Cleared ending game flag");
       }, 1000);
     } catch (error) {
       console.error("Error ending match:", error);
-      showSnackbar("Failed to end match");
+      // Match end failed - state will be reverted
       gameState.setIsEndingGame(false);
     }
   };
@@ -613,7 +585,7 @@ export function useGameActions(
           "Database update failed:",
           result.validationErrors || result.serverError,
         );
-        showSnackbar("Failed to end match");
+        // Match end failed - state will be reverted
         gameState.setIsEndingGame(false);
         return;
       }
@@ -632,7 +604,7 @@ export function useGameActions(
       });
 
       if (createResult.validationErrors || createResult.serverError) {
-        showSnackbar("Failed to create new match");
+        // New match creation failed
         gameState.setIsEndingGame(false);
         return;
       }
@@ -642,7 +614,6 @@ export function useGameActions(
           ? `Team ${winnerTeam} wins!`
           : "Match ended in a tie!";
 
-        console.log("handleEndMatchAndCreateNew: Going back to matches list");
         gameState.setCurrentGameContext(null);
         gameState.setUserRequestedMatchesList(true);
         gameState.setShowMatchesList(true);
@@ -652,12 +623,11 @@ export function useGameActions(
 
         setTimeout(() => {
           gameState.setIsEndingGame(false);
-          console.log("handleEndMatchAndCreateNew: Cleared ending game flag");
         }, 1000);
       }
     } catch (error) {
       console.error("Error ending match and creating new:", error);
-      showSnackbar("Failed to end match and create new");
+      // End match and create new failed
       gameState.setIsEndingGame(false);
     }
   };
@@ -672,7 +642,7 @@ export function useGameActions(
       });
 
       if (result.validationErrors || result.serverError) {
-        showSnackbar("Failed to delete game");
+        // Game deletion failed
         return;
       }
 
@@ -684,7 +654,7 @@ export function useGameActions(
       gameState.refreshGameData();
     } catch (error) {
       console.error("Error deleting game:", error);
-      showSnackbar("Failed to delete game");
+      // Game deletion failed
     }
   };
 
@@ -697,7 +667,7 @@ export function useGameActions(
       });
 
       if (result.validationErrors || result.serverError) {
-        showSnackbar("Failed to reset game");
+        // Game reset failed
         return;
       }
 
@@ -723,7 +693,7 @@ export function useGameActions(
       gameState.refreshGameData();
     } catch (error) {
       console.error("Error resetting game:", error);
-      showSnackbar("Failed to reset game");
+      // Game reset failed
     }
   };
 
@@ -759,7 +729,7 @@ export function useGameActions(
       });
 
       if (result.validationErrors) {
-        showSnackbar("Invalid input data");
+        // Invalid input data
         // Revert local state on error
         gameState.setCurrentGameContext({
           ...gameState.currentGameContext!,
@@ -775,7 +745,7 @@ export function useGameActions(
       }
 
       if (result.serverError) {
-        showSnackbar(result.serverError);
+        // Server error occurred
         // Revert local state on error
         gameState.setCurrentGameContext({
           ...gameState.currentGameContext!,
@@ -792,7 +762,6 @@ export function useGameActions(
 
       if (result.data) {
         if (gameState.currentGameContext?.type === "planned") {
-          console.log("Vest toggle successful - keeping local state");
         } else {
           // For active games, refresh to sync with server
           gameState.refreshGameData();
@@ -800,7 +769,7 @@ export function useGameActions(
       }
     } catch (error) {
       console.error("Error toggling vests:", error);
-      showSnackbar("Failed to update vests");
+      // Vest update failed
       // Revert local state on error
       if (gameState.currentGameContext) {
         const currentTeamWithVests = gameState.currentGameContext.gameData.match
@@ -910,7 +879,7 @@ export function useGameActions(
       });
 
       if (result.validationErrors) {
-        showSnackbar("Invalid input data");
+        // Invalid input data
         // Revert optimistic update
         if (originalGameData && gameState.currentGameContext) {
           gameState.setCurrentGameContext({
@@ -926,7 +895,7 @@ export function useGameActions(
       }
 
       if (result.serverError) {
-        showSnackbar(result.serverError);
+        // Server error occurred
         // Revert optimistic update
         if (originalGameData && gameState.currentGameContext) {
           gameState.setCurrentGameContext({
@@ -951,7 +920,7 @@ export function useGameActions(
       }
     } catch (error) {
       console.error("Error adding player:", error);
-      showSnackbar("Failed to add player");
+      // Player addition failed
 
       // Revert optimistic update
       if (originalGameData && gameState.currentGameContext) {
@@ -973,11 +942,6 @@ export function useGameActions(
   ) => {
     if (!ensureCorrectMatch("Multi-player select")) return;
 
-    console.log(
-      `Multi-player select: Team ${team}, ${players.length} players selected:`,
-      players.map((p) => p.name),
-    );
-
     try {
       if (gameState.currentGameContext?.type === "planned") {
         // Get current state
@@ -998,10 +962,6 @@ export function useGameActions(
 
         // Check for goalkeeper unassignment
         if (currentGoalkeeper && !newPlayerIds.has(currentGoalkeeper.id)) {
-          console.log(
-            `Removing goalkeeper ${currentGoalkeeper.name} from team ${team}`,
-          );
-
           // Update local state immediately to remove goalkeeper
           gameState.setCurrentGameContext({
             type: "planned",
@@ -1021,7 +981,7 @@ export function useGameActions(
             playerId: currentGoalkeeper.id,
           }).then((removeResult) => {
             if (removeResult.validationErrors || removeResult.serverError) {
-              showSnackbar("Failed to remove goalkeeper");
+              // Goalkeeper removal failed
               // Revert local state on error
               if (gameState.currentGameContext) {
                 gameState.setCurrentGameContext({
@@ -1039,7 +999,7 @@ export function useGameActions(
             }
           }).catch((error) => {
             console.error("Error removing goalkeeper:", error);
-            showSnackbar("Failed to remove goalkeeper");
+            // Goalkeeper removal failed
             // Revert local state on error
             if (gameState.currentGameContext) {
               gameState.setCurrentGameContext({
@@ -1062,10 +1022,6 @@ export function useGameActions(
           otherTeamIds.has(p.id)
         );
         for (const player of playersFromOtherTeam) {
-          console.log(
-            `Moving player ${player.name} from other team to team ${team}`,
-          );
-
           // Update local state immediately to remove from other team
           if (team === "A") {
             const newTeamB = gameState.localTeamB.filter((p) =>
@@ -1102,13 +1058,13 @@ export function useGameActions(
             newTeam: team,
           }).then((updateResult) => {
             if (updateResult.validationErrors || updateResult.serverError) {
-              showSnackbar(`Failed to move player ${player.name}`);
+              // Player move failed
               // Note: We could revert the state here, but since the target team update
               // will handle the final state, we'll let that handle any inconsistencies
             }
           }).catch((error) => {
             console.error(`Error moving player ${player.name}:`, error);
-            showSnackbar(`Failed to move player ${player.name}`);
+            // Player move failed
           });
         }
 
@@ -1139,7 +1095,6 @@ export function useGameActions(
         // Remove players that are no longer in the team
         for (const playerId of currentPlayerIds) {
           if (!newPlayerIds.has(playerId)) {
-            console.log(`Removing player ${playerId} from team ${team}`);
             await removePlayerFromMatch({
               matchId: gameState.currentGameContext.matchId,
               playerId,
@@ -1152,7 +1107,6 @@ export function useGameActions(
           !currentPlayerIds.has(p.id) && !otherTeamIds.has(p.id)
         );
         for (const player of newlyAddedPlayers) {
-          console.log(`Adding player ${player.name} to team ${team}`);
           const result = await addPlayerToMatch({
             matchId: gameState.currentGameContext.matchId,
             playerId: player.id,
@@ -1161,7 +1115,7 @@ export function useGameActions(
           });
 
           if (result.validationErrors || result.serverError) {
-            showSnackbar("Failed to add some players");
+            // Some players failed to add
             return;
           }
         }
@@ -1174,7 +1128,7 @@ export function useGameActions(
       }
     } catch (error) {
       console.error("Error updating team players:", error);
-      showSnackbar("Failed to update team players");
+      // Team player update failed
 
       if (gameState.currentGameContext?.type === "planned") {
         const revertedGameData = await convertPlannedGameToActiveGameData(
@@ -1328,7 +1282,7 @@ export function useGameActions(
       });
 
       if (result.validationErrors) {
-        showSnackbar("Invalid input data");
+        // Invalid input data
         // Revert optimistic update
         if (originalGameData && gameState.currentGameContext) {
           gameState.setCurrentGameContext({
@@ -1344,7 +1298,7 @@ export function useGameActions(
       }
 
       if (result.serverError) {
-        showSnackbar(result.serverError);
+        // Server error occurred
         // Revert optimistic update
         if (originalGameData && gameState.currentGameContext) {
           gameState.setCurrentGameContext({
@@ -1367,7 +1321,7 @@ export function useGameActions(
       }
     } catch (error) {
       console.error("Error removing player:", error);
-      showSnackbar("Failed to remove player");
+      // Player removal failed
 
       // Revert optimistic update
       if (originalGameData && gameState.currentGameContext) {
@@ -1418,7 +1372,7 @@ export function useGameActions(
         console.error(
           `Player ${player.name} (${player.id}) not found in any team`,
         );
-        showSnackbar("Player not found in any team");
+        // Player not found in any team
         return;
       }
 
@@ -1505,11 +1459,11 @@ export function useGameActions(
               addResult.validationErrors || addResult.serverError
             ) {
               console.error("Failed to move goalkeeper to field");
-              showSnackbar("Warning: Goalkeeper move may not be saved");
+              // Goalkeeper move failed - state will be reverted
             }
           }).catch((error) => {
             console.error("Error moving goalkeeper to field:", error);
-            showSnackbar("Failed to move goalkeeper to field position");
+            // Goalkeeper move to field failed
           });
 
           return;
@@ -1573,11 +1527,11 @@ export function useGameActions(
                 assignResult2.validationErrors || assignResult2.serverError
               ) {
                 console.error("Failed to swap goalkeepers in database");
-                showSnackbar("Warning: Goalkeeper swap may not be saved");
+                // Goalkeeper swap failed - state will be reverted
               }
             }).catch((error) => {
               console.error("Error swapping goalkeepers:", error);
-              showSnackbar("Failed to swap goalkeepers");
+              // Goalkeeper swap failed
             });
           } else {
             const currentGoalkeeper = gameState.currentGameContext!.gameData
@@ -1612,11 +1566,11 @@ export function useGameActions(
             }).then((assignResult) => {
               if (assignResult.validationErrors || assignResult.serverError) {
                 console.error("Failed to assign goalkeeper to database");
-                showSnackbar("Warning: Goalkeeper assignment may not be saved");
+                // Goalkeeper assignment failed - state will be reverted
               }
             }).catch((error) => {
               console.error("Error assigning goalkeeper:", error);
-              showSnackbar("Failed to assign goalkeeper");
+              // Goalkeeper assignment failed
             });
           }
 
@@ -1704,11 +1658,11 @@ export function useGameActions(
           }).then((result) => {
             if (result.validationErrors || result.serverError) {
               console.error("Failed to sync team change to database");
-              showSnackbar("Warning: Team change may not be saved");
+              // Team change failed - state will be reverted
             }
           }).catch((error) => {
             console.error("Error syncing team change to database:", error);
-            showSnackbar("Warning: Team change may not be saved");
+            // Team change failed - state will be reverted
           });
         }
 
@@ -1722,7 +1676,7 @@ export function useGameActions(
       });
 
       if (removeResult.validationErrors || removeResult.serverError) {
-        showSnackbar("Failed to remove player from current team");
+        // Player removal from current team failed
         return;
       }
 
@@ -1734,12 +1688,12 @@ export function useGameActions(
       });
 
       if (addResult.validationErrors) {
-        showSnackbar("Invalid input data");
+        // Invalid input data
         return;
       }
 
       if (addResult.serverError) {
-        showSnackbar(addResult.serverError);
+        // Server error occurred
         return;
       }
 
@@ -1759,7 +1713,7 @@ export function useGameActions(
       }
     } catch (error) {
       console.error("Error in handleSwitchPlayerTeam:", error);
-      showSnackbar("Failed to process player team switch");
+      // Player team switch failed
     }
   };
 
@@ -1775,7 +1729,7 @@ export function useGameActions(
 
       // Check if at least one team has a goalkeeper
       if (!currentGoalkeeperA && !currentGoalkeeperB) {
-        showSnackbar("Ingen målvakt att byta");
+        // No goalkeeper to swap
         return;
       }
 
@@ -1897,7 +1851,7 @@ export function useGameActions(
         assignResultB.validationErrors || assignResultB.serverError
       ) {
         console.error("Failed to swap goalkeepers in database");
-        showSnackbar("Varning: Målvaktsbyte sparades inte korrekt");
+        // Goalkeeper swap may not have been saved correctly
 
         // Revert local state on error
         if (gameState.currentGameContext) {
@@ -1922,7 +1876,7 @@ export function useGameActions(
       }
     } catch (error) {
       console.error("Error swapping goalkeepers:", error);
-      showSnackbar("Misslyckades att byta målvakter");
+      // Goalkeeper swap failed
 
       // Revert local state on error
       if (gameState.currentGameContext) {
@@ -1964,7 +1918,7 @@ export function useGameActions(
 
       // Check if there are field players to swap
       if (teamAFieldPlayers.length === 0 && teamBFieldPlayers.length === 0) {
-        showSnackbar("Inga utespelare");
+        // No field players available
         return;
       }
 
@@ -2019,12 +1973,12 @@ export function useGameActions(
       if (failedUpdates.length > 0) {
         // Revert local state on failure
         updateTeamState(gameState.localTeamA, gameState.localTeamB);
-        showSnackbar("Misslyckades att byta lag");
+        // Team swap failed
         return;
       }
     } catch (error) {
       console.error("Error swapping field players:", error);
-      showSnackbar("Misslyckades att byta lag");
+      // Team swap failed
     }
   };
 
@@ -2042,18 +1996,12 @@ export function useGameActions(
       });
     } catch (error) {
       console.error("Error loading planned game:", error);
-      showSnackbar("Failed to load planned game");
+      // Planned game load failed
     }
   };
 
   const handleStartPlannedGame = async () => {
     if (!ensureCorrectMatch("Start planned game")) return;
-
-    console.log(
-      `Starting planned game ${
-        gameState.currentGameContext!.gameData.match.gameCount || "N/A"
-      }...`,
-    );
 
     gameState.setIsStartingGame(true);
     gameState.setStartingGameId(gameState.currentGameContext!.matchId);
@@ -2075,10 +2023,6 @@ export function useGameActions(
     // Update URL to reflect the game is now active
     updateURLForGame(gameState.currentGameContext!.matchId);
 
-    console.log(
-      "Updated local context to active, now updating database in background...",
-    );
-
     gameState.setIsStartingGame(false);
     gameState.setStartingGameId(null);
 
@@ -2091,13 +2035,12 @@ export function useGameActions(
           "Database update failed:",
           result.validationErrors || result.serverError,
         );
-        showSnackbar("Warning: Game start may not be saved");
+        // Game start failed - state will be reverted
       } else {
-        console.log("Database update successful");
       }
     }).catch((error) => {
       console.error("Error starting game:", error);
-      showSnackbar("Warning: Game start may not be saved");
+      // Game start failed - state will be reverted
     });
   };
 
@@ -2111,15 +2054,9 @@ export function useGameActions(
 
   const handleSelectGame = async (game: Match) => {
     try {
-      console.log(
-        `Selecting game: ${game.gameCount || "N/A"} (${game.match_status})`,
-      );
       gameState.setUserRequestedMatchesList(false);
 
       if (gameState.isEndingGame) {
-        console.log(
-          "handleSelectGame: Clearing ending game flag due to new game selection",
-        );
         gameState.setIsEndingGame(false);
       }
 
@@ -2132,12 +2069,6 @@ export function useGameActions(
           ? "active"
           : "planned";
 
-      console.log(
-        `Setting game context to ${contextType} for game ${
-          game.gameCount || "N/A"
-        }...`,
-      );
-
       gameState.setCurrentGameContext({
         type: contextType,
         gameData: gameData,
@@ -2147,23 +2078,18 @@ export function useGameActions(
       updateURLForGame(game.id);
     } catch (error) {
       console.error("Error loading game:", error);
-      showSnackbar("Failed to load game");
+      // Game load failed
     }
   };
 
   const handleCreateNewGame = async () => {
     if (!requireAuth("create new game")) return;
-    console.log("handleCreateNewGame: Starting game creation");
     gameState.setIsCreatingGame(true);
     try {
       if (gameState.isEndingGame) {
-        console.log(
-          "handleCreateNewGame: Clearing ending game flag due to new game creation",
-        );
         gameState.setIsEndingGame(false);
       }
 
-      console.log("handleCreateNewGame: Calling createMatch action");
       const result = await createMatch({
         teamWithVests: null,
         teamAPlayerIds: undefined,
@@ -2172,26 +2098,21 @@ export function useGameActions(
         teamBGoalkeeperId: null,
       });
 
-      console.log("handleCreateNewGame: Result received:", result);
-
       if (result.validationErrors) {
-        showSnackbar("Invalid input data", 4000);
+        // Invalid input data
         return;
       }
 
       if (result.serverError) {
         if (result.serverError.includes("Authentication required")) {
-          showSnackbar("Please sign in to create a new game", 4000);
+          // Authentication required
         } else {
-          showSnackbar(result.serverError, 4000);
+          // Server error occurred
         }
         return;
       }
 
       if (result.data) {
-        console.log(
-          "handleCreateNewGame: Game created successfully, invalidating cache",
-        );
         // Clear any current game context and show matches list
         gameState.setCurrentGameContext(null);
         gameState.setShowMatchesList(true);
@@ -2201,10 +2122,9 @@ export function useGameActions(
         queryClient.invalidateQueries({ queryKey: ["activeGame"] });
         queryClient.refetchQueries({ queryKey: ["allGames"] });
         queryClient.refetchQueries({ queryKey: ["activeGame"] });
-        console.log("handleCreateNewGame: Cache invalidation completed");
       }
     } catch (error) {
-      showSnackbar("Failed to create game", 4000);
+      // Game creation failed
     } finally {
       gameState.setIsCreatingGame(false);
     }
@@ -2218,7 +2138,7 @@ export function useGameActions(
     try {
       const bokatUrl = process.env.NEXT_PUBLIC_BOKAT_URL;
       if (!bokatUrl) {
-        showSnackbar("BOKAT_URL environment variable not configured", 5000);
+        // BOKAT_URL environment variable not configured
         return;
       }
 
@@ -2257,11 +2177,11 @@ export function useGameActions(
         // Brief delay to ensure UI has updated before clearing loading state
         await new Promise((resolve) => setTimeout(resolve, 100));
       } else {
-        showSnackbar(`Fel: ${result.errors.join(", ")}`, 5000);
+        // Fill from attendees failed with validation errors
       }
     } catch (error) {
       console.error("Fill from attendees error:", error);
-      showSnackbar("Fel vid fylling från Bokat.se", 4000);
+      // Fill from Bokat.se failed
     } finally {
       // Always clear loading state
       gameState.setIsFillFromAttendeesLoading(false);
@@ -2308,11 +2228,11 @@ export function useGameActions(
         // Brief delay to ensure UI has updated before clearing loading state
         await new Promise((resolve) => setTimeout(resolve, 100));
       } else {
-        showSnackbar(`Fel: ${result.errors.join(", ")}`, 5000);
+        // Fill from attendees failed with validation errors
       }
     } catch (error) {
       console.error("Randomize teams error:", error);
-      showSnackbar("Fel vid slumpning av lag", 4000);
+      // Team randomization failed
     } finally {
       // Always clear loading state
       gameState.setIsRandomizeTeamsLoading(false);

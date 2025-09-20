@@ -49,7 +49,6 @@ function findPlayerTable(doc: Document): Element | null {
         const headerTexts = Array.from(headers).map((h) =>
           h.textContent?.trim() || ""
         );
-        console.log("headerTexts", headerTexts);
         const requiredHeaders = ["Status", "Namn", "Kommentar"];
         const hasAllHeaders = requiredHeaders.every((header) =>
           headerTexts.some((text) => text.includes(header))
@@ -210,16 +209,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log("Starting scrape...");
-    console.log("URL:", url);
-
     const result = await scrapeEventData(url);
-
-    console.log("Results:");
-    console.log("Attending players:", result.attendingPlayers);
-    if (result.error) {
-      console.log("Error:", result.error);
-    }
 
     return new Response(
       JSON.stringify(result),

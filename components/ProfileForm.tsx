@@ -31,7 +31,6 @@ export function ProfileForm() {
   // Initialize form data when profile data is loaded
   useEffect(() => {
     if (profileData) {
-      console.log('Initializing form with profile data:', profileData)
       setName(profileData.name)
       setPositions(profileData.positions)
       setHasChanges(false) // Reset changes flag when new data is loaded
@@ -62,12 +61,7 @@ export function ProfileForm() {
     setSubmitSuccess(false)
 
     try {
-      console.log('ProfileForm: Calling updateProfile with:', { name, positions })
       const result = await updateProfile({ name, positions })
-      console.log('ProfileForm: Got result:', result)
-      console.log('ProfileForm: Result type:', typeof result)
-      console.log('ProfileForm: Result keys:', Object.keys(result))
-      console.log('ProfileForm: Result.data:', result.data)
       
       if (!result.data?.success) {
         const errorMessage = result.data?.error || result.serverError || 
@@ -76,7 +70,6 @@ export function ProfileForm() {
           'Failed to update profile'
         setSubmitError(errorMessage as string)
       } else {
-        console.log('Profile update successful, refreshing data...')
         setSubmitSuccess(true)
         setHasChanges(false)
         
@@ -93,7 +86,6 @@ export function ProfileForm() {
             refreshPlayer(),
             refetch()
           ])
-          console.log('Data refresh completed')
         } catch (refreshError) {
           console.warn('Data refresh had issues, but profile was updated:', refreshError)
           // Don't show error to user since the update was successful

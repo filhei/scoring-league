@@ -31,10 +31,10 @@ export function GameView({ initialActiveGame, availablePlayers, allGames }: Game
   const gameState = useGameState()
   
   // Snackbar management
-  const { snackbar, showSnackbar } = useSnackbar()
+  const { snackbar } = useSnackbar()
   
   // Game actions
-  const actions = useGameActions(gameState, showSnackbar, gameState.timer)
+  const actions = useGameActions(gameState, gameState.timer)
 
   // Add a timeout fallback to prevent infinite loading - reduced timeout
   const [loadingTimeout, setLoadingTimeout] = useState(false)
@@ -57,27 +57,6 @@ export function GameView({ initialActiveGame, availablePlayers, allGames }: Game
                            (!gameState.hasInitialized && (gameState.gameLoading || gameState.playersLoading))
 
   // Debug logging - only log when state actually changes
-  const debugLog = useCallback(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('GameView loading state:', {
-        authLoading,
-        playersLoading: gameState.playersLoading,
-        gameLoading: gameState.gameLoading,
-        allGamesLoading: gameState.allGamesLoading,
-        hasInitialized: gameState.hasInitialized,
-        activeGame: !!gameState.activeGame,
-        availablePlayersCount: gameState.availablePlayers.length,
-        allGamesCount: gameState.allGames.length,
-        shouldShowLoading,
-        loadingTimeout,
-        isTabVisible
-      })
-    }
-  }, [authLoading, gameState.playersLoading, gameState.gameLoading, gameState.allGamesLoading, gameState.hasInitialized, gameState.activeGame, gameState.availablePlayers.length, gameState.allGames.length, shouldShowLoading, loadingTimeout, isTabVisible])
-  
-  useEffect(() => {
-    debugLog()
-  }, [debugLog])
   
   useEffect(() => {
     // Don't start timeout if tab is not visible

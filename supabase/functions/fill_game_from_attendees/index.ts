@@ -51,10 +51,6 @@ function getDefaultGoalkeepers(): {
   const teamA = Deno.env.get("DEFAULT_GOALKEEPER_A") || null;
   const teamB = Deno.env.get("DEFAULT_GOALKEEPER_B") || null;
 
-  console.log("Environment variables loaded:");
-  console.log("DEFAULT_GOALKEEPER_A:", teamA);
-  console.log("DEFAULT_GOALKEEPER_B:", teamB);
-
   return { teamA, teamB };
 }
 
@@ -64,20 +60,12 @@ function isGoalkeeperMatch(
   goalkeeperName: string,
 ): boolean {
   if (!goalkeeperName) {
-    console.log("No goalkeeper name provided for matching");
     return false;
   }
 
   const normalizedGoalkeeperName = goalkeeperName.toLowerCase().trim();
   const playerName = player.name?.toLowerCase().trim() || "";
   const playerListName = player.list_name?.toLowerCase().trim() || "";
-
-  console.log(`Checking player match for goalkeeper "${goalkeeperName}":`);
-  console.log(`  Player name: "${player.name}"`);
-  console.log(`  Player list_name: "${player.list_name}"`);
-  console.log(`  Normalized goalkeeper: "${normalizedGoalkeeperName}"`);
-  console.log(`  Normalized player name: "${playerName}"`);
-  console.log(`  Normalized list name: "${playerListName}"`);
 
   // Check for exact matches or partial matches (contains)
   const nameMatch = playerName.includes(normalizedGoalkeeperName);
@@ -87,17 +75,8 @@ function isGoalkeeperMatch(
     playerListName,
   );
 
-  console.log(`  Match results:`);
-  console.log(`    playerName.includes(goalkeeper): ${nameMatch}`);
-  console.log(`    listName.includes(goalkeeper): ${listNameMatch}`);
-  console.log(`    goalkeeper.includes(playerName): ${goalkeeperContainsName}`);
-  console.log(
-    `    goalkeeper.includes(listName): ${goalkeeperContainsListName}`,
-  );
-
   const isMatch = nameMatch || listNameMatch || goalkeeperContainsName ||
     goalkeeperContainsListName;
-  console.log(`  Final match result: ${isMatch}`);
 
   return isMatch;
 }
@@ -110,79 +89,39 @@ function identifyGoalkeepers(
   teamBGoalkeeper: MatchResult["matchedPlayers"][0] | null;
   fieldPlayers: MatchResult["matchedPlayers"];
 } {
-  console.log("=== Starting goalkeeper identification ===");
-  console.log(`Total players to process: ${players.length}`);
-
   const defaultGoalkeepers = getDefaultGoalkeepers();
   let teamAGoalkeeper: MatchResult["matchedPlayers"][0] | null = null;
   let teamBGoalkeeper: MatchResult["matchedPlayers"][0] | null = null;
   const fieldPlayers: MatchResult["matchedPlayers"] = [];
 
-  console.log("Processing each player for goalkeeper assignment:");
-
   for (const player of players) {
-    console.log(
-      `\n--- Processing player: ${
-        player.name || player.list_name || player.id
-      } ---`,
-    );
     let assignedAsGoalkeeper = false;
 
     // Check if player matches Team A goalkeeper
     if (!teamAGoalkeeper && defaultGoalkeepers.teamA) {
-      console.log(`Checking for Team A goalkeeper match...`);
       if (isGoalkeeperMatch(player, defaultGoalkeepers.teamA)) {
         teamAGoalkeeper = player;
         assignedAsGoalkeeper = true;
-        console.log(`✓ ASSIGNED as Team A goalkeeper!`);
-      } else {
-        console.log(`✗ Not a match for Team A goalkeeper`);
       }
     } else if (!defaultGoalkeepers.teamA) {
-      console.log(`No Team A goalkeeper configured`);
     } else {
-      console.log(`Team A goalkeeper already assigned`);
     }
 
     // Check if player matches Team B goalkeeper (and wasn't already assigned to Team A)
     if (!assignedAsGoalkeeper && !teamBGoalkeeper && defaultGoalkeepers.teamB) {
-      console.log(`Checking for Team B goalkeeper match...`);
       if (isGoalkeeperMatch(player, defaultGoalkeepers.teamB)) {
         teamBGoalkeeper = player;
         assignedAsGoalkeeper = true;
-        console.log(`✓ ASSIGNED as Team B goalkeeper!`);
-      } else {
-        console.log(`✗ Not a match for Team B goalkeeper`);
       }
     } else if (!defaultGoalkeepers.teamB) {
-      console.log(`No Team B goalkeeper configured`);
     } else if (teamBGoalkeeper) {
-      console.log(`Team B goalkeeper already assigned`);
     }
 
     // If not assigned as goalkeeper, add to field players
     if (!assignedAsGoalkeeper) {
       fieldPlayers.push(player);
-      console.log(`Added to field players`);
     }
   }
-
-  console.log("\n=== Goalkeeper identification complete ===");
-  console.log(
-    `Team A goalkeeper: ${
-      teamAGoalkeeper
-        ? (teamAGoalkeeper.name || teamAGoalkeeper.list_name)
-        : "None"
-    }`,
-  );
-  console.log(
-    `Team B goalkeeper: ${
-      teamBGoalkeeper
-        ? (teamBGoalkeeper.name || teamBGoalkeeper.list_name)
-        : "None"
-    }`,
-  );
-  console.log(`Field players: ${fieldPlayers.length}`);
 
   return { teamAGoalkeeper, teamBGoalkeeper, fieldPlayers };
 }
@@ -306,17 +245,6 @@ async function addPlayersToMatch(
   }
 
   // Identify goalkeepers and field players
-  console.log(
-    `\n=== About to identify goalkeepers from ${newPlayers.length} new players ===`,
-  );
-  console.log("New players list:");
-  newPlayers.forEach((player, index) => {
-    console.log(
-      `  ${
-        index + 1
-      }. ID: ${player.id}, Name: "${player.name}", List Name: "${player.list_name}"`,
-    );
-  });
 
   const { teamAGoalkeeper, teamBGoalkeeper, fieldPlayers } =
     identifyGoalkeepers(newPlayers);
@@ -331,11 +259,6 @@ async function addPlayersToMatch(
       team: "A",
       is_goalkeeper: true,
     });
-    console.log(
-      `Assigned Team A goalkeeper: ${
-        teamAGoalkeeper.name || teamAGoalkeeper.list_name
-      }`,
-    );
   }
 
   if (teamBGoalkeeper) {
@@ -345,11 +268,6 @@ async function addPlayersToMatch(
       team: "B",
       is_goalkeeper: true,
     });
-    console.log(
-      `Assigned Team B goalkeeper: ${
-        teamBGoalkeeper.name || teamBGoalkeeper.list_name
-      }`,
-    );
   }
 
   // Add field players alternating between teams
@@ -391,7 +309,6 @@ async function fillGameFromAttendees(
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Step 1: Scrape attendees
-    console.log("Scraping attendees from URL:", url);
     const scrapingResult = await callScrapeAttendees(url);
 
     if (scrapingResult.error) {
@@ -417,10 +334,6 @@ async function fillGameFromAttendees(
     }
 
     // Step 2: Match attendees to players
-    console.log(
-      "Matching attendees to players:",
-      scrapingResult.attendingPlayers,
-    );
     const matchResult = await callMatchAttendeesToPlayers(
       scrapingResult.attendingPlayers,
     );
@@ -437,7 +350,6 @@ async function fillGameFromAttendees(
     }
 
     // Step 3: Add matched players to match
-    console.log("Adding players to match:", matchResult.matchedPlayers.length);
     const addResult = await addPlayersToMatch(
       supabase,
       matchId,
@@ -447,7 +359,6 @@ async function fillGameFromAttendees(
     let randomized = false;
     if (addResult.success && addResult.addedCount > 0) {
       // Step 4: Randomize teams after adding players
-      console.log("Randomizing teams for match:", matchId);
       try {
         const randomizeResult = await callRandomizeTeams(matchId, "random");
         randomized = randomizeResult.success;
@@ -534,13 +445,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log("Filling game from attendees...");
-    console.log("Match ID:", matchId);
-    console.log("URL:", url);
-
     const result = await fillGameFromAttendees(matchId, url);
-
-    console.log("Result:", result);
 
     return new Response(
       JSON.stringify(result),

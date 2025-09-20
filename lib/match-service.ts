@@ -44,10 +44,6 @@ export class MatchService {
   ): Promise<Match | null> {
     try {
       const client = supabaseClient || supabase;
-      console.log(
-        "MatchService.pauseMatch: Starting pause for match:",
-        matchId,
-      );
 
       // Get current match data
       const { data: match, error: fetchError } = await client
@@ -63,14 +59,6 @@ export class MatchService {
         );
         throw fetchError || new Error("Match not found");
       }
-
-      console.log("MatchService.pauseMatch: Current match data:", {
-        id: match.id,
-        status: match.match_status,
-        duration: match.duration,
-        pause_duration: match.pause_duration,
-        start_time: match.start_time,
-      });
 
       const now = new Date();
 
@@ -90,18 +78,12 @@ export class MatchService {
       const currentDuration =
         Math.floor((now.getTime() - startTime.getTime()) / 1000) -
         pauseDuration;
-      console.log(
-        "MatchService.pauseMatch: Calculated duration:",
-        currentDuration,
-        "seconds",
-      );
 
       const updateData = {
         match_status: "paused",
         duration: `${currentDuration} seconds`,
         pause_duration: null, // Clear pause_duration when paused
       };
-      console.log("MatchService.pauseMatch: Update data to send:", updateData);
 
       const { data, error } = await client
         .from("matches")
@@ -120,19 +102,6 @@ export class MatchService {
         throw new Error("No data returned from update");
       }
 
-      console.log(
-        "MatchService.pauseMatch: Database update successful, returned data:",
-        data,
-      );
-      console.log(
-        "MatchService.pauseMatch: Duration field in returned data:",
-        data?.duration,
-      );
-      console.log(
-        "MatchService.pauseMatch: Pause duration field in returned data:",
-        data?.pause_duration,
-      );
-
       // Add a small delay to ensure the update is committed
       await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -149,12 +118,6 @@ export class MatchService {
           verifyError,
         );
       } else {
-        console.log("MatchService.pauseMatch: Verification fetch result:", {
-          id: verifyData?.id,
-          status: verifyData?.match_status,
-          duration: verifyData?.duration,
-          pause_duration: verifyData?.pause_duration,
-        });
       }
 
       // Return the verified data instead of the update response
@@ -174,10 +137,6 @@ export class MatchService {
   ): Promise<Match | null> {
     try {
       const client = supabaseClient || supabase;
-      console.log(
-        "MatchService.resumeMatch: Starting resume for match:",
-        matchId,
-      );
 
       // Get current match data
       const { data: match, error: fetchError } = await client
@@ -194,14 +153,6 @@ export class MatchService {
         throw fetchError || new Error("Match not found");
       }
 
-      console.log("MatchService.resumeMatch: Current match data:", {
-        id: match.id,
-        status: match.match_status,
-        duration: match.duration,
-        pause_duration: match.pause_duration,
-        start_time: match.start_time,
-      });
-
       const now = new Date();
 
       if (!match.start_time) {
@@ -217,18 +168,12 @@ export class MatchService {
       // Calculate new pause_duration: NOW - start_time - duration
       const newPauseDuration =
         Math.floor((now.getTime() - startTime.getTime()) / 1000) - duration;
-      console.log(
-        "MatchService.resumeMatch: Calculated pause_duration:",
-        newPauseDuration,
-        "seconds",
-      );
 
       const updateData = {
         match_status: "active",
         pause_duration: `${newPauseDuration} seconds`,
         duration: null, // Clear duration when active
       };
-      console.log("MatchService.resumeMatch: Update data to send:", updateData);
 
       const { data, error } = await client
         .from("matches")
@@ -250,19 +195,6 @@ export class MatchService {
         throw new Error("No data returned from update");
       }
 
-      console.log(
-        "MatchService.resumeMatch: Database update successful, returned data:",
-        data,
-      );
-      console.log(
-        "MatchService.resumeMatch: Duration field in returned data:",
-        data?.duration,
-      );
-      console.log(
-        "MatchService.resumeMatch: Pause duration field in returned data:",
-        data?.pause_duration,
-      );
-
       // Add a small delay to ensure the update is committed
       await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -279,12 +211,6 @@ export class MatchService {
           verifyError,
         );
       } else {
-        console.log("MatchService.resumeMatch: Verification fetch result:", {
-          id: verifyData?.id,
-          status: verifyData?.match_status,
-          duration: verifyData?.duration,
-          pause_duration: verifyData?.pause_duration,
-        });
       }
 
       // Return the verified data instead of the update response
@@ -304,8 +230,6 @@ export class MatchService {
     supabaseClient?: SupabaseClient<Database>,
   ): Promise<Match | null> {
     try {
-      console.log("MatchService.endMatch: Starting to end match", matchId);
-
       const client = supabaseClient || supabase;
       // Get current match data
       const { data: match, error: fetchError } = await client
@@ -321,11 +245,6 @@ export class MatchService {
         );
         throw fetchError || new Error("Match not found");
       }
-
-      console.log(
-        "MatchService.endMatch: Current match status:",
-        match.match_status,
-      );
 
       const now = new Date();
       const updates: MatchUpdate = {
@@ -351,21 +270,10 @@ export class MatchService {
           Math.floor((now.getTime() - startTime.getTime()) / 1000) -
           pauseDuration;
         updates.duration = `${finalDuration} seconds`;
-        console.log(
-          "MatchService.endMatch: Calculated final duration from active match:",
-          finalDuration,
-          "seconds",
-        );
       } else if (match.match_status === "paused" && match.duration) {
         // For paused matches, use the stored duration
         updates.duration = match.duration;
-        console.log(
-          "MatchService.endMatch: Using stored duration from paused match:",
-          match.duration,
-        );
       }
-
-      console.log("MatchService.endMatch: Updating match with:", updates);
 
       const { data, error } = await client
         .from("matches")
@@ -379,10 +287,6 @@ export class MatchService {
         throw error;
       }
 
-      console.log(
-        "MatchService.endMatch: Match updated successfully, new status:",
-        data?.match_status,
-      );
       return data;
     } catch (error) {
       console.error("Error ending match:", error);
@@ -396,25 +300,11 @@ export class MatchService {
   static calculateCurrentDuration(match: Match): number {
     if (!match) return 0;
 
-    console.log("MatchService.calculateCurrentDuration: Input match data:", {
-      id: match.id,
-      status: match.match_status,
-      duration: match.duration,
-      pause_duration: match.pause_duration,
-      start_time: match.start_time,
-    });
-
     const now = new Date();
 
     if (match.match_status === "paused" && match.duration) {
       // For paused games, return the stored duration (pause_duration should be null)
       const duration = this.parseInterval(match.duration);
-      console.log(
-        "MatchService.calculateCurrentDuration: Paused match, returning stored duration:",
-        duration,
-        "from:",
-        match.duration,
-      );
       return duration;
     } else if (match.match_status === "active") {
       if (!match.start_time) {
@@ -440,29 +330,13 @@ export class MatchService {
       const duration =
         Math.floor((now.getTime() - startTime.getTime()) / 1000) -
         pauseDuration;
-      console.log(
-        "MatchService.calculateCurrentDuration: Active match, calculated duration:",
-        duration,
-        "pause_duration:",
-        match.pause_duration,
-      );
       return duration;
     } else if (match.match_status === "finished" && match.duration) {
       // For finished games, return the final duration
       const duration = this.parseInterval(match.duration);
-      console.log(
-        "MatchService.calculateCurrentDuration: Finished match, returning final duration:",
-        duration,
-      );
       return duration;
     }
 
-    console.log(
-      "MatchService.calculateCurrentDuration: No valid duration calculation, returning 0. Match status:",
-      match.match_status,
-      "duration:",
-      match.duration,
-    );
     return 0;
   }
 

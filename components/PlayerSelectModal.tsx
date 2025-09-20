@@ -160,7 +160,6 @@ function MultiPlayerSelectModal({
     // For planned games, we want to assign the selected players to the team
     // The selected players should replace the current team members
     const selectedPlayerObjects = availablePlayers.filter(p => selectedPlayers.has(p.id))
-    console.log(`MultiPlayerSelectModal: Confirming selection for team ${team}:`, selectedPlayerObjects.map(p => p.name || 'Okänd spelare'))
     
     // Note: The goalkeeper handling is done separately in the game actions
     // This function only handles field players, goalkeepers are managed through
