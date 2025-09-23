@@ -1,6 +1,6 @@
 # Floorball player stats website
 
-CRUD application that is used by my team to track statistics across games and sessions. Available on [www.innebandy.pro](www.innebandy.pro).
+CRUD application that is used by my team to track statistics across games and sessions. Available on [www.innebandy.pro](http://www.innebandy.pro).
 
 Functionality includes:
 - Automatic team assignments by scraping attendence reports.
