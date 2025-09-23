@@ -11,7 +11,7 @@ Functionality includes:
 - (Future: smart team suggestions through elo-tracking and position balancing algorithm.)
 
 ### Tech
-Nothing fancy - just utilizing convenient services and frameworks from Vercel and Supabase.
+Nothing fancy - just Next.js and convenient services from Vercel and Supabase.
 
 Most everything is vibe coded to get up and running fast. Please don't hack.
 
