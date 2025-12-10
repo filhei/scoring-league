@@ -3,6 +3,7 @@
 import { ActiveGame } from '../ActiveGame'
 import { PlayerSelectModal } from '../PlayerSelectModal'
 import { GoalDialog } from '../GoalDialog'
+import { EditScoreDialog } from '../EditScoreDialog'
 import { LoadingOverlay } from '../ui/LoadingOverlay'
 import { Snackbar } from '../Snackbar'
 import { getTeamScore } from '../../lib/game-utils'
@@ -47,6 +48,7 @@ export function ActiveGameView({
         isSidesSwapped={isSidesSwapped}
         matchStatus={gameData.match.match_status}
         onScoreIncrement={actions.handleScoreIncrement}
+        onEditScore={actions.handleEditScore}
         onPauseToggle={actions.handlePauseToggle}
         onEndMatch={actions.handleEndMatch}
         onEndMatchAndCreateNew={actions.handleEndMatchAndCreateNew}
@@ -85,6 +87,18 @@ export function ActiveGameView({
         onSubmit={actions.handleGoalDialogSubmit}
         onCancel={actions.handleGoalDialogCancel}
         onRemoveSelectedPlayer={actions.removeSelectedPlayer}
+      />
+
+      {/* Edit Score Dialog */}
+      <EditScoreDialog
+        editDialog={actions.editScoreDialog}
+        activeGame={gameData}
+        isDarkMode={isDarkMode}
+        onPlayerClick={actions.handleEditScoreDialogPlayerClick}
+        onSubmit={actions.handleEditScoreDialogSubmit}
+        onCancel={actions.handleEditScoreDialogCancel}
+        onRemove={actions.handleEditScoreDialogRemove}
+        onRemoveSelectedPlayer={actions.removeEditScoreSelectedPlayer}
       />
 
       {/* Snackbar */}

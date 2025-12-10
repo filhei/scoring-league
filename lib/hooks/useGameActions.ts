@@ -11,11 +11,13 @@ import {
   controlMatch,
   createMatch,
   deleteMatch,
+  deleteScore,
   removeGoalkeeper,
   removePlayerFromMatch,
   resetMatch,
   toggleVests,
   updatePlayerTeam,
+  updateScore,
 } from "@/app/actions";
 import {
   convertPlannedGameToActiveGameData,
@@ -28,13 +30,16 @@ import type {
   Match,
   Player,
   PlayerSelectState,
+  Score,
 } from "../types";
 import type { GameContext, GameState } from "./useGameState";
+import type { EditScoreDialogState } from "@/components/EditScoreDialog";
 
 export interface GameActions {
   // Dialog states
   showPlayerSelect: PlayerSelectState;
   goalDialog: GoalDialogState;
+  editScoreDialog: EditScoreDialogState;
 
   // Actions
   handleScoreIncrement: (team: "A" | "B") => void;
@@ -42,6 +47,12 @@ export interface GameActions {
   handleGoalDialogSubmit: () => Promise<void>;
   handleGoalDialogCancel: () => void;
   removeSelectedPlayer: (type: "scoring" | "assisting") => void;
+  handleEditScore: (score: Score) => void;
+  handleEditScoreDialogPlayerClick: (player: Player) => void;
+  handleEditScoreDialogSubmit: () => Promise<void>;
+  handleEditScoreDialogCancel: () => void;
+  handleEditScoreDialogRemove: () => Promise<void>;
+  removeEditScoreSelectedPlayer: (type: "scoring" | "assisting") => void;
   handlePauseToggle: () => Promise<void>;
   handleEndMatch: () => Promise<void>;
   handleEndMatchAndCreateNew: () => Promise<void>;
@@ -111,6 +122,12 @@ export function useGameActions(
   const [goalDialog, setGoalDialog] = useState<GoalDialogState>({
     isOpen: false,
     team: null,
+    scoringPlayer: null,
+    assistingPlayer: null,
+  });
+  const [editScoreDialog, setEditScoreDialog] = useState<EditScoreDialogState>({
+    isOpen: false,
+    score: null,
     scoringPlayer: null,
     assistingPlayer: null,
   });
@@ -408,7 +425,8 @@ export function useGameActions(
 
       if (result.data) {
         // Refresh the game data to get the updated scores from the server
-        gameState.refreshGameData();
+        // Force an immediate refresh to replace temporary score with real one
+        await refreshCurrentGameContext();
       }
     } catch (error) {
       console.error("Error adding score:", error);
@@ -440,6 +458,327 @@ export function useGameActions(
 
   const removeSelectedPlayer = (type: "scoring" | "assisting") => {
     setGoalDialog((prev) => ({
+      ...prev,
+      [type === "scoring" ? "scoringPlayer" : "assistingPlayer"]: null,
+    }));
+  };
+
+  // Edit Score Dialog handlers
+  const handleEditScore = (score: Score) => {
+    if (!ensureCorrectMatch("Edit score")) return;
+    if (!gameState.currentGameContext) return;
+
+    // Find the scoring and assisting players
+    const allPlayers = [
+      ...gameState.currentGameContext.gameData.teamA,
+      ...gameState.currentGameContext.gameData.teamB,
+    ];
+    const goalkeepers = [
+      gameState.currentGameContext.gameData.goalkeepers.teamA,
+      gameState.currentGameContext.gameData.goalkeepers.teamB,
+    ].filter(Boolean) as Player[];
+
+    const allAvailablePlayers = [...allPlayers, ...goalkeepers];
+
+    const scoringPlayer = score.scoring_player_id
+      ? allAvailablePlayers.find((p) => p.id === score.scoring_player_id) ||
+        null
+      : null;
+    const assistingPlayer = score.assisting_player_id
+      ? allAvailablePlayers.find((p) => p.id === score.assisting_player_id) ||
+        null
+      : null;
+
+    setEditScoreDialog({
+      isOpen: true,
+      score,
+      scoringPlayer,
+      assistingPlayer,
+    });
+  };
+
+  const handleEditScoreDialogPlayerClick = (player: Player) => {
+    setEditScoreDialog((prev) => {
+      const isScoring = prev.scoringPlayer?.id === player.id;
+      const isAssisting = prev.assistingPlayer?.id === player.id;
+
+      if (isScoring) {
+        if (!prev.assistingPlayer) {
+          return { ...prev, scoringPlayer: null, assistingPlayer: player };
+        } else {
+          return { ...prev, scoringPlayer: null };
+        }
+      }
+
+      if (isAssisting) {
+        return { ...prev, assistingPlayer: null };
+      }
+
+      if (!prev.scoringPlayer) {
+        return { ...prev, scoringPlayer: player };
+      }
+
+      if (!prev.assistingPlayer) {
+        return { ...prev, assistingPlayer: player };
+      }
+
+      // Only one assisting player can be selected - silently ignore additional selections
+      return prev;
+    });
+  };
+
+  const handleEditScoreDialogSubmit = async () => {
+    if (!ensureCorrectMatch("Edit score dialog submit")) return;
+    if (!editScoreDialog.score) return;
+
+    const scoreId = editScoreDialog.score.id;
+    const matchId = gameState.currentGameContext!.matchId;
+    const originalScore = editScoreDialog.score;
+
+    // Create optimistic score update
+    const updatedScore = {
+      ...originalScore,
+      scoring_player_id: editScoreDialog.scoringPlayer?.id || null,
+      assisting_player_id: editScoreDialog.assistingPlayer?.id || null,
+    };
+
+    // Optimistically update the local state
+    if (gameState.currentGameContext) {
+      const updatedScores = gameState.currentGameContext.gameData.scores.map(
+        (score) => (score.id === scoreId ? updatedScore : score),
+      );
+      const updatedGameData = {
+        ...gameState.currentGameContext.gameData,
+        scores: updatedScores,
+      };
+      gameState.setCurrentGameContext({
+        ...gameState.currentGameContext,
+        gameData: updatedGameData,
+      });
+    }
+
+    // Close dialog immediately for better UX
+    setEditScoreDialog({
+      isOpen: false,
+      score: null,
+      scoringPlayer: null,
+      assistingPlayer: null,
+    });
+
+    try {
+      const result = await updateScore({
+        scoreId,
+        matchId,
+        scoringPlayerId: editScoreDialog.scoringPlayer?.id,
+        assistingPlayerId: editScoreDialog.assistingPlayer?.id,
+      });
+
+      if (result.validationErrors) {
+        console.error(
+          "Validation error updating score:",
+          result.validationErrors,
+        );
+        // Revert optimistic update
+        if (gameState.currentGameContext) {
+          const revertedScores = gameState.currentGameContext.gameData.scores
+            .map(
+              (score) => (score.id === scoreId ? originalScore : score),
+            );
+          const revertedGameData = {
+            ...gameState.currentGameContext.gameData,
+            scores: revertedScores,
+          };
+          gameState.setCurrentGameContext({
+            ...gameState.currentGameContext,
+            gameData: revertedGameData,
+          });
+        }
+        return;
+      }
+
+      if (result.serverError) {
+        console.error("Server error updating score:", result.serverError);
+        // Revert optimistic update
+        if (gameState.currentGameContext) {
+          const revertedScores = gameState.currentGameContext.gameData.scores
+            .map(
+              (score) => (score.id === scoreId ? originalScore : score),
+            );
+          const revertedGameData = {
+            ...gameState.currentGameContext.gameData,
+            scores: revertedScores,
+          };
+          gameState.setCurrentGameContext({
+            ...gameState.currentGameContext,
+            gameData: revertedGameData,
+          });
+        }
+        return;
+      }
+
+      if (result.data && !result.data.success) {
+        console.error("Action error updating score:", result.data.error);
+        // Revert optimistic update
+        if (gameState.currentGameContext) {
+          const revertedScores = gameState.currentGameContext.gameData.scores
+            .map(
+              (score) => (score.id === scoreId ? originalScore : score),
+            );
+          const revertedGameData = {
+            ...gameState.currentGameContext.gameData,
+            scores: revertedScores,
+          };
+          gameState.setCurrentGameContext({
+            ...gameState.currentGameContext,
+            gameData: revertedGameData,
+          });
+        }
+        return;
+      }
+
+      if (result.data && result.data.success) {
+        // Refresh the game data to get the updated scores from the server
+        await refreshCurrentGameContext();
+      }
+    } catch (error) {
+      console.error("Error updating score:", error);
+      // Revert optimistic update
+      if (gameState.currentGameContext) {
+        const revertedScores = gameState.currentGameContext.gameData.scores.map(
+          (score) => (score.id === scoreId ? originalScore : score),
+        );
+        const revertedGameData = {
+          ...gameState.currentGameContext.gameData,
+          scores: revertedScores,
+        };
+        gameState.setCurrentGameContext({
+          ...gameState.currentGameContext,
+          gameData: revertedGameData,
+        });
+      }
+    }
+  };
+
+  const handleEditScoreDialogCancel = () => {
+    setEditScoreDialog({
+      isOpen: false,
+      score: null,
+      scoringPlayer: null,
+      assistingPlayer: null,
+    });
+  };
+
+  const handleEditScoreDialogRemove = async () => {
+    if (!ensureCorrectMatch("Remove score")) return;
+    if (!editScoreDialog.score) return;
+
+    const scoreId = editScoreDialog.score.id;
+    const matchId = gameState.currentGameContext!.matchId;
+    const removedScore = editScoreDialog.score;
+    const previousScores = gameState.currentGameContext!.gameData.scores;
+
+    // Optimistically remove the score from local state
+    if (gameState.currentGameContext) {
+      const updatedScores = gameState.currentGameContext.gameData.scores.filter(
+        (score) => score.id !== scoreId,
+      );
+      const updatedGameData = {
+        ...gameState.currentGameContext.gameData,
+        scores: updatedScores,
+      };
+      gameState.setCurrentGameContext({
+        ...gameState.currentGameContext,
+        gameData: updatedGameData,
+      });
+    }
+
+    // Close dialog immediately for better UX
+    setEditScoreDialog({
+      isOpen: false,
+      score: null,
+      scoringPlayer: null,
+      assistingPlayer: null,
+    });
+
+    try {
+      const result = await deleteScore({
+        scoreId,
+        matchId,
+      });
+
+      if (result.validationErrors) {
+        console.error(
+          "Validation error deleting score:",
+          result.validationErrors,
+        );
+        // Revert optimistic update - restore previous state
+        if (gameState.currentGameContext) {
+          const revertedGameData = {
+            ...gameState.currentGameContext.gameData,
+            scores: previousScores,
+          };
+          gameState.setCurrentGameContext({
+            ...gameState.currentGameContext,
+            gameData: revertedGameData,
+          });
+        }
+        return;
+      }
+
+      if (result.serverError) {
+        console.error("Server error deleting score:", result.serverError);
+        // Revert optimistic update - restore previous state
+        if (gameState.currentGameContext) {
+          const revertedGameData = {
+            ...gameState.currentGameContext.gameData,
+            scores: previousScores,
+          };
+          gameState.setCurrentGameContext({
+            ...gameState.currentGameContext,
+            gameData: revertedGameData,
+          });
+        }
+        return;
+      }
+
+      if (result.data && !result.data.success) {
+        console.error("Action error deleting score:", result.data.error);
+        // Revert optimistic update - restore previous state
+        if (gameState.currentGameContext) {
+          const revertedGameData = {
+            ...gameState.currentGameContext.gameData,
+            scores: previousScores,
+          };
+          gameState.setCurrentGameContext({
+            ...gameState.currentGameContext,
+            gameData: revertedGameData,
+          });
+        }
+        return;
+      }
+
+      if (result.data && result.data.success) {
+        // Success - refresh the game data to get the updated scores from the server
+        await refreshCurrentGameContext();
+      }
+    } catch (error) {
+      console.error("Error deleting score:", error);
+      // Revert optimistic update - restore previous state
+      if (gameState.currentGameContext) {
+        const revertedGameData = {
+          ...gameState.currentGameContext.gameData,
+          scores: previousScores,
+        };
+        gameState.setCurrentGameContext({
+          ...gameState.currentGameContext,
+          gameData: revertedGameData,
+        });
+      }
+    }
+  };
+
+  const removeEditScoreSelectedPlayer = (type: "scoring" | "assisting") => {
+    setEditScoreDialog((prev) => ({
       ...prev,
       [type === "scoring" ? "scoringPlayer" : "assistingPlayer"]: null,
     }));
@@ -2254,6 +2593,7 @@ export function useGameActions(
     // Dialog states
     showPlayerSelect,
     goalDialog,
+    editScoreDialog,
 
     // Actions
     handleScoreIncrement,
@@ -2261,6 +2601,12 @@ export function useGameActions(
     handleGoalDialogSubmit,
     handleGoalDialogCancel,
     removeSelectedPlayer,
+    handleEditScore,
+    handleEditScoreDialogPlayerClick,
+    handleEditScoreDialogSubmit,
+    handleEditScoreDialogCancel,
+    handleEditScoreDialogRemove,
+    removeEditScoreSelectedPlayer,
     handlePauseToggle,
     handleEndMatch,
     handleEndMatchAndCreateNew,
