@@ -6,10 +6,37 @@ import { ScoreboardWrapper } from '../../components/ScoreboardWrapper'
 import { GameLoadingSkeleton } from '../../components/ui/loading-skeleton'
 import type { PlayerStats } from '../../lib/types'
 
+// Helper function to fetch all records with pagination
+async function fetchAllRecords<T>(
+  queryBuilder: () => any
+): Promise<T[]> {
+  const allRecords: T[] = []
+  const batchSize = 1000
+  let from = 0
+  let hasMore = true
+
+  while (hasMore) {
+    const query = queryBuilder().range(from, from + batchSize - 1)
+    const { data, error } = await query
+
+    if (error) throw error
+
+    if (data && data.length > 0) {
+      allRecords.push(...(data as T[]))
+      hasMore = data.length === batchSize
+      from += batchSize
+    } else {
+      hasMore = false
+    }
+  }
+
+  return allRecords
+}
+
 // Client-side data fetching for scoreboard
 async function getScoreboardData(): Promise<PlayerStats[]> {
   try {
-    // Get all finished matches
+    // Get all finished matches (should be under 1000 typically)
     const { data: matches, error: matchError } = await supabase
       .from('matches')
       .select('*')
@@ -19,30 +46,32 @@ async function getScoreboardData(): Promise<PlayerStats[]> {
 
     if (!matches || matches.length === 0) return []
 
-    // Get all match players and scores
+    // Get all match players and scores with pagination
     const matchIds = matches.map(match => match.id)
     
-    const { data: matchPlayers, error: playersError } = await supabase
-      .from('match_players')
-      .select(`
-        *,
-        players (*),
-        matches (start_time)
-      `)
-      .in('match_id', matchIds)
+    // Fetch all match players with pagination
+    const matchPlayers = await fetchAllRecords<any>(
+      () => supabase
+        .from('match_players')
+        .select(`
+          *,
+          players (*),
+          matches (start_time)
+        `)
+        .in('match_id', matchIds)
+    )
 
-    if (playersError) throw playersError
-
-    const { data: scores, error: scoresError } = await supabase
-      .from('scores')
-      .select(`
-        *,
-        scoring_player:players!scores_scoring_player_id_fkey (*),
-        assisting_player:players!scores_assisting_player_id_fkey (*)
-      `)
-      .in('match_id', matchIds)
-
-    if (scoresError) throw scoresError
+    // Fetch all scores with pagination
+    const scores = await fetchAllRecords<any>(
+      () => supabase
+        .from('scores')
+        .select(`
+          *,
+          scoring_player:players!scores_scoring_player_id_fkey (*),
+          assisting_player:players!scores_assisting_player_id_fkey (*)
+        `)
+        .in('match_id', matchIds)
+    )
 
     // Process data into PlayerStats format
     const playerStatsMap = new Map<string, {
@@ -57,7 +86,7 @@ async function getScoreboardData(): Promise<PlayerStats[]> {
     }>()
 
     // Initialize all players who participated in any match
-    matchPlayers?.forEach(mp => {
+    matchPlayers.forEach(mp => {
       if (mp.players) {
         const playerId = mp.players.id
         if (!playerStatsMap.has(playerId)) {
@@ -77,8 +106,8 @@ async function getScoreboardData(): Promise<PlayerStats[]> {
 
     // Calculate statistics for each match
     matches.forEach(match => {
-      const matchPlayerData = matchPlayers?.filter(mp => mp.match_id === match.id) || []
-      const matchScores = scores?.filter(s => s.match_id === match.id) || []
+      const matchPlayerData = matchPlayers.filter(mp => mp.match_id === match.id)
+      const matchScores = scores.filter(s => s.match_id === match.id)
       
       // Get team scores
       const teamAScore = matchScores.filter(s => s.team === 'A').length
