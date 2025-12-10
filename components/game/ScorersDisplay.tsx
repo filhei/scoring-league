@@ -63,10 +63,13 @@ function processScoresForTeam(
     
     // Handle goals without a scorer
     if (!score.scoring_player_id) {
+      // Still look up assisting player even when there's no scorer
+      const assistingPlayer = findPlayer(score.assisting_player_id)
+      
       return {
         score,
-        player: { id: 'no-scorer', name: 'Mål', elo: null, is_active: null, created_at: null, user_id: null, list_name: null },
-        assistingPlayer: null,
+        player: { id: 'no-scorer', name: 'Okänd spelare', elo: null, is_active: null, created_at: null, user_id: null, list_name: null },
+        assistingPlayer,
         timeInMinutes,
         isOwnGoal: false
       }
