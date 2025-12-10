@@ -1908,11 +1908,16 @@ export function useGameActions(
       const currentGoalkeeperA = currentGameData.goalkeepers.teamA;
       const currentGoalkeeperB = currentGameData.goalkeepers.teamB;
 
-      // Get current field players (excluding goalkeepers)
-      const teamAFieldPlayers = gameState.localTeamA.filter((p) =>
+      // Save original state for potential rollback
+      const originalTeamA = [...currentGameData.teamA];
+      const originalTeamB = [...currentGameData.teamB];
+
+      // Get current field players (excluding goalkeepers) from currentGameData
+      // This ensures we have the most up-to-date state including recent additions
+      const teamAFieldPlayers = currentGameData.teamA.filter((p) =>
         !currentGoalkeeperA || p.id !== currentGoalkeeperA.id
       );
-      const teamBFieldPlayers = gameState.localTeamB.filter((p) =>
+      const teamBFieldPlayers = currentGameData.teamB.filter((p) =>
         !currentGoalkeeperB || p.id !== currentGoalkeeperB.id
       );
 
@@ -1934,7 +1939,7 @@ export function useGameActions(
         newTeamB.push(currentGoalkeeperB);
       }
 
-      // Update local state immediately for better UX
+      // Update local state immediately for better UX (optimistic update)
       updateTeamState(newTeamA, newTeamB);
 
       // Update database - move all field players to opposite teams
@@ -1971,8 +1976,8 @@ export function useGameActions(
       );
 
       if (failedUpdates.length > 0) {
-        // Revert local state on failure
-        updateTeamState(gameState.localTeamA, gameState.localTeamB);
+        // Revert to original state on failure
+        updateTeamState(originalTeamA, originalTeamB);
         // Team swap failed
         return;
       }
