@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import type { ActiveGameData, Player } from '../lib/types'
+import type { ActiveGameData, Player, Score } from '../lib/types'
 import type { UseMatchTimerReturn } from '../lib/hooks/useMatchTimer'
 import { useDragAndDrop } from '../lib/hooks/useDragAndDrop'
 import { DragImage, TeamDisplay, GameControls, GameSettingsDropdown } from './game'
@@ -13,6 +13,7 @@ interface ActiveGameProps {
   isSidesSwapped: boolean
   matchStatus?: string
   onScoreIncrement: (team: 'A' | 'B') => void
+  onEditScore?: (score: Score) => void
   onPauseToggle: () => void
   onEndMatch: () => void
   onStartMatch?: () => void
@@ -43,6 +44,7 @@ export function ActiveGame({
   isSidesSwapped,
   matchStatus,
   onScoreIncrement,
+  onEditScore,
   onPauseToggle,
   onEndMatch,
   onStartMatch,
@@ -167,6 +169,7 @@ export function ActiveGame({
           teamBPlayers={activeGame.teamB}
           goalkeepers={activeGame.goalkeepers}
           onScoreIncrement={onScoreIncrement}
+          onEditScore={onEditScore}
           onPauseToggle={onPauseToggle}
           onEndMatch={onEndMatch}
           onStartMatch={onStartMatch}

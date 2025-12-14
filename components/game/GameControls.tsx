@@ -18,6 +18,7 @@ interface GameControlsProps {
   teamBPlayers: Player[]
   goalkeepers: { teamA: Player | null; teamB: Player | null }
   onScoreIncrement: (team: 'A' | 'B') => void
+  onEditScore?: (score: Score) => void
   onPauseToggle: () => void
   onEndMatch: () => void
   onStartMatch?: () => void
@@ -42,6 +43,7 @@ export function GameControls({
   teamBPlayers,
   goalkeepers,
   onScoreIncrement,
+  onEditScore,
   onPauseToggle,
   onEndMatch,
   onStartMatch,
@@ -165,6 +167,8 @@ export function GameControls({
         teamBPlayers={teamBPlayers}
         goalkeepers={goalkeepers}
         isDarkMode={isDarkMode}
+        onEditScore={onEditScore}
+        isAuthenticated={isAuthenticated}
       />
 
       {/* Start/End Match Button */}

@@ -7,6 +7,18 @@ export const scoreSchema = z.object({
   assistingPlayerId: z.string().uuid().optional(),
 });
 
+export const updateScoreSchema = z.object({
+  scoreId: z.string().uuid(),
+  matchId: z.string().uuid(),
+  scoringPlayerId: z.string().uuid().optional(),
+  assistingPlayerId: z.string().uuid().optional(),
+});
+
+export const deleteScoreSchema = z.object({
+  scoreId: z.string().uuid(),
+  matchId: z.string().uuid(),
+});
+
 export const playerSelectSchema = z.object({
   matchId: z.string().uuid(),
   playerId: z.string().uuid(),

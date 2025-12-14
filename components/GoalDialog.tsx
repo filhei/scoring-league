@@ -41,11 +41,7 @@ export function GoalDialog({
               }`}>
                 Nytt mål
               </h3>
-              <p className={`text-xs transition-colors duration-300 ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Fyll i poängläggare
-              </p>
+
             </div>
             
             {/* Score Tiles Column */}
@@ -141,6 +137,18 @@ export function GoalDialog({
             {/* Scoring Team Players */}
             {goalDialog.team && (
               <>
+                {/* Scoring Team Header */}
+                <div className="mb-3 px-2 py-2 rounded-lg transition-colors duration-300"
+                     style={{
+                       backgroundColor: isDarkMode ? 'rgba(34, 197, 94, 0.15)' : 'rgba(34, 197, 94, 0.1)'
+                     }}>
+                  <p className={`text-sm font-medium tracking-wide transition-colors duration-300 ${
+                    isDarkMode ? 'text-green-400' : 'text-green-600'
+                  }`}>
+                    Välj poängläggare
+                  </p>
+                </div>
+                
                 {/* Regular players for scoring team */}
                 {(goalDialog.team === 'A' ? activeGame.teamA : activeGame.teamB)
                   .filter(player => {
@@ -252,6 +260,15 @@ export function GoalDialog({
                   isDarkMode ? 'border-gray-700' : 'border-gray-300'
                 }`}></div>
                 
+                {/* Opponent Team Header */}
+                <div className="mb-2 px-2">
+                  <p className={`text-xs font-semibold uppercase tracking-wide transition-colors duration-300 ${
+                    isDarkMode ? 'text-red-400/70' : 'text-red-500/70'
+                  }`}>
+                    Motståndare
+                  </p>
+                </div>
+                
                 {/* Regular players for opponent team */}
                 {(goalDialog.team === 'A' ? activeGame.teamB : activeGame.teamA)
                   .filter(player => {
@@ -266,7 +283,7 @@ export function GoalDialog({
                     <button
                       key={player.id}
                       onClick={() => onPlayerClick(player)}
-                      className={`w-full px-2 py-1.5 text-left rounded-sm transition-[background-color] duration-150 box-border ${
+                      className={`w-full px-2 py-1.5 text-left rounded-sm transition-[background-color] duration-150 box-border opacity-50 ${
                         isScoring
                           ? isDarkMode
                             ? 'bg-gray-600'
@@ -318,7 +335,7 @@ export function GoalDialog({
                       <button
                         key={goalkeeper.id}
                         onClick={() => onPlayerClick(goalkeeper)}
-                        className={`w-full px-2 py-1.5 text-left rounded-sm transition-[background-color] duration-150 box-border ${
+                        className={`w-full px-2 py-1.5 text-left rounded-sm transition-[background-color] duration-150 box-border opacity-50 ${
                           isScoring
                             ? isDarkMode
                               ? 'bg-gray-600'

@@ -12,12 +12,14 @@ import {
   assignGoalkeeperSchema,
   createMatchSchema,
   deleteAccountSchema,
+  deleteScoreSchema,
   matchControlSchema,
   playerSelectSchema,
   removeGoalkeeperSchema,
   scoreSchema,
   updatePlayerTeamSchema,
   updateProfileSchema,
+  updateScoreSchema,
   vestToggleSchema,
 } from "../lib/schemas";
 import { handleSupabaseError } from "../lib/utils/errors";
@@ -65,6 +67,89 @@ export const addScore = actionClient
 
         revalidatePath("/");
         return { success: true, data };
+      } catch (error) {
+        const appError = error instanceof Error
+          ? error
+          : handleSupabaseError(error);
+        return { success: false, error: appError.message };
+      }
+    },
+  );
+
+export const updateScore = actionClient
+  .inputSchema(updateScoreSchema)
+  .action(
+    async (
+      { parsedInput: { scoreId, matchId, scoringPlayerId, assistingPlayerId } },
+    ) => {
+      try {
+        const supabaseServer = await createServerSupabaseClient();
+
+        // Verify match is not finished
+        const { data: matchData, error: matchError } = await supabaseServer
+          .from("matches")
+          .select("match_status")
+          .eq("id", matchId)
+          .single();
+
+        if (matchError) throw handleSupabaseError(matchError);
+        if (!matchData) throw new Error("Match not found");
+        if (matchData.match_status === "finished") {
+          throw new Error("Cannot edit scores for finished matches");
+        }
+
+        const { data, error } = await supabaseServer
+          .from("scores")
+          .update({
+            scoring_player_id: scoringPlayerId || null,
+            assisting_player_id: assistingPlayerId || null,
+          })
+          .eq("id", scoreId)
+          .select()
+          .single();
+
+        if (error) throw handleSupabaseError(error);
+
+        revalidatePath("/");
+        return { success: true, data };
+      } catch (error) {
+        const appError = error instanceof Error
+          ? error
+          : handleSupabaseError(error);
+        return { success: false, error: appError.message };
+      }
+    },
+  );
+
+export const deleteScore = actionClient
+  .inputSchema(deleteScoreSchema)
+  .action(
+    async ({ parsedInput: { scoreId, matchId } }) => {
+      try {
+        const supabaseServer = await createServerSupabaseClient();
+
+        // Verify match is not finished
+        const { data: matchData, error: matchError } = await supabaseServer
+          .from("matches")
+          .select("match_status")
+          .eq("id", matchId)
+          .single();
+
+        if (matchError) throw handleSupabaseError(matchError);
+        if (!matchData) throw new Error("Match not found");
+        if (matchData.match_status === "finished") {
+          throw new Error("Cannot delete scores for finished matches");
+        }
+
+        const { error } = await supabaseServer
+          .from("scores")
+          .delete()
+          .eq("id", scoreId);
+
+        if (error) throw handleSupabaseError(error);
+
+        revalidatePath("/");
+        return { success: true, data: { deleted: true } };
       } catch (error) {
         const appError = error instanceof Error
           ? error
